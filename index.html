@@ -29,30 +29,14 @@
       
       // Enhanced Global Error Diagnostics
       window.addEventListener('error', function(event) {
-        // Module load failures (404/CORS/Importmap resolution) often have no error object
         if (event.message === "Script error." || (!event.error && event.message === "")) {
           console.group('%c 🚀 Critical Module Failure', 'color: #ff4d4d; font-weight: bold;');
-          console.error('A module script failed to load, resolve, or crashed during evaluation.');
-          console.warn('Potential Causes:');
-          console.warn('1. Conflict in importmap (e.g., dual-loading React).');
+          console.error('A module script failed to load or resolve.');
           console.groupEnd();
           return;
         }
-
-        const message = event.message || (event.error && event.error.message) || "Unknown Runtime Error";
-        const stack = (event.error && event.error.stack) || "No stack trace available";
-        
-        console.group('%c ⚠️ Runtime Exception', 'color: #ff9900; font-weight: bold;');
-        console.error('Message:', message);
-        console.error('Stack Trace:', stack);
-        console.groupEnd();
+        console.error('Runtime Exception:', event.error || event.message);
       }, true);
-
-      window.addEventListener('unhandledrejection', function(event) {
-        console.group('%c ⚡ Unhandled Promise Rejection', 'color: #ffcc00; font-weight: bold;');
-        console.error('Reason:', event.reason);
-        console.groupEnd();
-      });
     </script>
     <script src="https://cdn.tailwindcss.com?plugins=typography,forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -88,8 +72,6 @@
         padding: 0;
         background: #1e1e1e;
       }
-      .cm-editor { height: 100% !important; outline: none !important; }
-      .cm-scroller { font-family: 'JetBrains Mono', monospace !important; }
     </style>
     <script type="importmap">
 {
