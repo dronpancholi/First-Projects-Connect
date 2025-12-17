@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { saveSupabaseConfig, getSupabaseConfig } from '../services/supabaseClient';
+import { saveSupabaseConfig, getSupabaseConfig } from '../services/supabaseClient.ts';
 import { Database, Check, AlertCircle, Copy, RefreshCw } from 'lucide-react';
 
 const SQL_SCHEMA = `
@@ -59,6 +59,7 @@ create table if not exists snippets (
   title text not null,
   language text not null,
   code text,
+  folder text,
   updated_at timestamptz default now()
 );
 

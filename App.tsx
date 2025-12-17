@@ -1,18 +1,18 @@
+
 import React, { useState } from 'react';
-import { StoreProvider } from './context/StoreContext';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { isSupabaseConfigured } from './services/supabaseClient';
-import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import ProjectList from './components/ProjectList';
-import ProjectDetail from './components/ProjectDetail';
-import IdeasView from './components/IdeasView';
-import CodeStudio from './components/CodeStudio';
-import Whiteboard from './components/Whiteboard';
-import Login from './components/Auth/Login';
-import Register from './components/Auth/Register';
-import Settings from './components/Settings';
-import { ViewState } from './types';
+import { StoreProvider } from './context/StoreContext.tsx';
+import { AuthProvider, useAuth } from './context/AuthContext.tsx';
+import Layout from './components/Layout.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import ProjectList from './components/ProjectList.tsx';
+import ProjectDetail from './components/ProjectDetail.tsx';
+import IdeasView from './components/IdeasView.tsx';
+import CodeStudio from './components/CodeStudio.tsx';
+import Whiteboard from './components/Whiteboard.tsx';
+import Login from './components/Auth/Login.tsx';
+import Register from './components/Auth/Register.tsx';
+import Settings from './components/Settings.tsx';
+import { ViewState } from './types.ts';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
 const AuthenticatedApp: React.FC = () => {

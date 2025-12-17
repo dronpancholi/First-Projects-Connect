@@ -1,14 +1,15 @@
+
 import React, { useState } from 'react';
-import { useStore } from '../context/StoreContext';
-import { ViewState, ProjectStatus } from '../types';
-import { Plus, MoreVertical, Calendar, X, Folder } from 'lucide-react';
+import { useStore } from '../context/StoreContext.tsx';
+import { ViewState, ProjectStatus } from '../types.ts';
+import { Plus, MoreVertical, Calendar, X, Folder, Trash2 } from 'lucide-react';
 
 interface ProjectListProps {
   setView: (view: ViewState) => void;
 }
 
 const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
-  const { projects, addProject } = useStore();
+  const { projects, addProject, deleteProject } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -24,6 +25,13 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
     setNewTitle('');
     setNewDesc('');
     setIsModalOpen(false);
+  };
+
+  const handleDelete = (e: React.MouseEvent, id: string, title: string) => {
+    e.stopPropagation();
+    if (confirm(`Are you sure you want to delete the project "${title}"? This cannot be undone.`)) {
+      deleteProject(id);
+    }
   };
 
   return (
@@ -57,6 +65,13 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
               }`}>
                 {project.status}
               </span>
+              <button 
+                onClick={(e) => handleDelete(e, project.id, project.title)}
+                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                title="Delete Project"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
             
             <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors">{project.title}</h3>

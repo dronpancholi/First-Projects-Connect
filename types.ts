@@ -75,6 +75,7 @@ export interface CodeSnippet {
   title: string;
   language: 'javascript' | 'typescript' | 'python' | 'html' | 'css' | 'sql' | 'json' | 'markdown' | 'rust' | 'go' | 'shell';
   code: string;
+  folder?: string;
   updatedAt: Date;
 }
 

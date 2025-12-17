@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
-import { useStore } from '../context/StoreContext';
-import { Plus, Search, FileText, Tag, Calendar, X, ArrowUpRight } from 'lucide-react';
-import { Note, ProjectStatus } from '../types';
+import { useStore } from '../context/StoreContext.tsx';
+import { Plus, Search, FileText, Tag, Calendar, X, ArrowUpRight, Trash2 } from 'lucide-react';
+import { Note, ProjectStatus } from '../types.ts';
 
 const IdeasView: React.FC = () => {
-  const { notes, projects, addNote, updateNote, addProject } = useStore();
+  const { notes, projects, addNote, updateNote, addProject, deleteNote } = useStore();
   const [filter, setFilter] = useState<'ALL' | 'IDEAS' | 'PROJECTS'>('ALL');
   const [search, setSearch] = useState('');
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -28,7 +29,6 @@ const IdeasView: React.FC = () => {
     await addNote({
       title: newTitle,
       content: newContent,
-      // projectId is undefined for standalone ideas
     });
     setNewTitle('');
     setNewContent('');
@@ -41,6 +41,14 @@ const IdeasView: React.FC = () => {
     setEditingNote(null);
   };
 
+  const handleDelete = (e: React.MouseEvent, id: string, title: string) => {
+    e.stopPropagation();
+    if (confirm(`Delete note "${title}"?`)) {
+      deleteNote(id);
+      if (editingNote?.id === id) setEditingNote(null);
+    }
+  };
+
   const handlePromoteToProject = async () => {
     if (!editingNote) return;
     if (confirm(`Create a new project from "${editingNote.title}"?`)) {
@@ -51,7 +59,6 @@ const IdeasView: React.FC = () => {
             tags: ['promoted-idea']
         });
         setEditingNote(null);
-        // Optionally navigate or show toast
     }
   };
 
@@ -111,34 +118,34 @@ const IdeasView: React.FC = () => {
             onClick={() => setEditingNote(note)}
             className="group bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-apple-blue/30 transition-all cursor-pointer flex flex-col h-64 relative overflow-hidden"
           >
-            <div className="mb-2">
-              <h3 className="font-bold text-gray-900 line-clamp-1">{note.title}</h3>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-gray-400 flex items-center gap-1">
-                  <Calendar size={10} />
-                  {new Date(note.updatedAt).toLocaleDateString()}
-                </span>
-                {getProjectName(note.projectId) && (
-                  <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-medium truncate max-w-[120px]">
-                    {getProjectName(note.projectId)}
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-900 line-clamp-1">{note.title}</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <Calendar size={10} />
+                    {new Date(note.updatedAt).toLocaleDateString()}
                   </span>
-                )}
+                  {getProjectName(note.projectId) && (
+                    <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-medium truncate max-w-[120px]">
+                      {getProjectName(note.projectId)}
+                    </span>
+                  )}
+                </div>
               </div>
+              <button 
+                onClick={(e) => handleDelete(e, note.id, note.title)}
+                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all ml-2"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
-            <p className="text-gray-600 text-sm leading-relaxed line-clamp-6 whitespace-pre-wrap">
+            <p className="text-gray-600 text-sm leading-relaxed line-clamp-6 whitespace-pre-wrap flex-1">
               {note.content}
             </p>
             <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
           </div>
         ))}
-        
-        {/* Empty State */}
-        {filteredNotes.length === 0 && (
-          <div className="col-span-full py-20 text-center text-gray-400">
-            <FileText className="mx-auto mb-3 opacity-20" size={48} />
-            <p>No notes found matching your criteria.</p>
-          </div>
-        )}
       </div>
 
       {/* Create Modal */}
@@ -185,9 +192,18 @@ const IdeasView: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <span className="text-sm font-semibold text-gray-500">Editing</span>
-              <button onClick={() => setEditingNote(null)} className="text-gray-400 hover:text-black">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={(e) => handleDelete(e, editingNote.id, editingNote.title)}
+                  className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                  title="Delete Note"
+                >
+                  <Trash2 size={20} />
+                </button>
+                <button onClick={() => setEditingNote(null)} className="text-gray-400 hover:text-black p-2">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             <div className="p-6 flex-1 overflow-auto flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -201,12 +217,6 @@ const IdeasView: React.FC = () => {
                         <ArrowUpRight size={12} />
                         Convert to Project
                       </button>
-                  )}
-                  {editingNote.projectId && (
-                    <div className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500 flex items-center gap-1">
-                      <Tag size={10} />
-                      Project Note
-                    </div>
                   )}
                 </div>
               </div>

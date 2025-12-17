@@ -1,18 +1,25 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useStore } from '../context/StoreContext';
-import { Plus, MousePointer, Type, Square, Circle as CircleIcon, StickyNote, X, Wand2, Trash2, Image as ImageIcon, Save, Layout, Maximize2, Palette, Sparkles, Send } from 'lucide-react';
-import { CanvasElement } from '../types';
-import * as GeminiService from '../services/geminiService';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useStore } from '../context/StoreContext.tsx';
+import { 
+  Plus, MousePointer, Type, Square, Circle as CircleIcon, 
+  StickyNote, X, Wand2, Trash2, Image as ImageIcon, 
+  Palette, Sparkles, Send, Layers, Copy
+} from 'lucide-react';
+import { CanvasElement } from '../types.ts';
+import * as GeminiService from '../services/geminiService.ts';
 
 const COLORS = [
-  '#FFFFFF', '#F3F4F6', '#FEF08A', '#DBEAFE', '#D1FAE5', '#FEE2E2', '#EDE9FE', '#FCE7F3', '#FFEDD5', '#000000'
+  '#FFFFFF', '#F3F4F6', '#DBEAFE', '#D1FAE5', '#FEF3C7', 
+  '#FEE2E2', '#EDE9FE', '#FCE7F3', '#FFEDD5', '#000000'
 ];
 
 const generateId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return Math.random().toString(36).substring(2, 15);
 };
+
+type ResizeHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 const Whiteboard: React.FC = () => {
   const { whiteboards, addWhiteboard, updateWhiteboard } = useStore();
@@ -24,6 +31,7 @@ const Whiteboard: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [resizingId, setResizingId] = useState<string | null>(null);
+  const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   
   const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
@@ -33,7 +41,7 @@ const Whiteboard: React.FC = () => {
 
   useEffect(() => {
     if (whiteboards.length > 0 && !activeBoardId) setActiveBoardId(whiteboards[0].id);
-  }, [whiteboards]);
+  }, [whiteboards, activeBoardId]);
 
   useEffect(() => {
     const board = whiteboards.find(w => w.id === activeBoardId);
@@ -63,16 +71,16 @@ const Whiteboard: React.FC = () => {
     }
 
     let content: string | undefined = undefined;
-    let color = '#E5E7EB';
+    let color = '#DBEAFE';
     let width = 150;
     let height = 150;
 
     if (tool === 'note') {
-      content = 'Sticky Note';
-      color = '#FEF08A';
+      content = '';
+      color = '#FEF3C7';
     } else if (tool === 'text') {
-      content = 'Enter text...';
-      height = 60;
+      content = 'New Text';
+      height = 50;
       color = 'transparent';
     } else if (tool === 'rect' || tool === 'circle') {
       color = '#DBEAFE';
@@ -96,41 +104,6 @@ const Whiteboard: React.FC = () => {
     updateWhiteboard(activeBoardId, newElements);
   };
 
-  const handleAiGenerate = async () => {
-    if (!aiPromptValue.trim() || !pendingClickPos || !activeBoardId) return;
-
-    setIsGeneratingImage(true);
-    setIsAiPromptOpen(false);
-
-    try {
-      const dataUrl = await GeminiService.generateImageForWhiteboard(aiPromptValue);
-      if (dataUrl) {
-        const newEl: CanvasElement = {
-          id: generateId(),
-          type: 'image',
-          x: pendingClickPos.x - 125,
-          y: pendingClickPos.y - 125,
-          content: dataUrl,
-          color: '#FFFFFF',
-          width: 250,
-          height: 250
-        };
-
-        const newElements = [...elements, newEl];
-        setElements(newElements);
-        setSelectedId(newEl.id);
-        updateWhiteboard(activeBoardId, newElements);
-      }
-    } catch (err) {
-      console.error("AI Generation failed", err);
-    } finally {
-      setIsGeneratingImage(false);
-      setAiPromptValue('');
-      setPendingClickPos(null);
-      setTool('select');
-    }
-  };
-
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if (tool !== 'select') return;
     e.stopPropagation();
@@ -142,39 +115,79 @@ const Whiteboard: React.FC = () => {
     }
   };
 
-  const handleResizeStart = (e: React.MouseEvent, id: string) => {
+  const handleResizeStart = (e: React.MouseEvent, id: string, handle: ResizeHandle) => {
     e.stopPropagation();
     setResizingId(id);
+    setResizeHandle(handle);
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (draggingId) {
       const newX = e.clientX - dragOffset.x;
       const newY = e.clientY - dragOffset.y;
       setElements(prev => prev.map(el => el.id === draggingId ? { ...el, x: newX, y: newY } : el));
-    } else if (resizingId && containerRef.current) {
+    } else if (resizingId && containerRef.current && resizeHandle) {
       const rect = containerRef.current.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
       
       setElements(prev => prev.map(el => {
         if (el.id === resizingId) {
-          const newWidth = Math.max(50, mouseX - el.x);
-          const newHeight = Math.max(50, mouseY - el.y);
-          return { ...el, width: newWidth, height: newHeight };
+          let newX = el.x;
+          let newY = el.y;
+          let newWidth = el.width || 150;
+          let newHeight = el.height || 150;
+
+          const right = el.x + (el.width || 0);
+          const bottom = el.y + (el.height || 0);
+
+          switch (resizeHandle) {
+            case 'bottom-right':
+              newWidth = Math.max(40, mouseX - el.x);
+              newHeight = Math.max(40, mouseY - el.y);
+              break;
+            case 'bottom-left':
+              newWidth = Math.max(40, right - mouseX);
+              newX = right - newWidth;
+              newHeight = Math.max(40, mouseY - el.y);
+              break;
+            case 'top-right':
+              newWidth = Math.max(40, mouseX - el.x);
+              newHeight = Math.max(40, bottom - mouseY);
+              newY = bottom - newHeight;
+              break;
+            case 'top-left':
+              newWidth = Math.max(40, right - mouseX);
+              newX = right - newWidth;
+              newHeight = Math.max(40, bottom - mouseY);
+              newY = bottom - newHeight;
+              break;
+          }
+
+          return { ...el, x: newX, y: newY, width: newWidth, height: newHeight };
         }
         return el;
       }));
     }
-  };
+  }, [draggingId, resizingId, resizeHandle, dragOffset]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     if ((draggingId || resizingId) && activeBoardId) {
       updateWhiteboard(activeBoardId, elements);
-      setDraggingId(null);
-      setResizingId(null);
     }
-  };
+    setDraggingId(null);
+    setResizingId(null);
+    setResizeHandle(null);
+  }, [draggingId, resizingId, activeBoardId, elements, updateWhiteboard]);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
 
   const deleteElement = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -191,16 +204,62 @@ const Whiteboard: React.FC = () => {
     updateWhiteboard(activeBoardId, newEls);
   };
 
-  const clearCanvas = () => {
-    if (activeBoardId && confirm("Clear entire canvas?")) {
-      setElements([]);
-      setSelectedId(null);
-      updateWhiteboard(activeBoardId, []);
+  const duplicateElement = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedId || !activeBoardId) return;
+    const el = elements.find(e => e.id === selectedId);
+    if (!el) return;
+    const newEl = { ...el, id: generateId(), x: el.x + 20, y: el.y + 20 };
+    const newEls = [...elements, newEl];
+    setElements(newEls);
+    setSelectedId(newEl.id);
+    updateWhiteboard(activeBoardId, newEls);
+  };
+
+  const bringToFront = () => {
+    if (!selectedId || !activeBoardId) return;
+    const el = elements.find(e => e.id === selectedId);
+    if (!el) return;
+    const newEls = [...elements.filter(e => e.id !== selectedId), el];
+    setElements(newEls);
+    updateWhiteboard(activeBoardId, newEls);
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiPromptValue.trim() || !pendingClickPos || !activeBoardId) return;
+    setIsGeneratingImage(true);
+    setIsAiPromptOpen(false);
+    try {
+      const dataUrl = await GeminiService.generateImageForWhiteboard(aiPromptValue);
+      if (dataUrl) {
+        const newEl: CanvasElement = {
+          id: generateId(),
+          type: 'image',
+          x: pendingClickPos.x - 125,
+          y: pendingClickPos.y - 125,
+          content: dataUrl,
+          color: '#FFFFFF',
+          width: 250,
+          height: 250
+        };
+        const newElements = [...elements, newEl];
+        setElements(newElements);
+        setSelectedId(newEl.id);
+        updateWhiteboard(activeBoardId, newElements);
+      }
+    } catch (err) {
+      console.error("AI Generation failed", err);
+    } finally {
+      setIsGeneratingImage(false);
+      setAiPromptValue('');
+      setPendingClickPos(null);
+      setTool('select');
     }
   };
 
   return (
     <div className="h-full flex flex-col bg-gray-50 relative overflow-hidden select-none">
+      {/* Top Toolbar */}
       <div className="absolute top-4 left-4 right-4 z-20 flex justify-between pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto bg-white/90 backdrop-blur shadow-sm border border-gray-200 rounded-2xl p-1.5">
            <select 
@@ -214,15 +273,9 @@ const Whiteboard: React.FC = () => {
            <button 
              onClick={() => addWhiteboard({ title: `Board ${whiteboards.length + 1}`, elements: [] })} 
              className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 hover:text-blue-600 transition-colors"
-             title="New Board"
            >
              <Plus size={18} />
            </button>
-           {activeBoardId && (
-             <button onClick={clearCanvas} className="p-2 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-600 transition-colors" title="Clear Canvas">
-               <Trash2 size={18} />
-             </button>
-           )}
         </div>
 
         <div className="flex flex-col items-center gap-3">
@@ -252,96 +305,55 @@ const Whiteboard: React.FC = () => {
               <div className="flex items-center gap-1.5 px-2 border-r border-gray-200 mr-1">
                 <Palette size={14} className="text-gray-400" />
               </div>
-              {COLORS.map(c => (
-                <button
-                  key={c}
-                  onClick={() => changeColor(c)}
-                  className="w-6 h-6 rounded-full border border-gray-200 transition-transform hover:scale-110 active:scale-95 shadow-sm"
-                  style={{ backgroundColor: c }}
-                />
-              ))}
+              <div className="flex gap-1">
+                {COLORS.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => changeColor(c)}
+                    className="w-6 h-6 rounded-full border border-gray-200 transition-transform hover:scale-110 shadow-sm"
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-1 px-2 border-l border-gray-200 ml-1">
+                <button onClick={duplicateElement} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500" title="Duplicate"><Copy size={14} /></button>
+                <button onClick={bringToFront} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500" title="Bring to Front"><Layers size={14} /></button>
+                <button onClick={(e) => deleteElement(e, selectedId)} className="p-1.5 hover:bg-red-50 rounded-lg text-red-500" title="Delete"><Trash2 size={14} /></button>
+              </div>
             </div>
           )}
         </div>
       </div>
 
+      {/* Canvas Area */}
       <div 
         ref={containerRef}
         className="flex-1 w-full h-full cursor-crosshair relative bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[length:32px_32px] bg-white"
-        onMouseMove={handleMouseMove} 
-        onMouseUp={handleMouseUp}
         onMouseDown={addElement}
       >
-        {!activeBoardId && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center p-12 bg-white/80 backdrop-blur rounded-[32px] border border-gray-100 shadow-2xl max-w-sm">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                <Layout size={32} />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Creative Canvas</h2>
-              <p className="text-gray-500 mb-8">Choose a board or create a new one to start brainstorming visually.</p>
-              <button 
-                onClick={() => addWhiteboard({ title: `Board ${whiteboards.length + 1}`, elements: [] })}
-                className="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
-              >
-                <Plus size={20} /> New Whiteboard
-              </button>
-            </div>
-          </div>
-        )}
-
         {isGeneratingImage && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-md z-[60] animate-in fade-in duration-300">
-            <div className="flex flex-col items-center gap-4 bg-white p-10 rounded-[40px] shadow-2xl border border-gray-100">
-               <div className="relative">
-                 <Wand2 className="text-purple-600 animate-pulse" size={48} />
-                 <div className="absolute inset-0 animate-spin border-2 border-purple-200 border-t-purple-600 rounded-full scale-150" />
-               </div>
-               <span className="font-bold text-gray-900 tracking-tight">AI Painting...</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-md z-[60]">
+            <div className="flex flex-col items-center gap-4 bg-white p-10 rounded-[40px] shadow-2xl">
+               <Sparkles className="text-purple-600 animate-pulse" size={48} />
+               <span className="font-bold text-gray-900">AI Painting...</span>
             </div>
           </div>
         )}
 
         {isAiPromptOpen && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/5 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white p-6 rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-md mx-4">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <Sparkles size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 leading-tight">AI Image Prompt</h3>
-                  <p className="text-xs text-gray-400">Describe what you want to visualize.</p>
-                </div>
-              </div>
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/5 backdrop-blur-sm p-4">
+            <div className="bg-white p-6 rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-md">
+              <h3 className="font-bold text-gray-900 mb-2">Generate Visual</h3>
               <textarea
                 autoFocus
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all h-32 resize-none mb-4"
-                placeholder="e.g. A futuristic workspace with holograms..."
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-purple-100 outline-none h-32 resize-none mb-4"
+                placeholder="Describe your image..."
                 value={aiPromptValue}
                 onChange={(e) => setAiPromptValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleAiGenerate();
-                  }
-                  if (e.key === 'Escape') setIsAiPromptOpen(false);
-                }}
               />
               <div className="flex gap-2">
-                <button 
-                  onClick={() => setIsAiPromptOpen(false)}
-                  className="flex-1 py-3 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleAiGenerate}
-                  disabled={!aiPromptValue.trim()}
-                  className="flex-2 bg-black text-white px-8 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-all disabled:opacity-50"
-                >
-                  Generate <Send size={16} />
-                </button>
+                <button onClick={() => setIsAiPromptOpen(false)} className="flex-1 py-3 text-sm font-bold text-gray-400">Cancel</button>
+                <button onClick={handleAiGenerate} className="flex-2 bg-black text-white px-8 py-3 rounded-2xl font-bold">Generate</button>
               </div>
             </div>
           </div>
@@ -351,42 +363,34 @@ const Whiteboard: React.FC = () => {
           <div
             key={el.id}
             onMouseDown={(e) => handleMouseDown(e, el.id)}
-            className={`absolute shadow-lg group transition-all ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} overflow-visible bg-white border border-gray-100 ${selectedId === el.id ? 'ring-2 ring-blue-500 shadow-xl' : 'hover:ring-2 hover:ring-blue-400/50'}`}
+            className={`absolute shadow-md group transition-all ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} ${selectedId === el.id ? 'ring-2 ring-blue-500 z-40' : 'hover:ring-2 hover:ring-blue-400/50'}`}
             style={{ 
               left: el.x, 
               top: el.y, 
               width: el.width, 
               height: el.height, 
               backgroundColor: el.color,
-              zIndex: draggingId === el.id || resizingId === el.id ? 50 : 10
+              zIndex: draggingId === el.id || resizingId === el.id ? 100 : undefined
             }}
           >
-            {/* Delete Button */}
-            <button 
-              onClick={(e) => deleteElement(e, el.id)} 
-              className="absolute -top-3 -right-3 bg-white shadow-md rounded-full p-1.5 text-red-500 hover:bg-red-50 z-20 transition-all opacity-0 group-hover:opacity-100"
-            >
-              <X size={14} />
-            </button>
-
-            {/* Resize Handle */}
-            {selectedId === el.id && (el.type === 'rect' || el.type === 'circle' || el.type === 'note' || el.type === 'image') && (
-              <div 
-                onMouseDown={(e) => handleResizeStart(e, el.id)}
-                className="absolute -bottom-1 -right-1 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-30 flex items-center justify-center shadow-sm"
-              >
-                <Maximize2 size={10} className="text-blue-500 rotate-45" />
-              </div>
+            {/* Resize Handles */}
+            {selectedId === el.id && (
+              <>
+                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-left')} className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-50 shadow-sm" />
+                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-right')} className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize z-50 shadow-sm" />
+                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-left')} className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize z-50 shadow-sm" />
+                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-right')} className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-50 shadow-sm" />
+              </>
             )}
             
             <div className="w-full h-full overflow-hidden relative rounded-inherit">
               {el.type === 'image' && el.content ? (
-                <img src={el.content} className="w-full h-full object-contain p-4 pointer-events-none select-none" />
+                <img src={el.content} className="w-full h-full object-contain p-4 pointer-events-none" />
               ) : (el.type === 'note' || el.type === 'text') ? (
                 <textarea
-                  className={`w-full h-full bg-transparent resize-none outline-none p-5 text-sm font-semibold text-gray-800 leading-relaxed ${el.type === 'text' ? 'placeholder-gray-300' : ''}`}
+                  className="w-full h-full bg-transparent resize-none outline-none p-4 text-sm font-semibold text-gray-800 leading-relaxed placeholder-gray-400"
                   value={el.content}
-                  placeholder={el.type === 'text' ? "Enter text..." : ""}
+                  placeholder={el.type === 'text' ? "Enter text..." : "Write something..."}
                   onChange={(e) => {
                      const newEls = elements.map(item => item.id === el.id ? { ...item, content: e.target.value } : item);
                      setElements(newEls);

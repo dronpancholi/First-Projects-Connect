@@ -1,7 +1,8 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useStore } from '../context/StoreContext';
+import { useStore } from '../context/StoreContext.tsx';
 import { Search, Folder, CheckSquare, FileText, ArrowRight, Link as LinkIcon } from 'lucide-react';
-import { ViewState } from '../types';
+import { ViewState } from '../types.ts';
 
 interface SpotlightProps {
   isOpen: boolean;

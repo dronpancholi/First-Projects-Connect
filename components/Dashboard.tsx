@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { useStore } from '../context/StoreContext';
-import { ProjectStatus, TaskStatus, ViewState } from '../types';
+import { useStore } from '../context/StoreContext.tsx';
+import { ProjectStatus, TaskStatus, ViewState } from '../types.ts';
 import { Activity, CheckCircle, Clock, Folder, ExternalLink, Plus, Zap, ArrowRight, Share2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 

@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from '@google/genai';
 import { X, Mic, MicOff, Waves, Volume2, AlertCircle, PlayCircle, Sparkles } from 'lucide-react';
-import { useStore } from '../context/StoreContext';
-import { ProjectStatus } from '../types';
+import { useStore } from '../context/StoreContext.tsx';
+import { ProjectStatus } from '../types.ts';
 
 const encode = (bytes: Uint8Array) => {
   let binary = '';
@@ -67,11 +67,49 @@ const createIdeaDeclaration: FunctionDeclaration = {
   },
 };
 
+const deleteProjectDeclaration: FunctionDeclaration = {
+  name: 'deleteProject',
+  parameters: {
+    type: Type.OBJECT,
+    description: 'Deletes a project from the workspace.',
+    properties: {
+      title: { type: Type.STRING, description: 'The exact title of the project to remove.' },
+    },
+    required: ['title'],
+  },
+};
+
+const deleteIdeaDeclaration: FunctionDeclaration = {
+  name: 'deleteIdea',
+  parameters: {
+    type: Type.OBJECT,
+    description: 'Deletes an idea or note from the workspace.',
+    properties: {
+      title: { type: Type.STRING, description: 'The exact title of the idea to remove.' },
+    },
+    required: ['title'],
+  },
+};
+
+const getWorkspaceSummaryDeclaration: FunctionDeclaration = {
+  name: 'getWorkspaceSummary',
+  parameters: {
+    type: Type.OBJECT,
+    description: 'Provides a text summary of all current projects, tasks, and ideas.',
+    properties: {},
+  },
+};
+
 const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
-  const { addProject, addNote } = useStore();
+  const { 
+    projects, tasks, notes, snippets, whiteboards,
+    addProject, addNote, deleteProject, deleteNote 
+  } = useStore();
+  
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
   const audioContextRef = useRef<AudioContext | null>(null);
   const inputContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef(0);
@@ -120,7 +158,6 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
             processor.connect(inCtx.destination);
           },
           onmessage: async (msg: LiveServerMessage) => {
-            // Handle Tool Calls (Agentic Actions)
             if (msg.toolCall) {
               for (const fc of msg.toolCall.functionCalls) {
                 let result = "ok";
@@ -139,6 +176,25 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
                       content: fc.args.content as string,
                     });
                     result = `Success: Idea "${fc.args.title}" saved.`;
+                  } else if (fc.name === 'deleteProject') {
+                    const target = projects.find(p => p.title.toLowerCase() === (fc.args.title as string).toLowerCase());
+                    if (target) {
+                      await deleteProject(target.id);
+                      result = `Success: Project "${fc.args.title}" removed.`;
+                    } else {
+                      result = `Error: Could not find project with title "${fc.args.title}".`;
+                    }
+                  } else if (fc.name === 'deleteIdea') {
+                    const target = notes.find(n => n.title.toLowerCase() === (fc.args.title as string).toLowerCase());
+                    if (target) {
+                      await deleteNote(target.id);
+                      result = `Success: Note "${fc.args.title}" removed.`;
+                    } else {
+                      result = `Error: Could not find idea with title "${fc.args.title}".`;
+                    }
+                  } else if (fc.name === 'getWorkspaceSummary') {
+                    const summary = `You have ${projects.length} projects, ${tasks.filter(t => t.status !== 'Done').length} pending tasks, ${notes.length} notes, ${snippets.length} code snippets, and ${whiteboards.length} whiteboards. Projects include: ${projects.map(p => p.title).join(', ')}.`;
+                    result = summary;
                   }
                 } catch (err) {
                   result = "Error: Could not complete the action.";
@@ -156,7 +212,6 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
               }
             }
 
-            // Handle Audio Output
             if (msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data) {
               const base64 = msg.serverContent.modelTurn.parts[0].inlineData.data;
               nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outCtx.currentTime);
@@ -189,8 +244,16 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
         },
         config: {
           responseModalities: [Modality.AUDIO],
-          tools: [{ functionDeclarations: [createProjectDeclaration, createIdeaDeclaration] }],
-          systemInstruction: "You are the Agentic Voice Assistant for 'First Projects Connect'. You MUST only speak English. You have the power to create projects and save ideas in the user's system. When the user asks to create something, call the appropriate tool. Keep your spoken responses concise and professional. Do not generate or recite any quotes."
+          tools: [{ 
+            functionDeclarations: [
+              createProjectDeclaration, 
+              createIdeaDeclaration, 
+              deleteProjectDeclaration, 
+              deleteIdeaDeclaration,
+              getWorkspaceSummaryDeclaration
+            ] 
+          }],
+          systemInstruction: "You are the Agentic Voice Assistant for 'First Projects Connect'. You MUST only speak English. You have the power to create and delete projects and ideas. You can also provide a summary of the workspace state. When deleting, be careful and confirm with the user if the title match isn't perfect. Keep your spoken responses concise and professional. Do not recite quotes."
         }
       });
       sessionRef.current = await sessionPromise;
@@ -246,8 +309,8 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
             </div>
           )}
           {!isActive && !isConnecting && (
-            <p className="text-sm text-gray-500 max-w-[200px] mx-auto">
-              Command your workspace with voice in English. Try "Create a project called Website Redesign".
+            <p className="text-sm text-gray-500 max-w-[200px] mx-auto leading-relaxed">
+              Command your workspace with voice. Try "Delete the project called Portfolio" or "Give me a summary".
             </p>
           )}
         </div>
@@ -273,7 +336,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
 
         <div className="flex items-center gap-4">
            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase">
-             <Sparkles size={12} /> Agentic Mode (EN-Only)
+             <Sparkles size={12} /> Full CRUD Support
            </div>
         </div>
       </div>

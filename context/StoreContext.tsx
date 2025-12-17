@@ -1,8 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Project, Task, Note, Asset, CodeSnippet, Whiteboard, CanvasElement, TaskStatus } from '../types';
-import { useAuth } from './AuthContext';
-import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { Project, Task, Note, Asset, CodeSnippet, Whiteboard, CanvasElement, TaskStatus } from '../types.ts';
+import { useAuth } from './AuthContext.tsx';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient.ts';
 
 interface StoreContextType {
   projects: Project[];
@@ -21,11 +21,14 @@ interface StoreContextType {
   
   addTask: (t: Omit<Task, 'id'>) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
   
   addNote: (n: Omit<Note, 'id' | 'updatedAt'>) => Promise<void>;
   updateNote: (id: string, content: string) => Promise<void>;
+  deleteNote: (id: string) => Promise<void>;
 
   addAsset: (a: Omit<Asset, 'id'>) => Promise<void>;
+  deleteAsset: (id: string) => Promise<void>;
 
   addSnippet: (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => Promise<void>;
   updateSnippet: (id: string, code: string) => Promise<void>;
@@ -33,6 +36,7 @@ interface StoreContextType {
 
   addWhiteboard: (w: Omit<Whiteboard, 'id' | 'updatedAt'>) => Promise<void>;
   updateWhiteboard: (id: string, elements: CanvasElement[]) => Promise<void>;
+  deleteWhiteboard: (id: string) => Promise<void>;
   
   // Computed
   getProjectProgress: (projectId: string) => number;
@@ -206,6 +210,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (error) logError("Update Task Error", error);
   };
 
+  const deleteTask = async (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    if (error) logError("Delete Task Error", error);
+  };
+
   const addNote = async (n: Omit<Note, 'id' | 'updatedAt'>) => {
     if (!user) return;
     const { data, error } = await supabase.from('notes').insert({
@@ -229,6 +239,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (error) logError("Update Note Error", error);
   };
 
+  const deleteNote = async (id: string) => {
+    setNotes(prev => prev.filter(n => n.id !== id));
+    const { error } = await supabase.from('notes').delete().eq('id', id);
+    if (error) logError("Delete Note Error", error);
+  };
+
   const addAsset = async (a: Omit<Asset, 'id'>) => {
     if (!user) return;
     const { data, error } = await supabase.from('assets').insert({
@@ -248,13 +264,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const deleteAsset = async (id: string) => {
+    setAssets(prev => prev.filter(a => a.id !== id));
+    const { error } = await supabase.from('assets').delete().eq('id', id);
+    if (error) logError("Delete Asset Error", error);
+  };
+
   const addSnippet = async (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => {
     if (!user) return;
     const { data, error } = await supabase.from('snippets').insert({
       user_id: user.id,
       title: s.title,
       language: s.language,
-      code: s.code
+      code: s.code,
+      folder: s.folder
     }).select().single();
     if (data && !error) {
       setSnippets([mapSnippet(data), ...snippets]);
@@ -305,15 +328,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (error) logError("Update Whiteboard Error", error);
   };
 
+  const deleteWhiteboard = async (id: string) => {
+    setWhiteboards(prev => prev.filter(w => w.id !== id));
+    const { error } = await supabase.from('whiteboards').delete().eq('id', id);
+    if (error) logError("Delete Whiteboard Error", error);
+  };
+
   return (
     <StoreContext.Provider value={{
       projects, tasks, notes, assets, snippets, whiteboards, isLoading, needsInitialization,
       addProject, updateProject, deleteProject,
-      addTask, updateTask,
-      addNote, updateNote,
-      addAsset,
+      addTask, updateTask, deleteTask,
+      addNote, updateNote, deleteNote,
+      addAsset, deleteAsset,
       addSnippet, updateSnippet, deleteSnippet,
-      addWhiteboard, updateWhiteboard,
+      addWhiteboard, updateWhiteboard, deleteWhiteboard,
       getProjectProgress
     }}>
       {children}

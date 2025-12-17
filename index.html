@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>First Projects Connect</title>
-    <!-- Essential environment shims for SDK compatibility -->
+    <!-- Essential environment shims for high-performance SDKs -->
     <script>
       window.global = window;
       window.process = { 
@@ -16,7 +16,7 @@
         cwd: () => '/',
         browser: true,
         nextTick: (cb) => setTimeout(cb, 0),
-        version: '',
+        version: 'v20.0.0',
         versions: {},
         platform: 'browser',
         stdout: { write: () => {} },
@@ -27,25 +27,29 @@
         removeListener: () => {}
       };
       
-      // Global error listener to debug silent "System Exceptions"
+      // Enhanced Global Error Diagnostics
       window.addEventListener('error', function(event) {
-        const error = event.error || {};
-        const message = event.message || error.message || "Unknown Runtime Error";
-        const stack = error.stack || "No stack trace available";
-        
-        if (message === 'Script error.') {
-          console.warn('Masked "Script error." - This typically indicates a CORS issue or a failed module import. Check the Network tab.');
-        } else {
-          console.group('System Exception Detected');
-          console.error('Message:', message);
-          console.error('Stack Trace:', stack);
+        // Module load failures (404/CORS/Importmap resolution) often have no error object
+        if (event.message === "Script error." || (!event.error && event.message === "")) {
+          console.group('%c 🚀 Critical Module Failure', 'color: #ff4d4d; font-weight: bold;');
+          console.error('A module script failed to load, resolve, or crashed during evaluation.');
+          console.warn('Potential Causes:');
+          console.warn('1. Conflict in importmap (e.g., dual-loading React).');
           console.groupEnd();
+          return;
         }
+
+        const message = event.message || (event.error && event.error.message) || "Unknown Runtime Error";
+        const stack = (event.error && event.error.stack) || "No stack trace available";
+        
+        console.group('%c ⚠️ Runtime Exception', 'color: #ff9900; font-weight: bold;');
+        console.error('Message:', message);
+        console.error('Stack Trace:', stack);
+        console.groupEnd();
       }, true);
 
-      // Unhandled promise rejection tracker
       window.addEventListener('unhandledrejection', function(event) {
-        console.group('Unhandled Promise Rejection');
+        console.group('%c ⚡ Unhandled Promise Rejection', 'color: #ffcc00; font-weight: bold;');
         console.error('Reason:', event.reason);
         console.groupEnd();
       });
@@ -87,41 +91,40 @@
       .cm-editor { height: 100% !important; outline: none !important; }
       .cm-scroller { font-family: 'JetBrains Mono', monospace !important; }
     </style>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client?deps=react@19.0.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0?deps=react@19.0.0",
+    "recharts": "https://esm.sh/recharts@2.13.3?deps=react@19.0.0,react-dom@19.0.0",
     "@google/genai": "https://esm.sh/@google/genai@1.34.0",
-    "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react",
-    "recharts": "https://esm.sh/recharts@2.13.3?external=react,react-dom",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.46.1",
     "codemirror": "https://esm.sh/codemirror@6.0.1",
-    "@codemirror/view": "https://esm.sh/@codemirror/view@6.34.1?external=codemirror",
-    "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1?external=codemirror",
-    "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.3?external=codemirror",
-    "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.1?external=codemirror",
-    "@codemirror/search": "https://esm.sh/@codemirror/search@6.5.6?external=codemirror",
-    "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.18.3?external=codemirror",
-    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2?external=codemirror",
-    "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.2?external=codemirror",
-    "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6.1.6?external=codemirror",
-    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.9?external=codemirror",
-    "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.3.1?external=codemirror",
-    "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.8.0?external=codemirror",
-    "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.1?external=codemirror",
-    "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.3.1?external=codemirror",
-    "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.1?external=codemirror"
+    "@codemirror/view": "https://esm.sh/@codemirror/view@6.34.1?deps=codemirror@6.0.1",
+    "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1?deps=codemirror@6.0.1",
+    "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.3?deps=codemirror@6.0.1",
+    "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.1?deps=codemirror@6.0.1",
+    "@codemirror/search": "https://esm.sh/@codemirror/search@6.5.6?deps=codemirror@6.0.1",
+    "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.18.3?deps=codemirror@6.0.1",
+    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2?deps=codemirror@6.0.1",
+    "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.2?deps=codemirror@6.0.1",
+    "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6.1.6?deps=codemirror@6.0.1",
+    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.9?deps=codemirror@6.0.1",
+    "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.3.1?deps=codemirror@6.0.1",
+    "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.8.0?deps=codemirror@6.0.1",
+    "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.1?deps=codemirror@6.0.1",
+    "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.3.1?deps=codemirror@6.0.1",
+    "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.1?deps=codemirror@6.0.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
-</head>
+  </head>
   <body class="bg-apple-gray text-apple-text overflow-hidden selection:bg-apple-blue selection:text-white">
     <div id="root"></div>
-    <!-- crossorigin attribute helps with debugging "Script error." by allowing error details to bubble up -->
-    <script type="module" src="index.tsx" crossorigin></script>
+    <script type="module" src="index.tsx" crossorigin="anonymous"></script>
   </body>
 </html>

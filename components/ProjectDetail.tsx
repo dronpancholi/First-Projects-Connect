@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
-import { useStore } from '../context/StoreContext';
-import { Project, Task, TaskStatus, Priority, AssetType } from '../types';
+import { useStore } from '../context/StoreContext.tsx';
+import { Project, Task, TaskStatus, Priority, AssetType } from '../types.ts';
 import { 
   ArrowLeft, Plus, CheckCircle2, Circle, Bot, FileText, 
-  Link as LinkIcon, Github, X, 
+  Link as LinkIcon, Github, X, Trash2,
   Figma, Layout, Database, Wand2, Slack, ArrowRight,
   Trello, Video, GitBranch, Server, Cloud, CreditCard, Box, MessageSquare, AlertTriangle, ListFilter
 } from 'lucide-react';
-import * as GeminiService from '../services/geminiService';
+import * as GeminiService from '../services/geminiService.ts';
 
 interface ProjectDetailProps {
   projectId: string;
@@ -49,7 +50,7 @@ const IntegrationCard: React.FC<{
 );
 
 const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
-  const { projects, tasks, notes, assets, addTask, addNote, updateTask, updateNote, addAsset } = useStore();
+  const { projects, tasks, notes, assets, addTask, addNote, updateTask, updateNote, addAsset, deleteTask, deleteNote, deleteAsset } = useStore();
   const project = projects.find(p => p.id === projectId);
   
   const [activeTab, setActiveTab] = useState<'tasks' | 'notes' | 'assets'>('tasks');
@@ -251,22 +252,31 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                     onChange={(e) => updateTask(task.id, { title: e.target.value })}
                   />
                   
-                  {/* AI Breakdown Action */}
-                  {task.status !== TaskStatus.DONE && (
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {task.status !== TaskStatus.DONE && (
+                      <button 
+                        onClick={() => handleBreakdownTask(task)}
+                        disabled={loadingTaskId === task.id}
+                        className={`
+                          p-1.5 rounded-lg transition-all
+                          ${loadingTaskId === task.id ? 'bg-indigo-100 text-indigo-600 animate-pulse' : 'text-gray-400 hover:bg-indigo-50 hover:text-indigo-600'}
+                        `}
+                        title="Break down with AI"
+                      >
+                        <Wand2 size={16} />
+                      </button>
+                    )}
                     <button 
-                      onClick={() => handleBreakdownTask(task)}
-                      disabled={loadingTaskId === task.id}
-                      className={`
-                        mx-2 p-1.5 rounded-lg transition-all
-                        ${loadingTaskId === task.id ? 'bg-indigo-100 text-indigo-600 animate-pulse' : 'text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 opacity-0 group-hover:opacity-100'}
-                      `}
-                      title="Break down with AI"
+                      onClick={() => { if(confirm('Delete task?')) deleteTask(task.id); }}
+                      className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-all"
+                      title="Delete Task"
                     >
-                      <Wand2 size={16} />
+                      <Trash2 size={16} />
                     </button>
-                  )}
+                  </div>
 
-                  <div className={`px-2 py-1 rounded text-xs font-medium uppercase tracking-wide ${
+                  <div className={`ml-4 px-2 py-1 rounded text-xs font-medium uppercase tracking-wide ${
                     task.priority === Priority.HIGH ? 'bg-red-50 text-red-600' :
                     task.priority === Priority.MEDIUM ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'
                   }`}>
@@ -290,11 +300,19 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
             </div>
             {projectNotes.map(note => (
               <div key={note.id} className="aspect-[4/5] bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col relative group transition-transform hover:-translate-y-1">
-                <input 
-                  className="font-bold text-lg mb-4 outline-none w-full" 
-                  value={note.title}
-                  readOnly 
-                />
+                <div className="flex justify-between items-start mb-4">
+                  <input 
+                    className="font-bold text-lg outline-none w-full bg-transparent" 
+                    value={note.title}
+                    readOnly 
+                  />
+                  <button 
+                    onClick={() => { if(confirm('Delete note?')) deleteNote(note.id); }}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-all"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
                 <textarea 
                   className="flex-1 resize-none outline-none text-gray-600 text-sm leading-relaxed"
                   value={note.content}
@@ -335,22 +353,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                </div>
              ) : (
                <div className="space-y-6">
-                 {/* Group by rough category */}
                  {[
                    { title: 'Development', types: ['github', 'gitlab', 'bitbucket', 'linear', 'jira', 'vercel', 'netlify', 'docker', 'cloudflare'] },
                    { title: 'Design', types: ['figma', 'miro', 'adobe_xd', 'sketch', 'framer', 'canva'] },
                    { title: 'Documents & Files', types: ['google_drive', 'dropbox', 'onedrive', 'notion', 'file_ref'] },
                    { title: 'Communication', types: ['slack', 'discord', 'teams', 'zoom'] },
-                   { title: 'Other', types: ['stripe', 'openai', 'link', 'trello', 'asana'] } // Catch-all
+                   { title: 'Other', types: ['stripe', 'openai', 'link', 'trello', 'asana'] }
                  ].map(group => {
-                    const groupAssets = projectAssets.filter(a => group.types.includes(a.type) || (group.title === 'Other' && !projectAssets.some(pa => pa.id === a.id && group.types.includes(pa.type))));
-                    // Logic fix: The filter above is tricky. Let's simplfy:
-                    // Just map and filter.
                     const assetsInGroup = projectAssets.filter(a => group.types.includes(a.type));
-                    // Handle "Other" separately if needed, but for now simple grouping is fine.
-                    // Actually, let's just dump "Other" logic for simplicity and rely on the list.
-                    // Re-approach: Just render grid.
-                    
                     if (assetsInGroup.length === 0) return null;
 
                     return (
@@ -360,52 +370,36 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                           {assetsInGroup.map(asset => {
                             const config = getAssetConfig(asset.type);
                             return (
-                              <a 
-                                key={asset.id} 
-                                href={asset.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-start gap-4 group"
-                              >
-                                <div className={`p-3 rounded-lg text-white ${config.color}`}>
-                                  {config.icon}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="font-medium text-gray-900 truncate">{asset.name}</h3>
-                                  <p className="text-xs text-gray-500 truncate mt-0.5 capitalize flex items-center gap-1">
-                                    {asset.type.replace('_', ' ')} <ArrowRight size={10} className="-rotate-45 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                  </p>
-                                </div>
-                              </a>
+                              <div key={asset.id} className="relative group">
+                                <a 
+                                  href={asset.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-start gap-4"
+                                >
+                                  <div className={`p-3 rounded-lg text-white ${config.color}`}>
+                                    {config.icon}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-medium text-gray-900 truncate">{asset.name}</h3>
+                                    <p className="text-xs text-gray-500 truncate mt-0.5 capitalize flex items-center gap-1">
+                                      {asset.type.replace('_', ' ')} <ArrowRight size={10} className="-rotate-45 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </p>
+                                  </div>
+                                </a>
+                                <button 
+                                  onClick={(e) => { e.preventDefault(); if(confirm('Disconnect this resource?')) deleteAsset(asset.id); }}
+                                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 bg-white shadow-sm border border-gray-100 rounded-full text-gray-400 hover:text-red-500 transition-all"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
                             );
                           })}
                         </div>
                       </div>
                     )
                  })}
-                 
-                 {/* Catch-all for Link/Other if not matched above (simplified implementation) */}
-                 {projectAssets.some(a => a.type === 'link' || a.type === 'stripe' || a.type === 'openai') && (
-                    <div>
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Links & Services</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {projectAssets.filter(a => ['link', 'stripe', 'openai'].includes(a.type)).map(asset => {
-                           const config = getAssetConfig(asset.type);
-                           return (
-                             <a key={asset.id} href={asset.url} target="_blank" className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-start gap-4 group">
-                               <div className={`p-3 rounded-lg text-white ${config.color}`}>{config.icon}</div>
-                               <div className="flex-1 min-w-0">
-                                 <h3 className="font-medium text-gray-900 truncate">{asset.name}</h3>
-                                 <p className="text-xs text-gray-500 truncate mt-0.5 capitalize flex items-center gap-1">
-                                    {asset.type} <ArrowRight size={10} className="-rotate-45 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                 </p>
-                               </div>
-                             </a>
-                           )
-                        })}
-                      </div>
-                    </div>
-                 )}
                </div>
              )}
           </div>
@@ -443,7 +437,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
               {/* Manual Selection (Visual Grid) */}
               <div className="mb-6">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Or Select Manually</h4>
-                 {/* Only showing a few popular ones to save space since we have auto-detect */}
                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 opacity-80 hover:opacity-100 transition-opacity">
                     <IntegrationCard icon={<Github />} label="GitHub" color="bg-gray-900" selected={assetType === 'github'} onClick={() => setAssetType('github')} />
                     <IntegrationCard icon={<Figma />} label="Figma" color="bg-purple-600" selected={assetType === 'figma'} onClick={() => setAssetType('figma')} />
@@ -502,19 +495,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                 <div>
                   <div className="font-semibold text-gray-900 group-hover:text-indigo-700">Generate Plan</div>
                   <div className="text-xs text-gray-500 mt-0.5">Strategy note with tasks.</div>
-                </div>
-              </button>
-
-              <button 
-                disabled 
-                className="w-full text-left p-4 rounded-xl border border-gray-200 opacity-60 flex items-center gap-4 cursor-not-allowed"
-              >
-                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
-                  <AlertTriangle size={20} />
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Risk Audit</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Coming soon...</div>
                 </div>
               </button>
             </div>

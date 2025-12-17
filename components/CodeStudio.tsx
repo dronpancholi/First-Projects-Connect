@@ -1,8 +1,14 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useStore } from '../context/StoreContext';
-import { Plus, Code, FileCode, Save, X, Sparkles, ChevronDown, Info, Zap, MessageSquareText, Search, Trash2, Edit3, Loader2, Files, Settings as SettingsIcon, Layout, Monitor, Globe, Command, ListTree, PanelRightClose, PanelRightOpen } from 'lucide-react';
-import * as GeminiService from '../services/geminiService';
+import { useStore } from '../context/StoreContext.tsx';
+import { 
+  Plus, Code, FileCode, Save, X, Sparkles, ChevronDown, ChevronRight,
+  Info, Zap, MessageSquareText, Search, Trash2, Edit3, Loader2, Files, 
+  Settings as SettingsIcon, Layout, Monitor, Globe, Command, ListTree, 
+  PanelRightClose, PanelRightOpen, Folder, FolderOpen
+} from 'lucide-react';
+import { CodeSnippet } from '../types.ts';
+import * as GeminiService from '../services/geminiService.ts';
 
 // CodeMirror imports
 import { EditorView, basicSetup } from 'codemirror';
@@ -59,18 +65,47 @@ const CodeStudio: React.FC = () => {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newFileName, setNewFileName] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showAiMenu, setShowAiMenu] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(260);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root']));
 
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
 
   const activeSnippet = snippets.find(s => s.id === activeSnippetId);
 
-  const filteredSnippets = useMemo(() => {
-    return snippets.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [snippets, searchQuery]);
+  // Group snippets by folder
+  const folderTree = useMemo(() => {
+    const tree: Record<string, CodeSnippet[]> = { 'root': [] };
+    snippets.forEach(s => {
+      const folder = s.folder || 'root';
+      if (!tree[folder]) tree[folder] = [];
+      tree[folder].push(s);
+    });
+    return tree;
+  }, [snippets]);
+
+  const toggleFolder = (folder: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folder)) next.delete(folder);
+      else next.add(folder);
+      return next;
+    });
+  };
+
+  const filteredFolders = useMemo(() => {
+    if (!searchQuery) return folderTree;
+    const q = searchQuery.toLowerCase();
+    const result: Record<string, CodeSnippet[]> = {};
+    Object.entries(folderTree).forEach(([folder, items]) => {
+      const matched = items.filter(s => s.title.toLowerCase().includes(q));
+      if (matched.length > 0) result[folder] = matched;
+    });
+    return result;
+  }, [folderTree, searchQuery]);
 
   // Sync open tabs when a snippet is selected
   useEffect(() => {
@@ -148,8 +183,16 @@ const CodeStudio: React.FC = () => {
     if (!newFileName.trim()) return;
     const lang = newFileName.includes('.') ? newFileName.split('.').pop() : 'javascript';
     const mappedLang = (lang === 'js' ? 'javascript' : lang === 'py' ? 'python' : lang) as any;
-    await addSnippet({ title: newFileName, language: mappedLang, code: '// Start coding here...' });
+    
+    await addSnippet({ 
+      title: newFileName, 
+      language: mappedLang, 
+      code: '// Start coding here...',
+      folder: newFolderName.trim() || undefined
+    });
+    
     setNewFileName('');
+    setNewFolderName('');
     setIsCreating(false);
   };
 
@@ -172,7 +215,7 @@ const CodeStudio: React.FC = () => {
 
   return (
     <div className="flex h-full bg-[#1e1e1e] text-[#cccccc] overflow-hidden select-none">
-      {/* Activity Bar (VS Code Style) */}
+      {/* Activity Bar */}
       <div className="w-12 bg-[#333333] flex flex-col items-center py-4 gap-4 border-r border-black/20 shrink-0">
         <button className="p-2 text-white bg-[#ffffff11] rounded-lg"><Files size={20} /></button>
         <button className="p-2 text-gray-500 hover:text-gray-300 transition-colors"><Search size={20} /></button>
@@ -185,7 +228,7 @@ const CodeStudio: React.FC = () => {
         style={{ width: sidebarWidth }}
         className="bg-[#252526] border-r border-black/20 flex flex-col shrink-0 overflow-hidden"
       >
-        <div className="h-9 px-4 flex items-center justify-between bg-[#252526] text-[11px] font-bold uppercase tracking-wider text-gray-400">
+        <div className="h-9 px-4 flex items-center justify-between bg-[#252526] text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-black/10">
           <span>Explorer</span>
           <div className="flex gap-1">
             <button onClick={() => setIsCreating(true)} className="p-1 hover:bg-[#ffffff11] rounded transition-colors" title="New File"><Plus size={14} /></button>
@@ -193,39 +236,66 @@ const CodeStudio: React.FC = () => {
           </div>
         </div>
         
-        <div className="p-2 border-b border-black/10">
+        <div className="p-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={12} />
             <input 
               className="w-full bg-[#1e1e1e] border border-[#3c3c3c] rounded px-8 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-[#007acc] transition-colors"
-              placeholder="Search files..."
+              placeholder="Search scripts..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto py-2">
-          {filteredSnippets.map(s => (
-            <div
-              key={s.id}
-              onClick={() => setActiveSnippetId(s.id)}
-              className={`group flex items-center gap-2 px-4 py-1.5 text-xs cursor-pointer transition-all border-l-2 ${
-                activeSnippetId === s.id 
-                  ? 'bg-[#37373d] text-white border-blue-500' 
-                  : 'text-gray-400 hover:bg-[#2a2d2e] hover:text-gray-200 border-transparent'
-              }`}
-            >
-              <FileCode size={14} className={getLanguageColor(s.language)} /> 
-              <span className="truncate flex-1 font-medium">{s.title}</span>
-              <button 
-                onClick={(e) => { e.stopPropagation(); if(confirm('Delete?')) deleteSnippet(s.id); }}
-                className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-900/30 rounded text-gray-500 hover:text-red-400"
-              >
-                <Trash2 size={12} />
-              </button>
+        <div className="flex-1 overflow-auto py-1 custom-scrollbar">
+          {Object.entries(filteredFolders).sort((a, b) => {
+            if (a[0] === 'root') return 1;
+            if (b[0] === 'root') return -1;
+            return a[0].localeCompare(b[0]);
+          }).map(([folder, items]) => (
+            <div key={folder}>
+              {folder !== 'root' && (
+                <div 
+                  onClick={() => toggleFolder(folder)}
+                  className="flex items-center gap-2 px-3 py-1 text-xs font-semibold text-gray-400 hover:bg-[#2a2d2e] cursor-pointer group"
+                >
+                  {expandedFolders.has(folder) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  {expandedFolders.has(folder) ? <FolderOpen size={14} className="text-blue-400" /> : <Folder size={14} className="text-blue-400" />}
+                  <span className="truncate flex-1">{folder}</span>
+                  <span className="text-[10px] text-gray-600 group-hover:text-gray-400">{items.length}</span>
+                </div>
+              )}
+              
+              {(folder === 'root' || expandedFolders.has(folder)) && items.map(s => (
+                <div
+                  key={s.id}
+                  onClick={() => setActiveSnippetId(s.id)}
+                  className={`group flex items-center gap-2 px-4 py-1 text-xs cursor-pointer transition-all border-l-2 ${
+                    activeSnippetId === s.id 
+                      ? 'bg-[#37373d] text-white border-blue-500' 
+                      : 'text-gray-400 hover:bg-[#2a2d2e] hover:text-gray-200 border-transparent'
+                  } ${folder !== 'root' ? 'pl-8' : ''}`}
+                >
+                  <FileCode size={14} className={getLanguageColor(s.language)} /> 
+                  <span className="truncate flex-1 font-medium">{s.title}</span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); if(confirm('Delete script?')) deleteSnippet(s.id); }}
+                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-900/30 rounded text-gray-500 hover:text-red-400"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
             </div>
           ))}
+          
+          {snippets.length === 0 && !isCreating && (
+            <div className="px-4 py-8 text-center">
+              <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-4">No scripts yet</p>
+              <button onClick={() => setIsCreating(true)} className="text-[11px] text-blue-400 hover:underline">Create your first file</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -267,6 +337,7 @@ const CodeStudio: React.FC = () => {
             <div className="h-8 bg-[#1e1e1e] flex items-center justify-between px-4 border-b border-black/10">
               <div className="flex items-center gap-4 text-[10px] text-gray-500 font-mono">
                 <span className="uppercase tracking-widest">{activeSnippet.language}</span>
+                {activeSnippet.folder && <span className="text-gray-600 font-bold px-1.5 bg-white/5 rounded">FOLDER: {activeSnippet.folder}</span>}
                 <span className="flex items-center gap-1"><Command size={10} /> S to Save</span>
               </div>
               <div className="flex gap-2">
@@ -339,7 +410,6 @@ const CodeStudio: React.FC = () => {
                 <div className="flex items-center gap-1.5 px-2 hover:bg-white/10 cursor-pointer h-full"><Globe size={10} /> UTF-8</div>
               </div>
               <div className="flex items-center gap-4">
-                 <div className="px-2 hover:bg-white/10 cursor-pointer h-full flex items-center">Spaces: 2</div>
                  <div className="px-2 hover:bg-white/10 cursor-pointer h-full flex items-center uppercase font-bold">{activeSnippet.language}</div>
                  <div className="px-2 hover:bg-white/10 cursor-pointer h-full flex items-center"><Zap size={10} className="fill-white" /> AI Ready</div>
               </div>
@@ -351,7 +421,7 @@ const CodeStudio: React.FC = () => {
               <Code size={40} className="text-gray-700" />
             </div>
             <h2 className="text-lg font-bold text-gray-400 tracking-tight">Ecosystem Code Studio</h2>
-            <p className="text-xs text-gray-600 mb-8">Select a script to start your development cycle.</p>
+            <p className="text-xs text-gray-600 mb-8">Select a script or create a new one to begin.</p>
             <div className="grid grid-cols-2 gap-3 max-w-sm">
                <button onClick={() => setIsCreating(true)} className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#007acc] text-white text-[11px] font-bold rounded-lg hover:bg-[#0062a3] shadow-lg uppercase tracking-wider transition-all">
                  <Plus size={14}/> New File
@@ -369,11 +439,11 @@ const CodeStudio: React.FC = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
            <div className="bg-[#252526] rounded-2xl shadow-2xl w-full max-w-sm border border-[#454545] overflow-hidden">
              <div className="p-4 border-b border-[#333] flex justify-between items-center bg-[#2d2d2d]">
-               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">New Script File</span>
+               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Create New Script</span>
                <button onClick={() => setIsCreating(false)} className="text-gray-400 hover:text-white p-1 transition-colors"><X size={16} /></button>
              </div>
-             <div className="p-6">
-                <div className="mb-4">
+             <div className="p-6 space-y-4">
+                <div>
                   <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">File Name</label>
                   <input 
                     autoFocus
@@ -381,17 +451,26 @@ const CodeStudio: React.FC = () => {
                     placeholder="e.g. index.js"
                     value={newFileName}
                     onChange={e => setNewFileName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Folder (Optional)</label>
+                  <input 
+                    className="w-full px-4 py-2.5 bg-[#1e1e1e] border border-[#454545] rounded-xl focus:border-[#007acc] outline-none text-sm text-gray-200 font-mono transition-all"
+                    placeholder="e.g. utils"
+                    value={newFolderName}
+                    onChange={e => setNewFolderName(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleCreate()}
                   />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-2">
                   <button onClick={() => setIsCreating(false)} className="flex-1 py-2.5 text-xs text-gray-400 hover:text-white transition-colors">Cancel</button>
                   <button 
                     onClick={handleCreate} 
                     disabled={!newFileName.trim()}
                     className="flex-1 py-2.5 bg-[#007acc] text-white text-xs font-bold rounded-xl hover:bg-[#0062a3] transition-colors disabled:opacity-50 shadow-md uppercase tracking-wider"
                   >
-                    Create File
+                    Create
                   </button>
                 </div>
              </div>

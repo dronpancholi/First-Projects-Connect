@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, Code2, PenTool, Mic, Sparkles } from 'lucide-react';
-import { ViewState } from '../types';
-import SpotlightSearch from './SpotlightSearch';
-import VoiceAssistant from './VoiceAssistant';
-import { useAuth } from '../context/AuthContext';
-import { useStore } from '../context/StoreContext';
+import { ViewState } from '../types.ts';
+import SpotlightSearch from './SpotlightSearch.tsx';
+import VoiceAssistant from './VoiceAssistant.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useStore } from '../context/StoreContext.tsx';
 
 interface LayoutProps {
   children: React.ReactNode;
