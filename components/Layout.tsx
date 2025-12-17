@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut } from 'lucide-react';
+import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, Code2, PenTool } from 'lucide-react';
 import { ViewState } from '../types';
 import SpotlightSearch from './SpotlightSearch';
 import { useAuth } from '../context/AuthContext';
@@ -50,9 +50,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
       <aside className="w-64 flex-shrink-0 border-r border-apple-border/50 bg-gray-50/80 backdrop-blur-xl flex flex-col pt-6 pb-4 px-3">
         <div className="px-3 mb-8 flex items-center gap-2">
           <div className="w-6 h-6 rounded-md bg-gradient-to-br from-gray-800 to-black flex items-center justify-center">
-            <span className="text-white text-xs font-bold">N</span>
+            <span className="text-white text-xs font-bold">FP</span>
           </div>
-          <span className="font-semibold text-apple-text tracking-tight">Nexus</span>
+          <span className="font-semibold text-apple-text tracking-tight">First Projects</span>
         </div>
 
         <div className="flex-1 space-y-1">
@@ -74,6 +74,20 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
             label="Ideas & Notes" 
             isActive={currentView.type === 'IDEAS'} 
             onClick={() => setView({ type: 'IDEAS' })} 
+          />
+          
+          <div className="px-3 text-xs font-semibold text-gray-400 mb-2 mt-6 uppercase tracking-wider">Studio</div>
+          <NavItem 
+            icon={<Code2 size={18} />} 
+            label="Code Studio" 
+            isActive={currentView.type === 'CODE_STUDIO'} 
+            onClick={() => setView({ type: 'CODE_STUDIO' })} 
+          />
+          <NavItem 
+            icon={<PenTool size={18} />} 
+            label="Whiteboard" 
+            isActive={currentView.type === 'WHITEBOARD'} 
+            onClick={() => setView({ type: 'WHITEBOARD' })} 
           />
         </div>
 

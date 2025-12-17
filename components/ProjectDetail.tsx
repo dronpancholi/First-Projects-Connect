@@ -3,8 +3,9 @@ import { useStore } from '../context/StoreContext';
 import { Project, Task, TaskStatus, Priority, AssetType } from '../types';
 import { 
   ArrowLeft, Plus, CheckCircle2, Circle, Bot, FileText, 
-  Link as LinkIcon, Github, X, ExternalLink, 
-  Figma, Layout, Database, Wand2, AlertTriangle, Hash, Slack, ArrowRight
+  Link as LinkIcon, Github, X, 
+  Figma, Layout, Database, Wand2, Slack, ArrowRight,
+  Trello, Video, GitBranch, Server, Cloud, CreditCard, Box, MessageSquare, AlertTriangle
 } from 'lucide-react';
 import * as GeminiService from '../services/geminiService';
 
@@ -36,14 +37,14 @@ const IntegrationCard: React.FC<{
   <div 
     onClick={onClick}
     className={`
-      flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer transition-all h-28
+      flex flex-col items-center justify-center p-3 rounded-xl border cursor-pointer transition-all h-24
       ${selected ? 'border-apple-blue bg-blue-50/50 ring-1 ring-apple-blue' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}
     `}
   >
-    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-white ${color}`}>
+    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 text-white shadow-sm ${color}`}>
       {icon}
     </div>
-    <span className="text-xs font-medium text-gray-700">{label}</span>
+    <span className="text-[10px] font-medium text-gray-700 text-center leading-tight">{label}</span>
   </div>
 );
 
@@ -117,27 +118,34 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
     setShowAssetModal(false);
   };
 
-  const getAssetIcon = (type: AssetType) => {
+  const getAssetConfig = (type: AssetType) => {
     switch(type) {
-      case 'github': return <Github size={20} />;
-      case 'figma': return <Figma size={20} />;
-      case 'google_drive': return <Database size={20} />;
-      case 'notion': return <FileText size={20} />;
-      case 'linear': return <Layout size={20} />;
-      case 'slack': return <Slack size={20} />;
-      default: return <LinkIcon size={20} />;
-    }
-  };
-
-  const getAssetColor = (type: AssetType) => {
-    switch(type) {
-      case 'github': return 'bg-gray-800 text-white';
-      case 'figma': return 'bg-purple-600 text-white';
-      case 'google_drive': return 'bg-blue-600 text-white';
-      case 'notion': return 'bg-gray-100 text-gray-800 border border-gray-200';
-      case 'linear': return 'bg-indigo-600 text-white';
-      case 'slack': return 'bg-emerald-600 text-white';
-      default: return 'bg-gray-100 text-gray-600';
+      // Dev
+      case 'github': return { icon: <Github size={18} />, color: 'bg-gray-900' };
+      case 'gitlab': return { icon: <GitBranch size={18} />, color: 'bg-orange-600' };
+      case 'bitbucket': return { icon: <GitBranch size={18} />, color: 'bg-blue-600' };
+      case 'linear': return { icon: <Layout size={18} />, color: 'bg-indigo-600' };
+      case 'jira': return { icon: <Layout size={18} />, color: 'bg-blue-500' };
+      case 'vercel': return { icon: <Server size={18} />, color: 'bg-black' };
+      case 'netlify': return { icon: <Cloud size={18} />, color: 'bg-teal-500' };
+      // Design
+      case 'figma': return { icon: <Figma size={18} />, color: 'bg-purple-600' };
+      case 'miro': return { icon: <Box size={18} />, color: 'bg-yellow-500' };
+      // Productivity
+      case 'google_drive': return { icon: <Database size={18} />, color: 'bg-blue-600' };
+      case 'dropbox': return { icon: <Box size={18} />, color: 'bg-blue-700' };
+      case 'onedrive': return { icon: <Cloud size={18} />, color: 'bg-blue-500' };
+      case 'notion': return { icon: <FileText size={18} />, color: 'bg-gray-800' };
+      case 'trello': return { icon: <Trello size={18} />, color: 'bg-blue-500' };
+      case 'asana': return { icon: <CheckCircle2 size={18} />, color: 'bg-red-500' };
+      case 'slack': return { icon: <Slack size={18} />, color: 'bg-emerald-600' };
+      case 'discord': return { icon: <MessageSquare size={18} />, color: 'bg-indigo-500' };
+      case 'teams': return { icon: <Video size={18} />, color: 'bg-blue-800' };
+      case 'zoom': return { icon: <Video size={18} />, color: 'bg-blue-500' };
+      // Other
+      case 'stripe': return { icon: <CreditCard size={18} />, color: 'bg-indigo-600' };
+      case 'openai': return { icon: <Bot size={18} />, color: 'bg-green-600' };
+      default: return { icon: <LinkIcon size={18} />, color: 'bg-gray-400' };
     }
   };
 
@@ -285,25 +293,28 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                </div>
              ) : (
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {projectAssets.map(asset => (
-                   <a 
-                    key={asset.id} 
-                    href={asset.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-start gap-4 group"
-                   >
-                     <div className={`p-3 rounded-lg ${getAssetColor(asset.type)}`}>
-                       {getAssetIcon(asset.type)}
-                     </div>
-                     <div className="flex-1 min-w-0">
-                       <h3 className="font-medium text-gray-900 truncate">{asset.name}</h3>
-                       <p className="text-xs text-gray-500 truncate mt-0.5 capitalize flex items-center gap-1">
-                        {asset.type.replace('_', ' ')} <ArrowRight size={10} className="-rotate-45" />
-                       </p>
-                     </div>
-                   </a>
-                 ))}
+                 {projectAssets.map(asset => {
+                   const config = getAssetConfig(asset.type);
+                   return (
+                     <a 
+                      key={asset.id} 
+                      href={asset.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-start gap-4 group"
+                     >
+                       <div className={`p-3 rounded-lg text-white ${config.color}`}>
+                         {config.icon}
+                       </div>
+                       <div className="flex-1 min-w-0">
+                         <h3 className="font-medium text-gray-900 truncate">{asset.name}</h3>
+                         <p className="text-xs text-gray-500 truncate mt-0.5 capitalize flex items-center gap-1">
+                          {asset.type.replace('_', ' ')} <ArrowRight size={10} className="-rotate-45" />
+                         </p>
+                       </div>
+                     </a>
+                   );
+                 })}
                </div>
              )}
           </div>
@@ -313,50 +324,76 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
       {/* Integration Hub Modal */}
       {showAssetModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h3 className="font-bold text-lg">Connect Resource</h3>
               <button onClick={() => setShowAssetModal(false)}><X size={20} className="text-gray-400 hover:text-black" /></button>
             </div>
             
-            <div className="p-6 overflow-auto">
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 mb-8">
-                <IntegrationCard 
-                  icon={<Github />} label="GitHub" color="bg-gray-900" 
-                  selected={assetType === 'github'} onClick={() => setAssetType('github')} 
-                />
-                <IntegrationCard 
-                  icon={<Figma />} label="Figma" color="bg-purple-600" 
-                  selected={assetType === 'figma'} onClick={() => setAssetType('figma')} 
-                />
-                <IntegrationCard 
-                  icon={<Database />} label="Drive" color="bg-blue-600" 
-                  selected={assetType === 'google_drive'} onClick={() => setAssetType('google_drive')} 
-                />
-                <IntegrationCard 
-                  icon={<FileText />} label="Notion" color="bg-gray-800" 
-                  selected={assetType === 'notion'} onClick={() => setAssetType('notion')} 
-                />
-                <IntegrationCard 
-                  icon={<Layout />} label="Linear" color="bg-indigo-600" 
-                  selected={assetType === 'linear'} onClick={() => setAssetType('linear')} 
-                />
-                <IntegrationCard 
-                  icon={<Slack />} label="Slack" color="bg-emerald-600" 
-                  selected={assetType === 'slack'} onClick={() => setAssetType('slack')} 
-                />
-                <IntegrationCard 
-                  icon={<LinkIcon />} label="Website" color="bg-gray-400" 
-                  selected={assetType === 'link'} onClick={() => setAssetType('link')} 
-                />
+            <div className="p-6 overflow-auto bg-gray-50/30">
+              
+              {/* Category: Development */}
+              <div className="mb-6">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Development</h4>
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                  <IntegrationCard icon={<Github />} label="GitHub" color="bg-gray-900" selected={assetType === 'github'} onClick={() => setAssetType('github')} />
+                  <IntegrationCard icon={<GitBranch />} label="GitLab" color="bg-orange-600" selected={assetType === 'gitlab'} onClick={() => setAssetType('gitlab')} />
+                  <IntegrationCard icon={<GitBranch />} label="BitBucket" color="bg-blue-600" selected={assetType === 'bitbucket'} onClick={() => setAssetType('bitbucket')} />
+                  <IntegrationCard icon={<Layout />} label="Linear" color="bg-indigo-600" selected={assetType === 'linear'} onClick={() => setAssetType('linear')} />
+                  <IntegrationCard icon={<Layout />} label="Jira" color="bg-blue-500" selected={assetType === 'jira'} onClick={() => setAssetType('jira')} />
+                  <IntegrationCard icon={<Server />} label="Vercel" color="bg-black" selected={assetType === 'vercel'} onClick={() => setAssetType('vercel')} />
+                  <IntegrationCard icon={<Cloud />} label="Netlify" color="bg-teal-500" selected={assetType === 'netlify'} onClick={() => setAssetType('netlify')} />
+                  <IntegrationCard icon={<Cloud />} label="Cloudflare" color="bg-orange-500" selected={assetType === 'cloudflare'} onClick={() => setAssetType('cloudflare')} />
+                  <IntegrationCard icon={<Server />} label="Docker" color="bg-blue-500" selected={assetType === 'docker'} onClick={() => setAssetType('docker')} />
+                </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-gray-100">
+              {/* Category: Design */}
+              <div className="mb-6">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Design</h4>
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                  <IntegrationCard icon={<Figma />} label="Figma" color="bg-purple-600" selected={assetType === 'figma'} onClick={() => setAssetType('figma')} />
+                  <IntegrationCard icon={<Box />} label="Miro" color="bg-yellow-500" selected={assetType === 'miro'} onClick={() => setAssetType('miro')} />
+                  <IntegrationCard icon={<Box />} label="Adobe XD" color="bg-pink-600" selected={assetType === 'adobe_xd'} onClick={() => setAssetType('adobe_xd')} />
+                  <IntegrationCard icon={<Box />} label="Sketch" color="bg-orange-400" selected={assetType === 'sketch'} onClick={() => setAssetType('sketch')} />
+                  <IntegrationCard icon={<Box />} label="Framer" color="bg-black" selected={assetType === 'framer'} onClick={() => setAssetType('framer')} />
+                  <IntegrationCard icon={<Box />} label="Canva" color="bg-blue-400" selected={assetType === 'canva'} onClick={() => setAssetType('canva')} />
+                </div>
+              </div>
+
+              {/* Category: Productivity */}
+              <div className="mb-6">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Productivity & Communication</h4>
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                  <IntegrationCard icon={<Database />} label="G-Drive" color="bg-blue-600" selected={assetType === 'google_drive'} onClick={() => setAssetType('google_drive')} />
+                  <IntegrationCard icon={<Box />} label="Dropbox" color="bg-blue-700" selected={assetType === 'dropbox'} onClick={() => setAssetType('dropbox')} />
+                  <IntegrationCard icon={<Cloud />} label="OneDrive" color="bg-blue-500" selected={assetType === 'onedrive'} onClick={() => setAssetType('onedrive')} />
+                  <IntegrationCard icon={<FileText />} label="Notion" color="bg-gray-800" selected={assetType === 'notion'} onClick={() => setAssetType('notion')} />
+                  <IntegrationCard icon={<Trello />} label="Trello" color="bg-blue-500" selected={assetType === 'trello'} onClick={() => setAssetType('trello')} />
+                  <IntegrationCard icon={<CheckCircle2 />} label="Asana" color="bg-red-500" selected={assetType === 'asana'} onClick={() => setAssetType('asana')} />
+                  <IntegrationCard icon={<Slack />} label="Slack" color="bg-emerald-600" selected={assetType === 'slack'} onClick={() => setAssetType('slack')} />
+                  <IntegrationCard icon={<MessageSquare />} label="Discord" color="bg-indigo-500" selected={assetType === 'discord'} onClick={() => setAssetType('discord')} />
+                  <IntegrationCard icon={<Video />} label="Zoom" color="bg-blue-500" selected={assetType === 'zoom'} onClick={() => setAssetType('zoom')} />
+                  <IntegrationCard icon={<Video />} label="Teams" color="bg-blue-800" selected={assetType === 'teams'} onClick={() => setAssetType('teams')} />
+                </div>
+              </div>
+              
+               {/* Category: Other */}
+               <div className="mb-6">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Services</h4>
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                   <IntegrationCard icon={<CreditCard />} label="Stripe" color="bg-indigo-600" selected={assetType === 'stripe'} onClick={() => setAssetType('stripe')} />
+                   <IntegrationCard icon={<Bot />} label="OpenAI" color="bg-green-600" selected={assetType === 'openai'} onClick={() => setAssetType('openai')} />
+                   <IntegrationCard icon={<LinkIcon />} label="Website" color="bg-gray-400" selected={assetType === 'link'} onClick={() => setAssetType('link')} />
+                </div>
+               </div>
+
+              <div className="space-y-4 pt-4 border-t border-gray-100 mt-6 bg-white p-4 rounded-xl">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Display Name</label>
                   <input 
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                    placeholder={`e.g. Project ${assetType === 'github' ? 'Repository' : 'File'}`}
+                    placeholder="e.g. Project Repository"
                     value={assetName}
                     onChange={e => setAssetName(e.target.value)}
                   />
@@ -373,7 +410,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-100 flex justify-end">
+            <div className="p-4 border-t border-gray-100 flex justify-end bg-white">
                <button 
                 onClick={handleAddAsset}
                 disabled={!assetName || !assetUrl}

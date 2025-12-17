@@ -5,6 +5,7 @@ import { Database, Check, AlertCircle, Copy } from 'lucide-react';
 const SQL_SCHEMA = `
 -- Run this in your Supabase SQL Editor
 
+-- 1. Projects & Tasks
 create table projects (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
@@ -26,6 +27,7 @@ create table tasks (
   due_date timestamptz
 );
 
+-- 2. Notes & Assets
 create table notes (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
@@ -45,16 +47,38 @@ create table assets (
   description text
 );
 
+-- 3. Code Studio & Whiteboards
+create table snippets (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users not null,
+  title text not null,
+  language text not null,
+  code text,
+  updated_at timestamptz default now()
+);
+
+create table whiteboards (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users not null,
+  title text not null,
+  elements jsonb default '[]',
+  updated_at timestamptz default now()
+);
+
 -- Security Policies
 alter table projects enable row level security;
 alter table tasks enable row level security;
 alter table notes enable row level security;
 alter table assets enable row level security;
+alter table snippets enable row level security;
+alter table whiteboards enable row level security;
 
 create policy "Users can crud their own projects" on projects for all using (auth.uid() = user_id);
 create policy "Users can crud their own tasks" on tasks for all using (auth.uid() = user_id);
 create policy "Users can crud their own notes" on notes for all using (auth.uid() = user_id);
 create policy "Users can crud their own assets" on assets for all using (auth.uid() = user_id);
+create policy "Users can crud their own snippets" on snippets for all using (auth.uid() = user_id);
+create policy "Users can crud their own whiteboards" on whiteboards for all using (auth.uid() = user_id);
 `;
 
 const Settings: React.FC = () => {
@@ -77,7 +101,7 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-4xl mx-auto pb-20">
       <h1 className="text-3xl font-bold text-apple-text tracking-tight mb-8">System Settings</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

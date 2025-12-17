@@ -1,3 +1,4 @@
+
 export enum ProjectStatus {
   IDEA = 'Idea',
   ACTIVE = 'Active',
@@ -25,22 +26,21 @@ export interface User {
 
 export interface Note {
   id: string;
-  projectId?: string; // Optional, can be a standalone idea
+  projectId?: string;
   title: string;
   content: string;
   updatedAt: Date;
 }
 
 export type AssetType = 
-  | 'link' 
-  | 'github' 
-  | 'google_drive' 
-  | 'figma' 
-  | 'notion' 
-  | 'linear' 
-  | 'miro' 
-  | 'slack'
-  | 'file_ref';
+  // Dev
+  | 'github' | 'gitlab' | 'bitbucket' | 'linear' | 'jira' | 'vercel' | 'netlify' | 'cloudflare' | 'docker'
+  // Design
+  | 'figma' | 'miro' | 'adobe_xd' | 'sketch' | 'framer' | 'canva'
+  // Productivity
+  | 'google_drive' | 'notion' | 'trello' | 'asana' | 'slack' | 'discord' | 'teams' | 'zoom' | 'dropbox' | 'onedrive'
+  // Other
+  | 'stripe' | 'openai' | 'link' | 'file_ref';
 
 export interface Asset {
   id: string;
@@ -65,9 +65,35 @@ export interface Project {
   title: string;
   description: string;
   status: ProjectStatus;
-  progress: number; // 0-100
+  progress: number;
   tags: string[];
   createdAt: Date;
+}
+
+export interface CodeSnippet {
+  id: string;
+  title: string;
+  language: 'javascript' | 'typescript' | 'python' | 'html' | 'css' | 'sql' | 'json' | 'markdown' | 'rust' | 'go' | 'shell';
+  code: string;
+  updatedAt: Date;
+}
+
+export interface CanvasElement {
+  id: string;
+  type: 'note' | 'text' | 'rect' | 'circle';
+  x: number;
+  y: number;
+  content?: string;
+  color?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface Whiteboard {
+  id: string;
+  title: string;
+  elements: CanvasElement[];
+  updatedAt: Date;
 }
 
 export type ViewState = 
@@ -75,4 +101,6 @@ export type ViewState =
   | { type: 'PROJECTS' }
   | { type: 'PROJECT_DETAIL'; projectId: string }
   | { type: 'IDEAS' }
+  | { type: 'CODE_STUDIO' }
+  | { type: 'WHITEBOARD' }
   | { type: 'SETTINGS' };

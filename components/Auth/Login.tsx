@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, Settings, Database } from 'lucide-react';
 
 interface LoginProps {
   onRegisterClick: () => void;
+  onSettingsClick: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onRegisterClick }) => {
+const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
   const { login, isLoading, error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,7 +18,15 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick }) => {
   };
 
   return (
-    <div className="w-full max-w-md p-8 bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100">
+    <div className="w-full max-w-md p-8 bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100 relative">
+      <button 
+        onClick={onSettingsClick}
+        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black transition-colors"
+        title="Settings"
+      >
+        <Settings size={20} />
+      </button>
+
       <div className="text-center mb-8">
         <div className="w-12 h-12 bg-black rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg">
            <span className="text-white font-bold text-xl">N</span>
@@ -57,9 +66,17 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick }) => {
         </div>
 
         <button 
+          type="button"
+          onClick={onSettingsClick}
+          className="w-full bg-white border border-gray-200 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+        >
+          <Database size={16} /> Connect App
+        </button>
+
+        <button 
           type="submit" 
           disabled={isLoading}
-          className="w-full bg-black text-white font-medium py-3 rounded-lg mt-2 hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="w-full bg-black text-white font-medium py-3 rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Sign In <ArrowRight size={16} /></>}
         </button>

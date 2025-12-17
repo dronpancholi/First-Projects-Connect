@@ -2,12 +2,22 @@ import { createClient } from '@supabase/supabase-js';
 
 const CONFIG_KEY = 'nexus_supabase_config';
 
+// Default credentials provided by user
+const DEFAULT_URL = 'https://dublfowbviweyuauecma.supabase.co';
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1Ymxmb3didml3ZXl1YXVlY21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NzYzMzYsImV4cCI6MjA4MTU1MjMzNn0.h7H9RNVOqpDT0CtUZTAOweGvMtlpTKlSQ4OqYm7SoI4';
+
 export const getSupabaseConfig = () => {
   const stored = localStorage.getItem(CONFIG_KEY);
-  if (stored) return JSON.parse(stored);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      console.error('Failed to parse stored supabase config');
+    }
+  }
   return {
-    url: '',
-    key: ''
+    url: DEFAULT_URL,
+    key: DEFAULT_KEY
   };
 };
 
@@ -19,14 +29,10 @@ export const saveSupabaseConfig = (url: string, key: string) => {
 
 export const isSupabaseConfigured = () => {
   const { url, key } = getSupabaseConfig();
-  return url && key;
+  return Boolean(url && key);
 };
 
-// Initialize client if configured
+// Initialize client with configuration
 const { url, key } = getSupabaseConfig();
 
-// Default to a dummy client if not configured so imports don't crash, 
-// but the App will block access until configured.
-export const supabase = url && key 
-  ? createClient(url, key) 
-  : createClient('https://placeholder.supabase.co', 'placeholder');
+export const supabase = createClient(url, key);
