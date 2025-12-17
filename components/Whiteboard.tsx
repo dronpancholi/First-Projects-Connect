@@ -2,9 +2,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 // Added Layout icon to imports from lucide-react to fix "Cannot find name 'Layout'" error
-import { Plus, MousePointer, Type, Square, Circle as CircleIcon, StickyNote, X, Wand2, Trash2, Image as ImageIcon, Save, Layout } from 'lucide-react';
+import { Plus, MousePointer, Type, Square, Circle as CircleIcon, StickyNote, X, Wand2, Trash2, Image as ImageIcon, Save, Layout, Maximize2, Palette } from 'lucide-react';
 import { CanvasElement } from '../types';
 import * as GeminiService from '../services/geminiService';
+
+const COLORS = [
+  '#FFFFFF', '#F3F4F6', '#FEF08A', '#DBEAFE', '#D1FAE5', '#FEE2E2', '#EDE9FE', '#FCE7F3', '#FFEDD5', '#000000'
+];
 
 const generateId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -18,7 +22,9 @@ const Whiteboard: React.FC = () => {
   
   const [tool, setTool] = useState<'select' | 'note' | 'text' | 'rect' | 'circle' | 'image'>('select');
   const [elements, setElements] = useState<CanvasElement[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [resizingId, setResizingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
@@ -30,9 +36,18 @@ const Whiteboard: React.FC = () => {
     const board = whiteboards.find(w => w.id === activeBoardId);
     if (board) setElements(board.elements || []);
     else setElements([]);
+    setSelectedId(null);
   }, [activeBoardId, whiteboards]);
 
   const addElement = async (e: React.MouseEvent) => {
+    // If we click the background, deselect unless we are using a tool
+    if (e.target === containerRef.current) {
+      if (tool === 'select') {
+        setSelectedId(null);
+        return;
+      }
+    }
+
     // Only add if clicking directly on the canvas background
     if (tool === 'select' || !activeBoardId || !containerRef.current || e.target !== containerRef.current) return;
     
@@ -62,6 +77,8 @@ const Whiteboard: React.FC = () => {
       content = 'Enter text...';
       height = 60;
       color = 'transparent';
+    } else if (tool === 'rect' || tool === 'circle') {
+      color = '#DBEAFE';
     }
 
     const newEl: CanvasElement = {
@@ -78,12 +95,14 @@ const Whiteboard: React.FC = () => {
     const newElements = [...elements, newEl];
     setElements(newElements);
     setTool('select'); 
+    setSelectedId(newEl.id);
     updateWhiteboard(activeBoardId, newElements);
   };
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if (tool !== 'select') return;
     e.stopPropagation();
+    setSelectedId(id);
     const el = elements.find(el => el.id === id);
     if (el) {
       setDraggingId(id);
@@ -91,18 +110,37 @@ const Whiteboard: React.FC = () => {
     }
   };
 
+  const handleResizeStart = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setResizingId(id);
+  };
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (draggingId) {
       const newX = e.clientX - dragOffset.x;
       const newY = e.clientY - dragOffset.y;
       setElements(prev => prev.map(el => el.id === draggingId ? { ...el, x: newX, y: newY } : el));
+    } else if (resizingId && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      setElements(prev => prev.map(el => {
+        if (el.id === resizingId) {
+          const newWidth = Math.max(50, mouseX - el.x);
+          const newHeight = Math.max(50, mouseY - el.y);
+          return { ...el, width: newWidth, height: newHeight };
+        }
+        return el;
+      }));
     }
   };
 
   const handleMouseUp = () => {
-    if (draggingId && activeBoardId) {
+    if ((draggingId || resizingId) && activeBoardId) {
       updateWhiteboard(activeBoardId, elements);
       setDraggingId(null);
+      setResizingId(null);
     }
   };
 
@@ -110,12 +148,21 @@ const Whiteboard: React.FC = () => {
     e.stopPropagation();
     const newEls = elements.filter(el => el.id !== id);
     setElements(newEls);
+    if (selectedId === id) setSelectedId(null);
     if (activeBoardId) updateWhiteboard(activeBoardId, newEls);
+  };
+
+  const changeColor = (color: string) => {
+    if (!selectedId || !activeBoardId) return;
+    const newEls = elements.map(el => el.id === selectedId ? { ...el, color } : el);
+    setElements(newEls);
+    updateWhiteboard(activeBoardId, newEls);
   };
 
   const clearCanvas = () => {
     if (activeBoardId && confirm("Clear entire canvas?")) {
       setElements([]);
+      setSelectedId(null);
       updateWhiteboard(activeBoardId, []);
     }
   };
@@ -146,26 +193,44 @@ const Whiteboard: React.FC = () => {
            )}
         </div>
 
-        {activeBoardId && (
-          <div className="pointer-events-auto bg-white/90 backdrop-blur shadow-xl border border-gray-200 rounded-full p-2 flex gap-1.5">
-            {[
-              { id: 'select', icon: <MousePointer size={18} />, bg: 'hover:bg-gray-100', activeBg: 'bg-black text-white' },
-              { id: 'note', icon: <StickyNote size={18} />, bg: 'hover:bg-yellow-50', activeBg: 'bg-yellow-200 text-yellow-800' },
-              { id: 'text', icon: <Type size={18} />, bg: 'hover:bg-blue-50', activeBg: 'bg-blue-100 text-blue-700' },
-              { id: 'rect', icon: <Square size={18} />, bg: 'hover:bg-gray-100', activeBg: 'bg-gray-800 text-white' },
-              { id: 'circle', icon: <CircleIcon size={18} />, bg: 'hover:bg-indigo-50', activeBg: 'bg-indigo-100 text-indigo-700' },
-              { id: 'image', icon: <ImageIcon size={18} />, bg: 'hover:bg-purple-50', activeBg: 'bg-purple-600 text-white' }
-            ].map(t => (
-              <button 
-                key={t.id}
-                onClick={() => setTool(t.id as any)} 
-                className={`p-2.5 rounded-full transition-all ${tool === t.id ? t.activeBg : `text-gray-500 ${t.bg}`}`}
-              >
-                {t.icon}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-col items-center gap-3">
+          {activeBoardId && (
+            <div className="pointer-events-auto bg-white/90 backdrop-blur shadow-xl border border-gray-200 rounded-full p-2 flex gap-1.5">
+              {[
+                { id: 'select', icon: <MousePointer size={18} />, bg: 'hover:bg-gray-100', activeBg: 'bg-black text-white' },
+                { id: 'note', icon: <StickyNote size={18} />, bg: 'hover:bg-yellow-50', activeBg: 'bg-yellow-200 text-yellow-800' },
+                { id: 'text', icon: <Type size={18} />, bg: 'hover:bg-blue-50', activeBg: 'bg-blue-100 text-blue-700' },
+                { id: 'rect', icon: <Square size={18} />, bg: 'hover:bg-gray-100', activeBg: 'bg-gray-800 text-white' },
+                { id: 'circle', icon: <CircleIcon size={18} />, bg: 'hover:bg-indigo-50', activeBg: 'bg-indigo-100 text-indigo-700' },
+                { id: 'image', icon: <ImageIcon size={18} />, bg: 'hover:bg-purple-50', activeBg: 'bg-purple-600 text-white' }
+              ].map(t => (
+                <button 
+                  key={t.id}
+                  onClick={() => setTool(t.id as any)} 
+                  className={`p-2.5 rounded-full transition-all ${tool === t.id ? t.activeBg : `text-gray-500 ${t.bg}`}`}
+                >
+                  {t.icon}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selectedId && (
+            <div className="pointer-events-auto bg-white/90 backdrop-blur shadow-lg border border-gray-200 rounded-2xl p-2 flex gap-1 animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-1.5 px-2 border-r border-gray-200 mr-1">
+                <Palette size={14} className="text-gray-400" />
+              </div>
+              {COLORS.map(c => (
+                <button
+                  key={c}
+                  onClick={() => changeColor(c)}
+                  className="w-6 h-6 rounded-full border border-gray-200 transition-transform hover:scale-110 active:scale-95 shadow-sm"
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div 
@@ -209,38 +274,51 @@ const Whiteboard: React.FC = () => {
           <div
             key={el.id}
             onMouseDown={(e) => handleMouseDown(e, el.id)}
-            className={`absolute shadow-lg group hover:ring-2 hover:ring-blue-400/50 transition-shadow ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} overflow-hidden bg-white border border-gray-100`}
+            className={`absolute shadow-lg group transition-all ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} overflow-visible bg-white border border-gray-100 ${selectedId === el.id ? 'ring-2 ring-blue-500 shadow-xl' : 'hover:ring-2 hover:ring-blue-400/50'}`}
             style={{ 
               left: el.x, 
               top: el.y, 
               width: el.width, 
               height: el.height, 
               backgroundColor: el.color,
-              zIndex: draggingId === el.id ? 50 : 10
+              zIndex: draggingId === el.id || resizingId === el.id ? 50 : 10
             }}
           >
+            {/* Delete Button */}
             <button 
               onClick={(e) => deleteElement(e, el.id)} 
-              className="absolute top-2 right-2 bg-white/90 backdrop-blur rounded-full p-1 opacity-0 group-hover:opacity-100 shadow-sm text-red-500 hover:bg-red-50 z-20 transition-all"
+              className="absolute -top-3 -right-3 bg-white shadow-md rounded-full p-1.5 text-red-500 hover:bg-red-50 z-20 transition-all opacity-0 group-hover:opacity-100"
             >
               <X size={14} />
             </button>
-            
-            {el.content?.startsWith('data:image') ? (
-              <img src={el.content} className="w-full h-full object-contain p-4 pointer-events-none select-none" />
-            ) : (el.type === 'note' || el.type === 'text') && (
-              <textarea
-                className={`w-full h-full bg-transparent resize-none outline-none p-5 text-sm font-semibold text-gray-800 leading-relaxed ${el.type === 'text' ? 'placeholder-gray-300' : ''}`}
-                value={el.content}
-                placeholder={el.type === 'text' ? "Enter text..." : ""}
-                onChange={(e) => {
-                   const newEls = elements.map(item => item.id === el.id ? { ...item, content: e.target.value } : item);
-                   setElements(newEls);
-                   updateWhiteboard(activeBoardId!, newEls);
-                }}
-                onMouseDown={e => e.stopPropagation()}
-              />
+
+            {/* Resize Handle */}
+            {selectedId === el.id && (el.type === 'rect' || el.type === 'circle' || el.type === 'note') && (
+              <div 
+                onMouseDown={(e) => handleResizeStart(e, el.id)}
+                className="absolute -bottom-1 -right-1 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-30 flex items-center justify-center shadow-sm"
+              >
+                <Maximize2 size={10} className="text-blue-500 rotate-45" />
+              </div>
             )}
+            
+            <div className="w-full h-full overflow-hidden relative rounded-inherit">
+              {el.content?.startsWith('data:image') ? (
+                <img src={el.content} className="w-full h-full object-contain p-4 pointer-events-none select-none" />
+              ) : (el.type === 'note' || el.type === 'text') ? (
+                <textarea
+                  className={`w-full h-full bg-transparent resize-none outline-none p-5 text-sm font-semibold text-gray-800 leading-relaxed ${el.type === 'text' ? 'placeholder-gray-300' : ''}`}
+                  value={el.content}
+                  placeholder={el.type === 'text' ? "Enter text..." : ""}
+                  onChange={(e) => {
+                     const newEls = elements.map(item => item.id === el.id ? { ...item, content: e.target.value } : item);
+                     setElements(newEls);
+                     updateWhiteboard(activeBoardId!, newEls);
+                  }}
+                  onMouseDown={e => e.stopPropagation()}
+                />
+              ) : null}
+            </div>
           </div>
         ))}
       </div>

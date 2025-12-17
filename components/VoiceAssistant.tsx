@@ -48,61 +48,63 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
   const inputContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef(0);
   const sessionRef = useRef<any>(null);
-  // Track active audio sources for interruption handling
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
 
   const startSession = async () => {
-    setError(null);
-    setPermissionDenied(false);
-    setIsConnecting(true);
-    
+    // Call getUserMedia immediately to maximize user gesture context
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(err => {
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          setPermissionDenied(true);
-        }
-        throw err;
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      setError(null);
+      setPermissionDenied(false);
+      setIsConnecting(true);
 
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      inputContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       
-      const outputContext = audioContextRef.current;
-      const inputContext = inputContextRef.current;
+      const outCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      const inCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       
-      // Use the promise pattern to ensure session interaction only occurs after resolution
+      audioContextRef.current = outCtx;
+      inputContextRef.current = inCtx;
+
+      // Force resume to ensure AudioContext is running in all browsers
+      await outCtx.resume();
+      await inCtx.resume();
+      
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks: {
           onopen: () => {
             setIsActive(true);
             setIsConnecting(false);
-            const source = inputContext.createMediaStreamSource(stream);
-            const processor = inputContext.createScriptProcessor(4096, 1, 1);
+            const source = inCtx.createMediaStreamSource(stream);
+            const processor = inCtx.createScriptProcessor(4096, 1, 1);
             processor.onaudioprocess = (e) => {
               const inputData = e.inputBuffer.getChannelData(0);
               const int16 = new Int16Array(inputData.length);
               for (let i = 0; i < inputData.length; i++) int16[i] = inputData[i] * 32768;
               
-              // Prevent stale closures by using the session promise
               sessionPromise.then(session => {
-                session.sendRealtimeInput({ media: { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' } });
+                session.sendRealtimeInput({ 
+                  media: { 
+                    data: encode(new Uint8Array(int16.buffer)), 
+                    mimeType: 'audio/pcm;rate=16000' 
+                  } 
+                });
               });
             };
             source.connect(processor);
-            processor.connect(inputContext.destination);
+            processor.connect(inCtx.destination);
           },
           onmessage: async (msg: LiveServerMessage) => {
             if (msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data) {
               const base64 = msg.serverContent.modelTurn.parts[0].inlineData.data;
-              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputContext.currentTime);
-              const buffer = await decodeAudioData(decode(base64), outputContext, 24000, 1);
-              const source = outputContext.createBufferSource();
+              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outCtx.currentTime);
+              const buffer = await decodeAudioData(decode(base64), outCtx, 24000, 1);
+              const source = outCtx.createBufferSource();
               source.buffer = buffer;
-              source.connect(outputContext.destination);
+              source.connect(outCtx.destination);
               
-              // Register source for potential interruption
               source.onended = () => sourcesRef.current.delete(source);
               sourcesRef.current.add(source);
               
@@ -110,7 +112,6 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
               nextStartTimeRef.current += buffer.duration;
             }
 
-            // Handle interruption signal from Gemini
             const interrupted = msg.serverContent?.interrupted;
             if (interrupted) {
               for (const source of sourcesRef.current.values()) {
@@ -135,7 +136,12 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to start voice session.");
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || err.message?.includes('denied')) {
+        setPermissionDenied(true);
+        setError("Microphone access denied. Please check your browser permissions.");
+      } else {
+        setError(err.message || "Failed to start voice session.");
+      }
       setIsConnecting(false);
     }
   };
@@ -176,9 +182,12 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
             {isConnecting ? "Connecting..." : isActive ? "I'm Listening..." : "Start Conversation"}
           </h2>
           {error && !isActive && (
-            <div className="flex items-center gap-2 justify-center text-red-500 text-xs bg-red-50 p-2 rounded-lg border border-red-100 mt-2">
-              <AlertCircle size={14} />
-              {permissionDenied ? "Microphone access denied." : "Connection failed."}
+            <div className="flex flex-col items-center gap-2 justify-center text-red-500 text-xs bg-red-50 p-3 rounded-xl border border-red-100 mt-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={14} />
+                <span className="font-bold">Access Error</span>
+              </div>
+              <p className="opacity-80">{error}</p>
             </div>
           )}
           {!isActive && !isConnecting && (
