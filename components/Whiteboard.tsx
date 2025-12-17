@@ -1,8 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-// Added Layout icon to imports from lucide-react to fix "Cannot find name 'Layout'" error
-import { Plus, MousePointer, Type, Square, Circle as CircleIcon, StickyNote, X, Wand2, Trash2, Image as ImageIcon, Save, Layout, Maximize2, Palette } from 'lucide-react';
+import { Plus, MousePointer, Type, Square, Circle as CircleIcon, StickyNote, X, Wand2, Trash2, Image as ImageIcon, Save, Layout, Maximize2, Palette, Sparkles, Send } from 'lucide-react';
 import { CanvasElement } from '../types';
 import * as GeminiService from '../services/geminiService';
 
@@ -26,7 +25,11 @@ const Whiteboard: React.FC = () => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [resizingId, setResizingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  
+  const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
+  const [aiPromptValue, setAiPromptValue] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [pendingClickPos, setPendingClickPos] = useState<{ x: number, y: number } | null>(null);
 
   useEffect(() => {
     if (whiteboards.length > 0 && !activeBoardId) setActiveBoardId(whiteboards[0].id);
@@ -40,37 +43,31 @@ const Whiteboard: React.FC = () => {
   }, [activeBoardId, whiteboards]);
 
   const addElement = async (e: React.MouseEvent) => {
-    // If we click the background, deselect unless we are using a tool
-    if (e.target === containerRef.current) {
-      if (tool === 'select') {
-        setSelectedId(null);
-        return;
-      }
+    if (e.target !== containerRef.current) return;
+
+    if (tool === 'select') {
+      setSelectedId(null);
+      return;
     }
 
-    // Only add if clicking directly on the canvas background
-    if (tool === 'select' || !activeBoardId || !containerRef.current || e.target !== containerRef.current) return;
+    if (!activeBoardId || !containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    if (tool === 'image') {
+      setPendingClickPos({ x, y });
+      setIsAiPromptOpen(true);
+      return;
+    }
 
     let content: string | undefined = undefined;
     let color = '#E5E7EB';
     let width = 150;
     let height = 150;
 
-    if (tool === 'image') {
-      const prompt = window.prompt("AI Image Prompt:");
-      if (!prompt) return;
-      setIsGeneratingImage(true);
-      const dataUrl = await GeminiService.generateImageForWhiteboard(prompt);
-      setIsGeneratingImage(false);
-      if (!dataUrl) return;
-      content = dataUrl;
-      width = 250;
-      height = 250;
-    } else if (tool === 'note') {
+    if (tool === 'note') {
       content = 'Sticky Note';
       color = '#FEF08A';
     } else if (tool === 'text') {
@@ -83,7 +80,7 @@ const Whiteboard: React.FC = () => {
 
     const newEl: CanvasElement = {
       id: generateId(),
-      type: tool === 'image' ? 'note' : tool as any,
+      type: tool as any,
       x: x - (width / 2),
       y: y - (height / 2),
       content,
@@ -97,6 +94,41 @@ const Whiteboard: React.FC = () => {
     setTool('select'); 
     setSelectedId(newEl.id);
     updateWhiteboard(activeBoardId, newElements);
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiPromptValue.trim() || !pendingClickPos || !activeBoardId) return;
+
+    setIsGeneratingImage(true);
+    setIsAiPromptOpen(false);
+
+    try {
+      const dataUrl = await GeminiService.generateImageForWhiteboard(aiPromptValue);
+      if (dataUrl) {
+        const newEl: CanvasElement = {
+          id: generateId(),
+          type: 'image',
+          x: pendingClickPos.x - 125,
+          y: pendingClickPos.y - 125,
+          content: dataUrl,
+          color: '#FFFFFF',
+          width: 250,
+          height: 250
+        };
+
+        const newElements = [...elements, newEl];
+        setElements(newElements);
+        setSelectedId(newEl.id);
+        updateWhiteboard(activeBoardId, newElements);
+      }
+    } catch (err) {
+      console.error("AI Generation failed", err);
+    } finally {
+      setIsGeneratingImage(false);
+      setAiPromptValue('');
+      setPendingClickPos(null);
+      setTool('select');
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
@@ -259,13 +291,58 @@ const Whiteboard: React.FC = () => {
         )}
 
         {isGeneratingImage && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-md z-[60]">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-md z-[60] animate-in fade-in duration-300">
             <div className="flex flex-col items-center gap-4 bg-white p-10 rounded-[40px] shadow-2xl border border-gray-100">
                <div className="relative">
                  <Wand2 className="text-purple-600 animate-pulse" size={48} />
                  <div className="absolute inset-0 animate-spin border-2 border-purple-200 border-t-purple-600 rounded-full scale-150" />
                </div>
                <span className="font-bold text-gray-900 tracking-tight">AI Painting...</span>
+            </div>
+          </div>
+        )}
+
+        {isAiPromptOpen && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/5 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white p-6 rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-md mx-4">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 leading-tight">AI Image Prompt</h3>
+                  <p className="text-xs text-gray-400">Describe what you want to visualize.</p>
+                </div>
+              </div>
+              <textarea
+                autoFocus
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all h-32 resize-none mb-4"
+                placeholder="e.g. A futuristic workspace with holograms..."
+                value={aiPromptValue}
+                onChange={(e) => setAiPromptValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAiGenerate();
+                  }
+                  if (e.key === 'Escape') setIsAiPromptOpen(false);
+                }}
+              />
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsAiPromptOpen(false)}
+                  className="flex-1 py-3 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleAiGenerate}
+                  disabled={!aiPromptValue.trim()}
+                  className="flex-2 bg-black text-white px-8 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-all disabled:opacity-50"
+                >
+                  Generate <Send size={16} />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -293,7 +370,7 @@ const Whiteboard: React.FC = () => {
             </button>
 
             {/* Resize Handle */}
-            {selectedId === el.id && (el.type === 'rect' || el.type === 'circle' || el.type === 'note') && (
+            {selectedId === el.id && (el.type === 'rect' || el.type === 'circle' || el.type === 'note' || el.type === 'image') && (
               <div 
                 onMouseDown={(e) => handleResizeStart(e, el.id)}
                 className="absolute -bottom-1 -right-1 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-30 flex items-center justify-center shadow-sm"
@@ -303,7 +380,7 @@ const Whiteboard: React.FC = () => {
             )}
             
             <div className="w-full h-full overflow-hidden relative rounded-inherit">
-              {el.content?.startsWith('data:image') ? (
+              {el.type === 'image' && el.content ? (
                 <img src={el.content} className="w-full h-full object-contain p-4 pointer-events-none select-none" />
               ) : (el.type === 'note' || el.type === 'text') ? (
                 <textarea

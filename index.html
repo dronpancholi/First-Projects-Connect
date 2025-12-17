@@ -5,18 +5,60 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>First Projects Connect</title>
-    <!-- Define process for libraries that expect it -->
+    <!-- Essential environment shims for SDK compatibility -->
     <script>
-      window.process = { env: { NODE_ENV: 'production' } };
+      window.global = window;
+      window.process = { 
+        env: { 
+          NODE_ENV: 'production',
+          API_KEY: '' 
+        },
+        cwd: () => '/',
+        browser: true,
+        nextTick: (cb) => setTimeout(cb, 0),
+        version: '',
+        versions: {},
+        platform: 'browser',
+        stdout: { write: () => {} },
+        stderr: { write: () => {} },
+        on: () => {},
+        once: () => {},
+        emit: () => {},
+        removeListener: () => {}
+      };
+      
+      // Global error listener to debug silent "System Exceptions"
+      window.addEventListener('error', function(event) {
+        const error = event.error || {};
+        const message = event.message || error.message || "Unknown Runtime Error";
+        const stack = error.stack || "No stack trace available";
+        
+        if (message === 'Script error.') {
+          console.warn('Masked "Script error." - This typically indicates a CORS issue or a failed module import. Check the Network tab.');
+        } else {
+          console.group('System Exception Detected');
+          console.error('Message:', message);
+          console.error('Stack Trace:', stack);
+          console.groupEnd();
+        }
+      }, true);
+
+      // Unhandled promise rejection tracker
+      window.addEventListener('unhandledrejection', function(event) {
+        console.group('Unhandled Promise Rejection');
+        console.error('Reason:', event.reason);
+        console.groupEnd();
+      });
     </script>
     <script src="https://cdn.tailwindcss.com?plugins=typography,forms"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
             },
             colors: {
               apple: {
@@ -31,21 +73,19 @@
       }
     </script>
     <style>
-      /* Custom scrollbar for webkit */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-track { background: #1e1e1e; }
+      ::-webkit-scrollbar-thumb { background: #333; border-radius: 5px; border: 2px solid #1e1e1e; }
+      ::-webkit-scrollbar-thumb:hover { background: #444; }
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        margin: 0;
+        padding: 0;
+        background: #1e1e1e;
       }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #D2D2D7;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #86868b;
-      }
+      .cm-editor { height: 100% !important; outline: none !important; }
+      .cm-scroller { font-family: 'JetBrains Mono', monospace !important; }
     </style>
   <script type="importmap">
 {
@@ -54,30 +94,34 @@
     "react/": "https://esm.sh/react@19.0.0/",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/": "https://esm.sh/react-dom@19.0.0/",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "@google/genai": "https://esm.sh/@google/genai@1.34.0",
-    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
-    "recharts": "https://esm.sh/recharts@2.13.3",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react",
+    "recharts": "https://esm.sh/recharts@2.13.3?external=react,react-dom",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.46.1",
     "codemirror": "https://esm.sh/codemirror@6.0.1",
-    "@codemirror/view": "https://esm.sh/@codemirror/view@6.34.1",
-    "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1",
-    "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.3",
-    "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.1",
-    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2",
-    "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.2",
-    "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6.1.6",
-    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.9",
-    "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.3.1",
-    "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.8.0",
-    "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.1",
-    "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.3.1",
-    "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.1"
+    "@codemirror/view": "https://esm.sh/@codemirror/view@6.34.1?external=codemirror",
+    "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1?external=codemirror",
+    "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.3?external=codemirror",
+    "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.1?external=codemirror",
+    "@codemirror/search": "https://esm.sh/@codemirror/search@6.5.6?external=codemirror",
+    "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.18.3?external=codemirror",
+    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2?external=codemirror",
+    "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.2?external=codemirror",
+    "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6.1.6?external=codemirror",
+    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.9?external=codemirror",
+    "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.3.1?external=codemirror",
+    "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.8.0?external=codemirror",
+    "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.1?external=codemirror",
+    "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.3.1?external=codemirror",
+    "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.1?external=codemirror"
   }
 }
 </script>
 </head>
-  <body class="bg-apple-gray text-apple-text antialiased overflow-hidden selection:bg-apple-blue selection:text-white">
+  <body class="bg-apple-gray text-apple-text overflow-hidden selection:bg-apple-blue selection:text-white">
     <div id="root"></div>
+    <!-- crossorigin attribute helps with debugging "Script error." by allowing error details to bubble up -->
     <script type="module" src="index.tsx" crossorigin></script>
   </body>
 </html>
