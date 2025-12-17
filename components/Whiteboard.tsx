@@ -4,7 +4,8 @@ import { useStore } from '../context/StoreContext.tsx';
 import { 
   Plus, MousePointer, Type, Square, Circle as CircleIcon, 
   StickyNote, X, Wand2, Trash2, Image as ImageIcon, 
-  Palette, Sparkles, Send, Layers, Copy, Trash, PenTool
+  Palette, Sparkles, Send, Layers, Copy, Trash, PenTool, 
+  ChevronDown, LayoutGrid, Loader2
 } from 'lucide-react';
 import { CanvasElement } from '../types.ts';
 import * as GeminiService from '../services/geminiService.ts';
@@ -31,8 +32,9 @@ const Whiteboard: React.FC = () => {
   
   const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
   const [aiPromptValue, setAiPromptValue] = useState('');
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [pendingClickPos, setPendingClickPos] = useState<{ x: number, y: number } | null>(null);
+  const [isAiMindMapPromptOpen, setIsAiMindMapPromptOpen] = useState(false);
 
   useEffect(() => {
     if (whiteboards.length > 0 && !activeBoardId) {
@@ -43,7 +45,6 @@ const Whiteboard: React.FC = () => {
   useEffect(() => {
     const board = whiteboards.find(w => w.id === activeBoardId);
     if (board) {
-      // Handle the case where elements might be stored as a string or array
       const boardElements = Array.isArray(board.elements) 
         ? board.elements 
         : JSON.parse((board.elements as any) || '[]');
@@ -112,8 +113,8 @@ const Whiteboard: React.FC = () => {
     setResizeHandle(handle);
   };
 
-  const deleteElement = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const deleteElement = (e: React.MouseEvent | React.KeyboardEvent, id: string) => {
+    if ('stopPropagation' in e) e.stopPropagation();
     const next = elements.filter(el => el.id !== id);
     setElements(next);
     setSelectedId(null);
@@ -195,16 +196,9 @@ const Whiteboard: React.FC = () => {
     saveElements(next);
   };
 
-  const updateElementColor = (id: string, color: string) => {
-    // Fixed typo: changed 'it' to 'el' to correctly reference the map iteration variable
-    const next = elements.map(el => el.id === id ? { ...el, color } : el);
-    setElements(next);
-    saveElements(next);
-  };
-
   const handleAiGenerate = async () => {
     if (!aiPromptValue.trim() || !pendingClickPos || !activeBoardId) return;
-    setIsGeneratingImage(true);
+    setIsGenerating(true);
     setIsAiPromptOpen(false);
     try {
       const dataUrl = await GeminiService.generateImageForWhiteboard(aiPromptValue);
@@ -227,40 +221,62 @@ const Whiteboard: React.FC = () => {
     } catch (err) {
       console.error("AI Gen Failed", err);
     } finally {
-      setIsGeneratingImage(false);
+      setIsGenerating(false);
       setAiPromptValue('');
       setPendingClickPos(null);
       setTool('select');
     }
   };
 
+  const handleAiMindMap = async () => {
+    if (!aiPromptValue.trim() || !activeBoardId) return;
+    setIsGenerating(true);
+    setIsAiMindMapPromptOpen(false);
+    try {
+      const generatedElements = await GeminiService.generateWhiteboardLayout(aiPromptValue);
+      const next = [...elements, ...generatedElements];
+      setElements(next);
+      saveElements(next);
+    } catch (err) {
+      console.error("Mind Map AI Failed", err);
+    } finally {
+      setIsGenerating(false);
+      setAiPromptValue('');
+    }
+  };
+
   const handleDeleteBoard = async () => {
     if (!activeBoardId) return;
-    if (confirm('Are you sure you want to delete this whiteboard?')) {
-      const toDelete = activeBoardId;
-      // Optimistic update
-      const remaining = whiteboards.filter(w => w.id !== toDelete);
+    if (confirm('Permanently delete this whiteboard?')) {
+      const idToDelete = activeBoardId;
+      const remaining = whiteboards.filter(w => w.id !== idToDelete);
+      // Change active board ID first for smoother transition
       setActiveBoardId(remaining.length > 0 ? remaining[0].id : null);
-      await deleteWhiteboard(toDelete);
+      setElements([]);
+      setSelectedId(null);
+      await deleteWhiteboard(idToDelete);
     }
   };
 
   return (
     <div className="h-full flex flex-col bg-gray-50 relative overflow-hidden select-none">
       {/* HUD Controls */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex justify-between pointer-events-none">
-        <div className="pointer-events-auto bg-white/95 backdrop-blur shadow-sm border border-gray-200 rounded-2xl p-1.5 flex gap-2 items-center">
-           <select 
-             className="bg-transparent border-none text-sm font-bold focus:ring-0 cursor-pointer" 
-             value={activeBoardId || ''} 
-             onChange={(e) => setActiveBoardId(e.target.value)}
-           >
-             <option value="" disabled>Whiteboards</option>
-             {whiteboards.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
-           </select>
+      <div className="absolute top-4 left-4 right-4 z-20 flex justify-between pointer-events-none items-start gap-4">
+        <div className="pointer-events-auto bg-white/95 backdrop-blur-xl shadow-xl border border-gray-200 rounded-[24px] p-1.5 flex gap-1 items-center">
+           <div className="flex items-center px-3 border-r border-gray-100 gap-2">
+             <LayoutGrid size={14} className="text-blue-600" />
+             <select 
+               className="bg-transparent border-none text-xs font-black uppercase tracking-widest focus:ring-0 cursor-pointer min-w-[140px]" 
+               value={activeBoardId || ''} 
+               onChange={(e) => setActiveBoardId(e.target.value)}
+             >
+               <option value="" disabled>Select Board</option>
+               {whiteboards.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
+             </select>
+           </div>
            <button 
              onClick={() => addWhiteboard({ title: `Board ${whiteboards.length + 1}`, elements: [] })} 
-             className="p-2 hover:bg-gray-100 rounded-xl text-gray-500"
+             className="p-2.5 hover:bg-gray-100 rounded-2xl text-gray-500 hover:text-black transition-all"
              title="New Board"
            >
              <Plus size={18} />
@@ -268,15 +284,15 @@ const Whiteboard: React.FC = () => {
            {activeBoardId && (
              <button 
                onClick={handleDeleteBoard} 
-               className="p-2 text-red-500 hover:bg-red-50 rounded-xl"
+               className="p-2.5 text-red-500 hover:bg-red-50 rounded-2xl transition-all"
                title="Delete Board"
              >
-               <Trash size={18} />
+               <Trash2 size={18} />
              </button>
            )}
         </div>
 
-        <div className="pointer-events-auto bg-white/95 backdrop-blur shadow-xl border border-gray-200 rounded-full p-2 flex gap-1">
+        <div className="pointer-events-auto bg-white/95 backdrop-blur-xl shadow-2xl border border-gray-200 rounded-full p-2 flex gap-1 ring-1 ring-black/5">
           {[
             { id: 'select', icon: <MousePointer size={18} /> },
             { id: 'note', icon: <StickyNote size={18} /> },
@@ -288,17 +304,25 @@ const Whiteboard: React.FC = () => {
             <button 
               key={t.id} 
               onClick={() => { setTool(t.id as any); if(t.id !== 'select') setSelectedId(null); }} 
-              className={`p-2.5 rounded-full transition-all ${tool === t.id ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+              className={`p-3 rounded-full transition-all duration-300 ${tool === t.id ? 'bg-black text-white scale-110 shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}
               title={t.id.charAt(0).toUpperCase() + t.id.slice(1)}
             >
               {t.icon}
             </button>
           ))}
+          <div className="w-px h-8 bg-gray-200 mx-1 self-center" />
+          <button 
+            onClick={() => { setIsAiMindMapPromptOpen(true); }}
+            className="p-3 rounded-full text-blue-600 hover:bg-blue-50 transition-all group"
+            title="AI Visual Architect"
+          >
+            <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />
+          </button>
         </div>
 
-        {selectedId && (
-          <div className="pointer-events-auto bg-white/95 backdrop-blur shadow-lg border border-gray-200 rounded-2xl p-2 flex gap-1 items-center animate-in slide-in-from-top duration-200">
-            <div className="flex gap-1 pr-2 border-r border-gray-100">
+        {selectedId ? (
+          <div className="pointer-events-auto bg-white/95 backdrop-blur-xl shadow-2xl border border-gray-200 rounded-[24px] p-2 flex gap-1 items-center animate-in slide-in-from-top duration-300 ease-out">
+            <div className="flex gap-1.5 pr-2 border-r border-gray-100 px-1">
               {COLORS.map(c => (
                 <button 
                   key={c} 
@@ -307,52 +331,74 @@ const Whiteboard: React.FC = () => {
                     setElements(n);
                     saveElements(n);
                   }} 
-                  className={`w-6 h-6 rounded-full border border-gray-200 hover:scale-110 transition-transform ${elements.find(e => e.id === selectedId)?.color === c ? 'ring-2 ring-black ring-offset-1' : ''}`} 
+                  className={`w-6 h-6 rounded-full border border-gray-200 hover:scale-125 transition-transform ${elements.find(e => e.id === selectedId)?.color === c ? 'ring-2 ring-black ring-offset-2' : ''}`} 
                   style={{ backgroundColor: c }} 
                 />
               ))}
             </div>
             <button 
               onClick={(e) => deleteElement(e, selectedId)} 
-              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-              title="Delete Element"
+              className="p-2.5 text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+              title="Remove Item"
             >
-              <Trash2 size={18} />
+              <Trash2 size={20} />
             </button>
           </div>
-        )}
+        ) : <div className="w-20" />}
       </div>
 
       {/* Main Drawing Area */}
       <div 
         ref={containerRef} 
-        className="flex-1 cursor-crosshair relative bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[length:32px_32px] bg-white overflow-hidden" 
+        className="flex-1 cursor-crosshair relative bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[length:32px_32px] bg-white overflow-hidden transition-all duration-500" 
         onMouseDown={addElement}
       >
-        {isGeneratingImage && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-4 bg-white p-8 rounded-3xl shadow-2xl border border-gray-100">
-               <Sparkles className="text-purple-600 animate-pulse" size={40} />
-               <span className="font-bold text-gray-800">AI Drawing...</span>
+        {isGenerating && (
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="flex flex-col items-center gap-4 bg-white/90 p-10 rounded-[40px] shadow-2xl border border-gray-100">
+               <div className="relative">
+                 <Sparkles className="text-blue-600 animate-spin-slow" size={48} />
+                 <Loader2 className="text-blue-600 animate-spin absolute inset-0" size={48} />
+               </div>
+               <div className="text-center">
+                 <h3 className="font-black tracking-tight text-xl mb-1">Architecting Vision</h3>
+                 <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Gemini is laying out your ideas...</p>
+               </div>
             </div>
           </div>
         )}
 
-        {isAiPromptOpen && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/5 backdrop-blur-sm p-4">
-            <div className="bg-white p-6 rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-md animate-in zoom-in duration-200">
-              <h3 className="font-bold text-gray-900 mb-2">AI Illustration</h3>
-              <p className="text-xs text-gray-500 mb-4">Describe the visual you want to add to your board.</p>
+        {/* AI Drawing / Mind Map Prompts */}
+        {(isAiPromptOpen || isAiMindMapPromptOpen) && (
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/10 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95">
+            <div className="bg-white/95 backdrop-blur p-8 rounded-[40px] shadow-2xl border border-white/20 w-full max-w-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg">
+                  <Sparkles size={24} />
+                </div>
+                <div>
+                  <h3 className="font-black text-2xl tracking-tight">{isAiMindMapPromptOpen ? "Visual Architect" : "AI Illustration"}</h3>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Gemini reasoning engine</p>
+                </div>
+              </div>
               <textarea
                 autoFocus
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-black outline-none h-32 resize-none mb-4"
-                placeholder="e.g. A minimalist cloud icon, flat design, blue tones..."
+                className="w-full bg-gray-50 border border-gray-100 rounded-[24px] p-5 text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none h-40 resize-none mb-6 shadow-inner transition-all"
+                placeholder={isAiMindMapPromptOpen 
+                  ? "Describe a topic for a mind map (e.g., Solar Energy Market, App Features, Project Roadmap)..." 
+                  : "Describe the icon or image you want (e.g., A minimalist database icon, neon style)..."}
                 value={aiPromptValue}
                 onChange={(e) => setAiPromptValue(e.target.value)}
               />
-              <div className="flex gap-2">
-                <button onClick={() => { setIsAiPromptOpen(false); setTool('select'); }} className="flex-1 py-3 text-sm font-bold text-gray-400 hover:text-gray-600">Cancel</button>
-                <button onClick={handleAiGenerate} disabled={!aiPromptValue.trim()} className="flex-2 bg-black text-white px-8 py-3 rounded-2xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50">Generate</button>
+              <div className="flex gap-3">
+                <button onClick={() => { setIsAiPromptOpen(false); setIsAiMindMapPromptOpen(false); setTool('select'); }} className="flex-1 py-4 text-sm font-bold text-gray-400 hover:text-black transition-colors">Cancel</button>
+                <button 
+                  onClick={isAiMindMapPromptOpen ? handleAiMindMap : handleAiGenerate} 
+                  disabled={!aiPromptValue.trim()} 
+                  className="flex-[2] bg-black text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-800 transition-all disabled:opacity-30 shadow-xl active:scale-95"
+                >
+                  Create Visuals
+                </button>
               </div>
             </div>
           </div>
@@ -362,7 +408,7 @@ const Whiteboard: React.FC = () => {
           <div 
             key={el.id} 
             onMouseDown={(e) => handleMouseDown(e, el.id)} 
-            className={`absolute group transition-shadow shadow-sm ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} ${selectedId === el.id ? 'ring-2 ring-blue-500 z-40' : 'hover:ring-2 hover:ring-blue-400/50'}`} 
+            className={`absolute group transition-shadow shadow-sm ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} ${selectedId === el.id ? 'ring-4 ring-blue-500/30 z-40' : 'hover:ring-4 hover:ring-blue-400/20'}`} 
             style={{ 
               left: el.x, 
               top: el.y, 
@@ -373,21 +419,21 @@ const Whiteboard: React.FC = () => {
             }}
           >
             {/* Resizing Handles */}
-            {selectedId === el.id && (el.type === 'rect' || el.type === 'circle' || el.type === 'image' || el.type === 'note') && (
+            {selectedId === el.id && (
               <>
-                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-left')} className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-50 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-right')} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize z-50 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-left')} className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize z-50 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-right')} className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-50 shadow-sm opacity-100" />
+                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-left')} className="absolute -top-2 -left-2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-50 shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-right')} className="absolute -top-2 -right-2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize z-50 shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-left')} className="absolute -bottom-2 -left-2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize z-50 shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-right')} className="absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-50 shadow-md opacity-100" />
               </>
             )}
 
             <div className={`w-full h-full relative overflow-hidden ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'}`}>
               {el.type === 'text' || el.type === 'note' ? (
                 <textarea 
-                  className="w-full h-full bg-transparent p-4 outline-none resize-none text-sm font-medium text-gray-800 placeholder:text-gray-400/50" 
+                  className="w-full h-full bg-transparent p-5 outline-none resize-none text-sm font-black text-gray-800 placeholder:text-gray-400/50 scrollbar-hide" 
                   value={el.content} 
-                  placeholder={el.type === 'text' ? "Aa..." : "Note details..."}
+                  placeholder={el.type === 'text' ? "Aa..." : "Content..."}
                   onChange={(e) => updateElementContent(el.id, e.target.value)} 
                   onMouseDown={e => e.stopPropagation()} 
                 />
@@ -398,14 +444,22 @@ const Whiteboard: React.FC = () => {
           </div>
         ))}
         
-        {elements.length === 0 && !isGeneratingImage && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 pointer-events-none">
-            {/* Fixed: Added missing PenTool component import and usage */}
-            <PenTool size={64} className="mb-4 opacity-20" />
-            <p className="font-medium text-lg opacity-40">Your creative space is ready.</p>
-            <p className="text-sm opacity-30 mt-1">Select a tool to start brainstorming.</p>
+        {elements.length === 0 && !isGenerating && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 pointer-events-none animate-in fade-in duration-700">
+            <div className="p-8 rounded-[60px] bg-gray-50/50 mb-6 ring-1 ring-gray-100">
+              <PenTool size={80} className="opacity-10" />
+            </div>
+            <h3 className="font-black text-2xl text-gray-400 tracking-tight uppercase">Infinite Canvas</h3>
+            <p className="text-sm text-gray-300 font-bold uppercase tracking-widest mt-2">Start with a thought or ask AI for a mind map.</p>
           </div>
         )}
+      </div>
+      
+      {/* Footer Instructions */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none">
+        <div className="bg-black/90 text-white/50 text-[10px] px-6 py-2.5 rounded-full font-black uppercase tracking-[0.2em] shadow-2xl backdrop-blur-xl border border-white/10">
+          Double Click to Edit • Drag to Move • <span className="text-blue-400">Alt + Click to Rapid Note</span>
+        </div>
       </div>
     </div>
   );

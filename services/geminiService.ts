@@ -1,6 +1,6 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { Project, Task, Note } from '../types.ts';
+import { GoogleGenAI, Type } from "@google/genai";
+import { Project, Task, Note, CanvasElement } from '../types.ts';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -20,6 +20,54 @@ export const generateProjectPlan = async (projectTitle: string, description: str
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "Error generating plan.";
+  }
+};
+
+export const generateWhiteboardLayout = async (description: string): Promise<CanvasElement[]> => {
+  try {
+    const prompt = `
+      Create a logical mind map or architecture diagram for the following concept: "${description}".
+      Break it into nodes. Each node should be a CanvasElement.
+      Return a JSON array of CanvasElement objects.
+      CanvasElement type: { id: string, type: 'note' | 'text' | 'rect' | 'circle', x: number, y: number, content: string, color: string, width: number, height: number }
+      
+      Rules:
+      1. Use logical grouping (center node at 400, 400).
+      2. Branches should spread around the center.
+      3. Use distinct colors for different categories.
+      4. Make the map comprehensive (at least 8 nodes).
+      5. Coordinates should be between 0 and 1000.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              type: { type: Type.STRING, enum: ['note', 'text', 'rect', 'circle'] },
+              x: { type: Type.NUMBER },
+              y: { type: Type.NUMBER },
+              content: { type: Type.STRING },
+              color: { type: Type.STRING },
+              width: { type: Type.NUMBER },
+              height: { type: Type.NUMBER }
+            },
+            required: ['id', 'type', 'x', 'y', 'content', 'color', 'width', 'height']
+          }
+        }
+      }
+    });
+
+    return JSON.parse(response.text || "[]");
+  } catch (error) {
+    console.error("Visual Generation Error:", error);
+    return [];
   }
 };
 

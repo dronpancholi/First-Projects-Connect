@@ -4,6 +4,7 @@ import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } f
 import { X, Mic, MicOff, Waves, Volume2, AlertCircle, PlayCircle, Sparkles, Loader2 } from 'lucide-react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ProjectStatus, TaskStatus, Priority } from '../types.ts';
+import * as GeminiService from '../services/geminiService.ts';
 
 const encode = (bytes: Uint8Array) => {
   let b = '';
@@ -63,6 +64,17 @@ const tools: FunctionDeclaration[] = [
     }
   },
   {
+    name: 'createMindMap',
+    parameters: {
+      type: Type.OBJECT,
+      properties: { 
+        title: { type: Type.STRING }, 
+        description: { type: Type.STRING } 
+      },
+      required: ['title', 'description']
+    }
+  },
+  {
     name: 'updateTaskStatus',
     parameters: {
       type: Type.OBJECT,
@@ -113,10 +125,11 @@ const tools: FunctionDeclaration[] = [
 
 const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { 
-    projects, tasks, notes, 
+    projects, tasks, notes, whiteboards,
     addProject, deleteProject, 
     addTask, updateTask, deleteTask: storeDeleteTask,
-    addNote, updateNote, deleteNote: storeDeleteNote 
+    addNote, updateNote, deleteNote: storeDeleteNote,
+    addWhiteboard
   } = useStore();
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -169,6 +182,11 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   await addProject({ title: fc.args.title as string, description: fc.args.description as string, status: ProjectStatus.IDEA, tags: ['voice'] });
                   res = `Created project ${fc.args.title}`;
                 } 
+                else if (fc.name === 'createMindMap') {
+                  const elements = await GeminiService.generateWhiteboardLayout(fc.args.description as string);
+                  await addWhiteboard({ title: fc.args.title as string, elements });
+                  res = `Generated mind map "${fc.args.title}" with ${elements.length} components.`;
+                }
                 else if (fc.name === 'deleteProject') {
                   const p = findProject(fc.args.title as string);
                   if (p) { await deleteProject(p.id); res = `Deleted project ${p.title}`; }
@@ -267,7 +285,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         config: {
           responseModalities: [Modality.AUDIO],
           tools: [{ functionDeclarations: tools }],
-          systemInstruction: "You are a professional workspace assistant. You can manage projects, tasks, and notes. Be helpful, concise, and professional. Always confirm actions. You can fetch detailed project status reports if asked."
+          systemInstruction: "You are a professional workspace assistant. You can manage projects, tasks, and notes. You can also generate visual mind maps and architectural diagrams for whiteboards. Be helpful, concise, and professional. Always confirm actions. You can fetch detailed project status reports if asked."
         }
       });
       session.current = await sessionPromise;
@@ -283,13 +301,16 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-xl animate-in fade-in">
       <div className="bg-white/95 w-full max-w-sm rounded-[40px] shadow-2xl p-8 flex flex-col items-center gap-6 border border-white/20">
         <div className="w-full flex justify-between items-center">
-          <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Workspace AI</span>
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-blue-600 animate-pulse" />
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Visual Workspace AI</span>
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
         </div>
 
-        <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 scale-110 shadow-xl' : 'bg-gray-100'}`}>
+        <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 scale-110 shadow-xl ring-4 ring-blue-100' : 'bg-gray-100 shadow-inner'}`}>
           {isActive ? (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-8 bg-white rounded-full animate-[bounce_1s_infinite_0ms]" />
               <div className="w-1.5 h-12 bg-white rounded-full animate-[bounce_1s_infinite_200ms]" />
               <div className="w-1.5 h-6 bg-white rounded-full animate-[bounce_1s_infinite_400ms]" />
@@ -299,21 +320,22 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           ) : isConnecting ? <Loader2 className="animate-spin text-blue-600" size={48} /> : <MicOff className="text-gray-400" size={48} />}
         </div>
 
-        <div className="text-center space-y-2">
-          <h2 className="text-xl font-bold">{isConnecting ? "Waking up..." : isActive ? "Listening..." : "Voice Control"}</h2>
-          {error ? <p className="text-red-500 text-xs">{error}</p> : <p className="text-sm text-gray-500">
-            {isActive ? "Try: 'Add a high priority task to my app project'" : "Speak naturally to manage your workspace."}
+        <div className="text-center space-y-2 px-4">
+          <h2 className="text-xl font-bold">{isConnecting ? "Waking up..." : isActive ? "Listening..." : "Visual Voice Control"}</h2>
+          {error ? <p className="text-red-500 text-xs font-medium">{error}</p> : <p className="text-sm text-gray-500 leading-relaxed">
+            {isActive ? "Try: 'Create a mind map for my startup idea'" : "Speak naturally to build your workspace and visuals."}
           </p>}
         </div>
 
         {!isActive && !isConnecting && (
-          <button onClick={startSession} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 transition-all">
-            Start Conversation
+          <button onClick={startSession} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3">
+            <Mic size={20} />
+            Start Session
           </button>
         )}
         
         {isActive && (
-          <button onClick={() => { session.current?.close(); setIsActive(false); }} className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors">
+          <button onClick={() => { session.current?.close(); setIsActive(false); }} className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors py-2">
             End Session
           </button>
         )}
