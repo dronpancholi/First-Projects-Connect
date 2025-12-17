@@ -180,20 +180,20 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
                 if (fc.name === 'createProject') {
                   await addProject({ title: fc.args.title as string, description: fc.args.description as string, status: ProjectStatus.IDEA, tags: ['voice'] });
-                  res = `Created project ${fc.args.title}`;
+                  res = `FP-Engine created project ${fc.args.title}`;
                 } 
                 else if (fc.name === 'createMindMap') {
                   const elements = await GeminiService.generateWhiteboardLayout(fc.args.description as string);
                   await addWhiteboard({ title: fc.args.title as string, elements });
-                  res = `Generated mind map "${fc.args.title}" with ${elements.length} components.`;
+                  res = `FP-Engine generated mind map "${fc.args.title}" with ${elements.length} components.`;
                 }
                 else if (fc.name === 'deleteProject') {
                   const p = findProject(fc.args.title as string);
-                  if (p) { await deleteProject(p.id); res = `Deleted project ${p.title}`; }
+                  if (p) { await deleteProject(p.id); res = `FP-Engine deleted project ${p.title}`; }
                   else res = "Project not found.";
                 } 
                 else if (fc.name === 'getWorkspaceOverview') {
-                  res = `Workspace has ${projects.length} projects, ${tasks.filter(t => t.status !== TaskStatus.DONE).length} pending tasks, and ${notes.length} notes.`;
+                  res = `Workspace status via FP-Engine: ${projects.length} projects, ${tasks.filter(t => t.status !== TaskStatus.DONE).length} pending tasks, and ${notes.length} notes.`;
                 }
                 else if (fc.name === 'createTask') {
                   const p = findProject(fc.args.projectTitle as string);
@@ -204,21 +204,21 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       status: TaskStatus.PENDING, 
                       priority: (fc.args.priority as Priority) || Priority.MEDIUM 
                     });
-                    res = `Added task "${fc.args.taskTitle}" to project "${p.title}"`;
+                    res = `FP-Engine added task "${fc.args.taskTitle}" to "${p.title}"`;
                   } else res = "Project not found.";
                 }
                 else if (fc.name === 'updateTaskStatus') {
                   const t = findTask(fc.args.taskTitle as string);
                   if (t) {
                     await updateTask(t.id, { status: fc.args.status as TaskStatus });
-                    res = `Updated task "${t.title}" status to ${fc.args.status}`;
+                    res = `FP-Engine updated task "${t.title}" to ${fc.args.status}`;
                   } else res = "Task not found.";
                 }
                 else if (fc.name === 'deleteTask') {
                   const t = findTask(fc.args.taskTitle as string);
                   if (t) {
                     await storeDeleteTask(t.id);
-                    res = `Deleted task "${t.title}"`;
+                    res = `FP-Engine deleted task "${t.title}"`;
                   } else res = "Task not found.";
                 }
                 else if (fc.name === 'createNote') {
@@ -228,13 +228,13 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     content: fc.args.content as string, 
                     projectId: p?.id 
                   });
-                  res = `Created note "${fc.args.title}"${p ? ` linked to project "${p.title}"` : ''}`;
+                  res = `FP-Engine created note "${fc.args.title}"`;
                 }
                 else if (fc.name === 'deleteNote') {
                   const n = findNote(fc.args.title as string);
                   if (n) {
                     await storeDeleteNote(n.id);
-                    res = `Deleted note "${n.title}"`;
+                    res = `FP-Engine deleted note "${n.title}"`;
                   } else res = "Note not found.";
                 }
                 else if (fc.name === 'getProjectDetails') {
@@ -280,12 +280,12 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             }
           },
           onclose: () => setIsActive(false),
-          onerror: (e) => { setError("Connection lost."); setIsActive(false); }
+          onerror: (e) => { setError("FP-Engine connection lost."); setIsActive(false); }
         },
         config: {
           responseModalities: [Modality.AUDIO],
           tools: [{ functionDeclarations: tools }],
-          systemInstruction: "You are a professional workspace assistant. You can manage projects, tasks, and notes. You can also generate visual mind maps and architectural diagrams for whiteboards. Be helpful, concise, and professional. Always confirm actions. You can fetch detailed project status reports if asked."
+          systemInstruction: "You are the FP-Engine, a professional high-performance workspace assistant. You manage projects, tasks, and notes with extreme efficiency. You can also architect visual mind maps and diagrams for whiteboards. Be technical, helpful, and concise. Always confirm your actions as FP-Engine."
         }
       });
       session.current = await sessionPromise;
@@ -303,7 +303,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="w-full flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-blue-600 animate-pulse" />
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Visual Workspace AI</span>
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">FP-Engine Active</span>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
         </div>
@@ -321,22 +321,22 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
 
         <div className="text-center space-y-2 px-4">
-          <h2 className="text-xl font-bold">{isConnecting ? "Waking up..." : isActive ? "Listening..." : "Visual Voice Control"}</h2>
+          <h2 className="text-xl font-bold text-gray-900">{isConnecting ? "Powering up..." : isActive ? "FP-Engine Ready" : "Visual Control"}</h2>
           {error ? <p className="text-red-500 text-xs font-medium">{error}</p> : <p className="text-sm text-gray-500 leading-relaxed">
-            {isActive ? "Try: 'Create a mind map for my startup idea'" : "Speak naturally to build your workspace and visuals."}
+            {isActive ? "Try: 'Architect a mind map for a new fintech app'" : "FP-Engine is ready to build your visual workspace."}
           </p>}
         </div>
 
         {!isActive && !isConnecting && (
           <button onClick={startSession} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3">
             <Mic size={20} />
-            Start Session
+            Connect to FP-Engine
           </button>
         )}
         
         {isActive && (
           <button onClick={() => { session.current?.close(); setIsActive(false); }} className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors py-2">
-            End Session
+            Disconnect
           </button>
         )}
       </div>

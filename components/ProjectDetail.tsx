@@ -107,7 +107,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
     setIsGenerating(true);
     const plan = await GeminiService.generateProjectPlan(project.title, project.description);
     await addNote({
-      title: 'AI Generated Project Plan',
+      title: 'FP-Engine Project Architecture',
       content: plan,
       projectId: project.id
     });
@@ -187,7 +187,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
         
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2">{project.title}</h1>
+            <h1 className="text-3xl font-bold tracking-tight mb-2 text-gray-900">{project.title}</h1>
             <p className="text-gray-500 max-w-2xl">{project.description}</p>
           </div>
           <button 
@@ -195,7 +195,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg hover:shadow-md transition-all text-sm font-medium"
           >
             <Bot size={16} />
-            Assistant
+            FP-Engine
           </button>
         </div>
 
@@ -214,7 +214,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
           <div className="max-w-3xl mx-auto space-y-4">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold">Tasks</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
                 <div className="flex bg-white rounded-lg p-0.5 border border-gray-200">
                   {(['PENDING', 'DONE', 'ALL'] as const).map(f => (
                      <button
@@ -247,7 +247,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                     {task.status === TaskStatus.DONE ? <CheckCircle2 className="text-green-600" size={22} /> : <Circle size={22} />}
                   </button>
                   <input 
-                    className={`flex-1 bg-transparent outline-none ${task.status === TaskStatus.DONE ? 'text-gray-400 line-through' : 'text-gray-900'}`}
+                    className={`flex-1 bg-transparent outline-none ${task.status === TaskStatus.DONE ? 'text-gray-400 line-through' : 'text-gray-900 font-medium'}`}
                     value={task.title}
                     onChange={(e) => updateTask(task.id, { title: e.target.value })}
                   />
@@ -262,7 +262,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                           p-1.5 rounded-lg transition-all
                           ${loadingTaskId === task.id ? 'bg-indigo-100 text-indigo-600 animate-pulse' : 'text-gray-400 hover:bg-indigo-50 hover:text-indigo-600'}
                         `}
-                        title="Break down with AI"
+                        title="FP-Engine breakdown"
                       >
                         <Wand2 size={16} />
                       </button>
@@ -302,7 +302,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
               <div key={note.id} className="aspect-[4/5] bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col relative group transition-transform hover:-translate-y-1">
                 <div className="flex justify-between items-start mb-4">
                   <input 
-                    className="font-bold text-lg outline-none w-full bg-transparent" 
+                    className="font-bold text-lg outline-none w-full bg-transparent text-gray-900" 
                     value={note.title}
                     readOnly 
                   />
@@ -331,7 +331,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
         {activeTab === 'assets' && (
           <div className="max-w-4xl mx-auto">
              <div className="flex justify-between items-center mb-6">
-               <h2 className="text-lg font-semibold">External Connections</h2>
+               <h2 className="text-lg font-semibold text-gray-900">External Connections</h2>
                <button 
                  onClick={() => setShowAssetModal(true)}
                  className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-80 shadow-md shadow-gray-200"
@@ -347,7 +347,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                  </div>
                  <h3 className="font-bold text-gray-900 mb-2">No connected apps</h3>
                  <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
-                   Connect external tools to centralize your workflow. Link GitHub repos, Figma files, Linear cycles, or Google Drive folders.
+                   Connect external tools to centralize your workflow.
                  </p>
                  <button onClick={() => setShowAssetModal(true)} className="text-apple-blue font-medium text-sm hover:underline">Browse Integrations</button>
                </div>
@@ -406,82 +406,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
         )}
       </div>
 
-      {/* Integration Hub Modal */}
-      {showAssetModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="font-bold text-lg">Connect Resource</h3>
-              <button onClick={() => setShowAssetModal(false)}><X size={20} className="text-gray-400 hover:text-black" /></button>
-            </div>
-            
-            <div className="p-6 overflow-auto bg-gray-50/30">
-              {/* Quick Paste */}
-              <div className="mb-8 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                <label className="block text-sm font-bold text-gray-900 mb-2">Quick Paste URL</label>
-                <div className="flex gap-2">
-                  <input 
-                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors font-mono text-sm"
-                    placeholder="Paste any link (GitHub, Figma, Google Drive...)"
-                    value={assetUrl}
-                    onChange={e => setAssetUrl(e.target.value)}
-                  />
-                </div>
-                {assetUrl && (
-                  <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
-                    Detected Type: <span className="font-bold text-black capitalize">{assetType.replace('_', ' ')}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Manual Selection (Visual Grid) */}
-              <div className="mb-6">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Or Select Manually</h4>
-                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 opacity-80 hover:opacity-100 transition-opacity">
-                    <IntegrationCard icon={<Github />} label="GitHub" color="bg-gray-900" selected={assetType === 'github'} onClick={() => setAssetType('github')} />
-                    <IntegrationCard icon={<Figma />} label="Figma" color="bg-purple-600" selected={assetType === 'figma'} onClick={() => setAssetType('figma')} />
-                    <IntegrationCard icon={<Database />} label="G-Drive" color="bg-blue-600" selected={assetType === 'google_drive'} onClick={() => setAssetType('google_drive')} />
-                    <IntegrationCard icon={<Layout />} label="Linear" color="bg-indigo-600" selected={assetType === 'linear'} onClick={() => setAssetType('linear')} />
-                    <IntegrationCard icon={<Slack />} label="Slack" color="bg-emerald-600" selected={assetType === 'slack'} onClick={() => setAssetType('slack')} />
-                    <IntegrationCard icon={<LinkIcon />} label="Other Link" color="bg-gray-400" selected={assetType === 'link'} onClick={() => setAssetType('link')} />
-                 </div>
-              </div>
-
-              <div className="space-y-4 pt-4 border-t border-gray-100 mt-6 bg-white p-4 rounded-xl">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Display Name</label>
-                  <input 
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                    placeholder="e.g. Project Repository"
-                    value={assetName}
-                    onChange={e => setAssetName(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-gray-100 flex justify-end bg-white">
-               <button 
-                onClick={handleAddAsset}
-                disabled={!assetName || !assetUrl}
-                className="bg-black text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
-              >
-                Connect Resource
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* AI Modal */}
       {showAIModal && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
             <div className="flex items-center gap-3 mb-4 text-indigo-600">
               <Bot size={24} />
-              <h2 className="text-xl font-bold text-gray-900">Gemini Assistant</h2>
+              <h2 className="text-xl font-bold text-gray-900">FP-Engine Assistant</h2>
             </div>
-            <p className="text-gray-600 mb-6">Tools for <strong>{project.title}</strong></p>
+            <p className="text-gray-600 mb-6">Optimizing <strong>{project.title}</strong></p>
             
             <div className="space-y-3">
               <button 
@@ -493,8 +426,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                   <Wand2 size={20} />
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900 group-hover:text-indigo-700">Generate Plan</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Strategy note with tasks.</div>
+                  <div className="font-semibold text-gray-900 group-hover:text-indigo-700">Architect Strategy</div>
+                  <div className="text-xs text-gray-500 mt-0.5">High-fidelity project roadmap.</div>
                 </div>
               </button>
             </div>
@@ -512,7 +445,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
               <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-2xl">
                 <div className="flex flex-col items-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
-                  <span className="text-sm font-medium text-indigo-600">Thinking...</span>
+                  <span className="text-sm font-medium text-indigo-600">FP-Engine Reasoning...</span>
                 </div>
               </div>
             )}

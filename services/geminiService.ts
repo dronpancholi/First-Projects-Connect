@@ -7,36 +7,38 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 export const generateProjectPlan = async (projectTitle: string, description: string): Promise<string> => {
   try {
     const prompt = `
-      You are an expert project manager acting as a productivity assistant.
+      You are the FP-Engine, a high-level project architect.
       Project: "${projectTitle}"
       Description: "${description}"
-      Generate an actionable Markdown plan with Summary, Tasks, and Risks.
+      Generate an actionable, execution-ready Markdown plan with Strategy Summary, Phased Tasks, and Risk Mitigation.
     `;
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: prompt,
     });
-    return response.text || "Could not generate plan.";
+    return response.text || "FP-Engine: Could not generate plan.";
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "Error generating plan.";
+    console.error("FP-Engine API Error:", error);
+    return "FP-Engine: Error generating plan.";
   }
 };
 
 export const generateWhiteboardLayout = async (description: string): Promise<CanvasElement[]> => {
   try {
     const prompt = `
-      Create a logical mind map or architecture diagram for the following concept: "${description}".
-      Break it into nodes. Each node should be a CanvasElement.
-      Return a JSON array of CanvasElement objects.
-      CanvasElement type: { id: string, type: 'note' | 'text' | 'rect' | 'circle', x: number, y: number, content: string, color: string, width: number, height: number }
+      You are the FP-Engine Visual Architect. Create a high-fidelity, comprehensive mind map for: "${description}".
       
-      Rules:
-      1. Use logical grouping (center node at 400, 400).
-      2. Branches should spread around the center.
-      3. Use distinct colors for different categories.
-      4. Make the map comprehensive (at least 8 nodes).
-      5. Coordinates should be between 0 and 1000.
+      Requirements:
+      1. Structure: Hierarchical tree starting from a center node (400, 400).
+      2. Content: Break the idea into distinct phases (e.g., Research, Prototype, Launch). 
+      3. Visuals: Use CanvasElement types (note, text, rect, circle).
+      4. Density: At least 12 connected nodes.
+      5. Execution: Each node must contain actionable advice or a specific component name.
+      
+      Return ONLY a JSON array of CanvasElement objects: 
+      { id: string, type: 'note' | 'text' | 'rect' | 'circle', x: number, y: number, content: string, color: string, width: number, height: number }
+      
+      Color palette: Use #DBEAFE for research, #D1FAE5 for development, #FEF3C7 for strategy, #FEE2E2 for risks.
     `;
 
     const response = await ai.models.generateContent({
@@ -66,7 +68,7 @@ export const generateWhiteboardLayout = async (description: string): Promise<Can
 
     return JSON.parse(response.text || "[]");
   } catch (error) {
-    console.error("Visual Generation Error:", error);
+    console.error("FP-Engine Visual Gen Error:", error);
     return [];
   }
 };
@@ -75,7 +77,7 @@ export const generateImageForWhiteboard = async (prompt: string): Promise<string
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: [{ text: `Generate a minimalist icon or illustration for: ${prompt}. Clean white background.` }],
+      contents: [{ text: `Generate a minimalist icon for FP-Engine: ${prompt}. Clean professional design on white background.` }],
       config: {
         imageConfig: { aspectRatio: "1:1" }
       }
@@ -87,21 +89,21 @@ export const generateImageForWhiteboard = async (prompt: string): Promise<string
     }
     return null;
   } catch (error) {
-    console.error("Image Gen Error:", error);
+    console.error("FP-Engine Image Gen Error:", error);
     return null;
   }
 };
 
 export const explainCode = async (code: string, language: string): Promise<string> => {
   try {
-    const prompt = `Explain this ${language} code clearly and suggest 2 improvements:\n\n${code}`;
+    const prompt = `You are FP-Engine Code Assistant. Analyze this ${language} code and suggest optimizations:\n\n${code}`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
     });
-    return response.text || "No explanation available.";
+    return response.text || "FP-Engine: No explanation available.";
   } catch (error) {
-    return "AI explanation failed.";
+    return "FP-Engine: Analysis failed.";
   }
 };
 
@@ -109,7 +111,7 @@ export const suggestSubtasks = async (taskTitle: string): Promise<string[]> => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Break down the task "${taskTitle}" into 3-5 actionable sub-steps. Return ONLY a JSON array of strings.`,
+      contents: `You are FP-Engine. Break down "${taskTitle}" into 5 technical, actionable sub-steps. Return ONLY a JSON array of strings.`,
       config: { responseMimeType: "application/json" }
     });
     return JSON.parse(response.text || "[]");

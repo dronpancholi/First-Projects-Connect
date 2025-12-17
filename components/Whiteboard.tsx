@@ -219,7 +219,7 @@ const Whiteboard: React.FC = () => {
         saveElements(next);
       }
     } catch (err) {
-      console.error("AI Gen Failed", err);
+      console.error("FP-Engine Gen Failed", err);
     } finally {
       setIsGenerating(false);
       setAiPromptValue('');
@@ -238,7 +238,7 @@ const Whiteboard: React.FC = () => {
       setElements(next);
       saveElements(next);
     } catch (err) {
-      console.error("Mind Map AI Failed", err);
+      console.error("FP-Engine Visual Failed", err);
     } finally {
       setIsGenerating(false);
       setAiPromptValue('');
@@ -249,11 +249,13 @@ const Whiteboard: React.FC = () => {
     if (!activeBoardId) return;
     if (confirm('Permanently delete this whiteboard?')) {
       const idToDelete = activeBoardId;
-      const remaining = whiteboards.filter(w => w.id !== idToDelete);
-      // Change active board ID first for smoother transition
-      setActiveBoardId(remaining.length > 0 ? remaining[0].id : null);
+      // Optimistic state reset
       setElements([]);
       setSelectedId(null);
+      
+      const remaining = whiteboards.filter(w => w.id !== idToDelete);
+      setActiveBoardId(remaining.length > 0 ? remaining[0].id : null);
+      
       await deleteWhiteboard(idToDelete);
     }
   };
@@ -314,7 +316,7 @@ const Whiteboard: React.FC = () => {
           <button 
             onClick={() => { setIsAiMindMapPromptOpen(true); }}
             className="p-3 rounded-full text-blue-600 hover:bg-blue-50 transition-all group"
-            title="AI Visual Architect"
+            title="FP-Engine Architect"
           >
             <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />
           </button>
@@ -361,8 +363,8 @@ const Whiteboard: React.FC = () => {
                  <Loader2 className="text-blue-600 animate-spin absolute inset-0" size={48} />
                </div>
                <div className="text-center">
-                 <h3 className="font-black tracking-tight text-xl mb-1">Architecting Vision</h3>
-                 <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Gemini is laying out your ideas...</p>
+                 <h3 className="font-black tracking-tight text-xl mb-1 text-gray-900">FP-Engine Architecting</h3>
+                 <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Laying out high-fidelity strategy...</p>
                </div>
             </div>
           </div>
@@ -377,15 +379,15 @@ const Whiteboard: React.FC = () => {
                   <Sparkles size={24} />
                 </div>
                 <div>
-                  <h3 className="font-black text-2xl tracking-tight">{isAiMindMapPromptOpen ? "Visual Architect" : "AI Illustration"}</h3>
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Gemini reasoning engine</p>
+                  <h3 className="font-black text-2xl tracking-tight text-gray-900">FP-Engine {isAiMindMapPromptOpen ? "Visual Architect" : "Illustration"}</h3>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">High-performance reasoning</p>
                 </div>
               </div>
               <textarea
                 autoFocus
                 className="w-full bg-gray-50 border border-gray-100 rounded-[24px] p-5 text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none h-40 resize-none mb-6 shadow-inner transition-all"
                 placeholder={isAiMindMapPromptOpen 
-                  ? "Describe a topic for a mind map (e.g., Solar Energy Market, App Features, Project Roadmap)..." 
+                  ? "Describe a complex topic (e.g., Global Expansion Strategy, Product Lifecycle, Research Phase)..." 
                   : "Describe the icon or image you want (e.g., A minimalist database icon, neon style)..."}
                 value={aiPromptValue}
                 onChange={(e) => setAiPromptValue(e.target.value)}
@@ -397,7 +399,7 @@ const Whiteboard: React.FC = () => {
                   disabled={!aiPromptValue.trim()} 
                   className="flex-[2] bg-black text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-800 transition-all disabled:opacity-30 shadow-xl active:scale-95"
                 >
-                  Create Visuals
+                  Create High-Fidelity Visuals
                 </button>
               </div>
             </div>
@@ -450,7 +452,7 @@ const Whiteboard: React.FC = () => {
               <PenTool size={80} className="opacity-10" />
             </div>
             <h3 className="font-black text-2xl text-gray-400 tracking-tight uppercase">Infinite Canvas</h3>
-            <p className="text-sm text-gray-300 font-bold uppercase tracking-widest mt-2">Start with a thought or ask AI for a mind map.</p>
+            <p className="text-sm text-gray-300 font-bold uppercase tracking-widest mt-2">Powered by FP-Engine Visuals</p>
           </div>
         )}
       </div>
@@ -458,7 +460,7 @@ const Whiteboard: React.FC = () => {
       {/* Footer Instructions */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none">
         <div className="bg-black/90 text-white/50 text-[10px] px-6 py-2.5 rounded-full font-black uppercase tracking-[0.2em] shadow-2xl backdrop-blur-xl border border-white/10">
-          Double Click to Edit • Drag to Move • <span className="text-blue-400">Alt + Click to Rapid Note</span>
+          Double Click to Edit • Drag to Move • <span className="text-blue-400">FP-Engine Engine Active</span>
         </div>
       </div>
     </div>
