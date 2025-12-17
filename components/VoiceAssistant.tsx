@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from '@google/genai';
 import { X, Mic, MicOff, Waves, Volume2, AlertCircle, PlayCircle, Sparkles, Loader2 } from 'lucide-react';
 import { useStore } from '../context/StoreContext.tsx';
-import { ProjectStatus } from '../types.ts';
+import { ProjectStatus, TaskStatus, Priority } from '../types.ts';
 
 const encode = (bytes: Uint8Array) => {
   let b = '';
@@ -49,11 +49,75 @@ const tools: FunctionDeclaration[] = [
   {
     name: 'getWorkspaceOverview',
     parameters: { type: Type.OBJECT, properties: {} }
+  },
+  {
+    name: 'createTask',
+    parameters: {
+      type: Type.OBJECT,
+      properties: { 
+        projectTitle: { type: Type.STRING }, 
+        taskTitle: { type: Type.STRING }, 
+        priority: { type: Type.STRING, enum: ['Low', 'Medium', 'High'] } 
+      },
+      required: ['projectTitle', 'taskTitle']
+    }
+  },
+  {
+    name: 'updateTaskStatus',
+    parameters: {
+      type: Type.OBJECT,
+      properties: { 
+        taskTitle: { type: Type.STRING }, 
+        status: { type: Type.STRING, enum: ['Pending', 'In Progress', 'Done'] } 
+      },
+      required: ['taskTitle', 'status']
+    }
+  },
+  {
+    name: 'deleteTask',
+    parameters: {
+      type: Type.OBJECT,
+      properties: { taskTitle: { type: Type.STRING } },
+      required: ['taskTitle']
+    }
+  },
+  {
+    name: 'createNote',
+    parameters: {
+      type: Type.OBJECT,
+      properties: { 
+        title: { type: Type.STRING }, 
+        content: { type: Type.STRING },
+        projectTitle: { type: Type.STRING }
+      },
+      required: ['title', 'content']
+    }
+  },
+  {
+    name: 'deleteNote',
+    parameters: {
+      type: Type.OBJECT,
+      properties: { title: { type: Type.STRING } },
+      required: ['title']
+    }
+  },
+  {
+    name: 'getProjectDetails',
+    parameters: {
+      type: Type.OBJECT,
+      properties: { title: { type: Type.STRING } },
+      required: ['title']
+    }
   }
 ];
 
 const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { projects, tasks, notes, addProject, deleteProject } = useStore();
+  const { 
+    projects, tasks, notes, 
+    addProject, deleteProject, 
+    addTask, updateTask, deleteTask: storeDeleteTask,
+    addNote, updateNote, deleteNote: storeDeleteNote 
+  } = useStore();
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,20 +157,83 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             src.connect(proc);
             proc.connect(inCtx.current!.destination);
           },
-          onmessage: async (msg) => {
+          onmessage: async (msg: LiveServerMessage) => {
             if (msg.toolCall) {
-              // Fixed: Process tool calls individually to comply with SDK plural-named singular object format
               for (const fc of msg.toolCall.functionCalls) {
-                let res = "ok";
+                let res: any = "ok";
+                const findProject = (title: string) => projects.find(p => p.title.toLowerCase().includes(title.toLowerCase()));
+                const findTask = (title: string) => tasks.find(t => t.title.toLowerCase().includes(title.toLowerCase()));
+                const findNote = (title: string) => notes.find(n => n.title.toLowerCase().includes(title.toLowerCase()));
+
                 if (fc.name === 'createProject') {
                   await addProject({ title: fc.args.title as string, description: fc.args.description as string, status: ProjectStatus.IDEA, tags: ['voice'] });
                   res = `Created project ${fc.args.title}`;
-                } else if (fc.name === 'deleteProject') {
-                  const p = projects.find(it => it.title.toLowerCase().includes((fc.args.title as string).toLowerCase()));
-                  if (p) { await deleteProject(p.id); res = `Deleted ${p.title}`; }
+                } 
+                else if (fc.name === 'deleteProject') {
+                  const p = findProject(fc.args.title as string);
+                  if (p) { await deleteProject(p.id); res = `Deleted project ${p.title}`; }
                   else res = "Project not found.";
-                } else if (fc.name === 'getWorkspaceOverview') {
-                  res = `Workspace has ${projects.length} projects and ${tasks.filter(t => t.status !== 'Done').length} pending tasks.`;
+                } 
+                else if (fc.name === 'getWorkspaceOverview') {
+                  res = `Workspace has ${projects.length} projects, ${tasks.filter(t => t.status !== TaskStatus.DONE).length} pending tasks, and ${notes.length} notes.`;
+                }
+                else if (fc.name === 'createTask') {
+                  const p = findProject(fc.args.projectTitle as string);
+                  if (p) {
+                    await addTask({ 
+                      projectId: p.id, 
+                      title: fc.args.taskTitle as string, 
+                      status: TaskStatus.PENDING, 
+                      priority: (fc.args.priority as Priority) || Priority.MEDIUM 
+                    });
+                    res = `Added task "${fc.args.taskTitle}" to project "${p.title}"`;
+                  } else res = "Project not found.";
+                }
+                else if (fc.name === 'updateTaskStatus') {
+                  const t = findTask(fc.args.taskTitle as string);
+                  if (t) {
+                    await updateTask(t.id, { status: fc.args.status as TaskStatus });
+                    res = `Updated task "${t.title}" status to ${fc.args.status}`;
+                  } else res = "Task not found.";
+                }
+                else if (fc.name === 'deleteTask') {
+                  const t = findTask(fc.args.taskTitle as string);
+                  if (t) {
+                    await storeDeleteTask(t.id);
+                    res = `Deleted task "${t.title}"`;
+                  } else res = "Task not found.";
+                }
+                else if (fc.name === 'createNote') {
+                  const p = fc.args.projectTitle ? findProject(fc.args.projectTitle as string) : null;
+                  await addNote({ 
+                    title: fc.args.title as string, 
+                    content: fc.args.content as string, 
+                    projectId: p?.id 
+                  });
+                  res = `Created note "${fc.args.title}"${p ? ` linked to project "${p.title}"` : ''}`;
+                }
+                else if (fc.name === 'deleteNote') {
+                  const n = findNote(fc.args.title as string);
+                  if (n) {
+                    await storeDeleteNote(n.id);
+                    res = `Deleted note "${n.title}"`;
+                  } else res = "Note not found.";
+                }
+                else if (fc.name === 'getProjectDetails') {
+                  const p = findProject(fc.args.title as string);
+                  if (p) {
+                    const pTasks = tasks.filter(t => t.projectId === p.id);
+                    const pNotes = notes.filter(n => n.projectId === p.id);
+                    res = {
+                      title: p.title,
+                      description: p.description,
+                      status: p.status,
+                      progress: `${p.progress}%`,
+                      taskCount: pTasks.length,
+                      completedTasks: pTasks.filter(t => t.status === TaskStatus.DONE).length,
+                      noteCount: pNotes.length
+                    };
+                  } else res = "Project not found.";
                 }
                 
                 sessionPromise.then(s => s.sendToolResponse({ 
@@ -140,7 +267,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         config: {
           responseModalities: [Modality.AUDIO],
           tools: [{ functionDeclarations: tools }],
-          systemInstruction: "You are a professional assistant for First Projects Connect. You MUST only speak English. Be concise. You can manage projects by title."
+          systemInstruction: "You are a professional workspace assistant. You can manage projects, tasks, and notes. Be helpful, concise, and professional. Always confirm actions. You can fetch detailed project status reports if asked."
         }
       });
       session.current = await sessionPromise;
@@ -161,16 +288,34 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
 
         <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 scale-110 shadow-xl' : 'bg-gray-100'}`}>
-          {isActive ? <Waves className="text-white animate-pulse" size={48} /> : isConnecting ? <Loader2 className="animate-spin text-blue-600" size={48} /> : <MicOff className="text-gray-400" size={48} />}
+          {isActive ? (
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-8 bg-white rounded-full animate-[bounce_1s_infinite_0ms]" />
+              <div className="w-1.5 h-12 bg-white rounded-full animate-[bounce_1s_infinite_200ms]" />
+              <div className="w-1.5 h-6 bg-white rounded-full animate-[bounce_1s_infinite_400ms]" />
+              <div className="w-1.5 h-10 bg-white rounded-full animate-[bounce_1s_infinite_600ms]" />
+              <div className="w-1.5 h-7 bg-white rounded-full animate-[bounce_1s_infinite_800ms]" />
+            </div>
+          ) : isConnecting ? <Loader2 className="animate-spin text-blue-600" size={48} /> : <MicOff className="text-gray-400" size={48} />}
         </div>
 
         <div className="text-center space-y-2">
           <h2 className="text-xl font-bold">{isConnecting ? "Waking up..." : isActive ? "Listening..." : "Voice Control"}</h2>
-          {error ? <p className="text-red-500 text-xs">{error}</p> : <p className="text-sm text-gray-500">Ask to create projects or summarize your work.</p>}
+          {error ? <p className="text-red-500 text-xs">{error}</p> : <p className="text-sm text-gray-500">
+            {isActive ? "Try: 'Add a high priority task to my app project'" : "Speak naturally to manage your workspace."}
+          </p>}
         </div>
 
         {!isActive && !isConnecting && (
-          <button onClick={startSession} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg">Start Conversation</button>
+          <button onClick={startSession} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 transition-all">
+            Start Conversation
+          </button>
+        )}
+        
+        {isActive && (
+          <button onClick={() => { session.current?.close(); setIsActive(false); }} className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors">
+            End Session
+          </button>
         )}
       </div>
     </div>

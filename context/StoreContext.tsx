@@ -58,7 +58,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const mapNote = (n: any): Note => ({ ...n, updatedAt: new Date(n.updated_at), projectId: n.project_id });
   const mapAsset = (a: any): Asset => ({ ...a, projectId: a.project_id });
   const mapSnippet = (s: any): CodeSnippet => ({ ...s, updatedAt: new Date(s.updated_at) });
-  const mapWhiteboard = (w: any): Whiteboard => ({ ...w, updatedAt: new Date(w.updated_at) });
+  
+  const mapWhiteboard = (w: any): Whiteboard => {
+    let elements: CanvasElement[] = [];
+    try {
+      elements = typeof w.elements === 'string' ? JSON.parse(w.elements) : (w.elements || []);
+    } catch (e) {
+      console.error("Failed to parse whiteboard elements", e);
+    }
+    return { ...w, elements, updatedAt: new Date(w.updated_at) };
+  };
 
   const logError = (context: string, error: any) => {
     const message = error?.message || "Unknown error";
@@ -105,45 +114,67 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [tasks]);
 
   const deleteProject = async (id: string) => {
-    const { error } = await supabase.from('projects').delete().eq('id', id);
+    if (!user) return;
+    const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', user.id);
     if (error) {
       logError("DeleteProject", error);
-      alert("Failed to delete project. Please check if it contains dependencies.");
+      alert("Failed to delete project. Check SQL schema (v1.2.2) and permissions.");
     } else {
       setProjects(prev => prev.filter(p => p.id !== id));
       setTasks(prev => prev.filter(t => t.projectId !== id));
       setNotes(prev => prev.filter(n => n.projectId !== id));
+      setAssets(prev => prev.filter(a => a.projectId !== id));
     }
   };
 
   const deleteTask = async (id: string) => {
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
-    if (!error) setTasks(prev => prev.filter(t => t.id !== id));
-    else logError("DeleteTask", error);
+    if (!user) return;
+    const { error } = await supabase.from('tasks').delete().eq('id', id).eq('user_id', user.id);
+    if (!error) {
+      setTasks(prev => prev.filter(t => t.id !== id));
+    } else {
+      logError("DeleteTask", error);
+    }
   };
 
   const deleteNote = async (id: string) => {
-    const { error } = await supabase.from('notes').delete().eq('id', id);
-    if (!error) setNotes(prev => prev.filter(n => n.id !== id));
-    else logError("DeleteNote", error);
+    if (!user) return;
+    const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', user.id);
+    if (!error) {
+      setNotes(prev => prev.filter(n => n.id !== id));
+    } else {
+      logError("DeleteNote", error);
+    }
   };
 
   const deleteAsset = async (id: string) => {
-    const { error } = await supabase.from('assets').delete().eq('id', id);
-    if (!error) setAssets(prev => prev.filter(a => a.id !== id));
-    else logError("DeleteAsset", error);
+    if (!user) return;
+    const { error } = await supabase.from('assets').delete().eq('id', id).eq('user_id', user.id);
+    if (!error) {
+      setAssets(prev => prev.filter(a => a.id !== id));
+    } else {
+      logError("DeleteAsset", error);
+    }
   };
 
   const deleteSnippet = async (id: string) => {
-    const { error } = await supabase.from('snippets').delete().eq('id', id);
-    if (!error) setSnippets(prev => prev.filter(s => s.id !== id));
-    else logError("DeleteSnippet", error);
+    if (!user) return;
+    const { error } = await supabase.from('snippets').delete().eq('id', id).eq('user_id', user.id);
+    if (!error) {
+      setSnippets(prev => prev.filter(s => s.id !== id));
+    } else {
+      logError("DeleteSnippet", error);
+    }
   };
 
   const deleteWhiteboard = async (id: string) => {
-    const { error } = await supabase.from('whiteboards').delete().eq('id', id);
-    if (!error) setWhiteboards(prev => prev.filter(w => w.id !== id));
-    else logError("DeleteWhiteboard", error);
+    if (!user) return;
+    const { error } = await supabase.from('whiteboards').delete().eq('id', id).eq('user_id', user.id);
+    if (!error) {
+      setWhiteboards(prev => prev.filter(w => w.id !== id));
+    } else {
+      logError("DeleteWhiteboard", error);
+    }
   };
 
   const addProject = async (p: Omit<Project, 'id' | 'createdAt' | 'progress'>) => {

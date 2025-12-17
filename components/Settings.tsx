@@ -4,7 +4,7 @@ import { saveSupabaseConfig, getSupabaseConfig } from '../services/supabaseClien
 import { Database, Check, AlertCircle, Copy, RefreshCw } from 'lucide-react';
 
 const SQL_SCHEMA = `
--- First Projects Connect v1.2.1 Database Schema (Full / Repair)
+-- First Projects Connect v1.2.2 Database Schema (Full / Repair)
 -- Run this in your Supabase SQL Editor to initialize or update your ecosystem.
 
 -- Enable UUID extension
@@ -36,7 +36,7 @@ create table if not exists tasks (
 create table if not exists notes (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
-  project_id uuid references projects on delete set null,
+  project_id uuid references projects on delete cascade,
   title text not null,
   content text,
   updated_at timestamptz default now()
@@ -118,7 +118,7 @@ const Settings: React.FC = () => {
     <div className="p-8 max-w-4xl mx-auto pb-20">
       <div className="flex items-center gap-3 mb-8">
         <h1 className="text-3xl font-bold text-apple-text tracking-tight">System Settings</h1>
-        <div className="px-2 py-1 bg-gray-100 rounded text-xs font-mono text-gray-500">v1.2.1</div>
+        <div className="px-2 py-1 bg-gray-100 rounded text-xs font-mono text-gray-500">v1.2.2</div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -169,9 +169,9 @@ const Settings: React.FC = () => {
             <div className="flex items-start gap-3">
               <AlertCircle className="text-blue-600 shrink-0 mt-0.5" size={20} />
               <div>
-                <h3 className="text-blue-900 font-semibold mb-1">Database Update Required</h3>
+                <h3 className="text-blue-900 font-semibold mb-1">Database Update Required (v1.2.2)</h3>
                 <p className="text-blue-800 text-sm leading-relaxed">
-                  Ensure your database has all the required tables.
+                  The latest update ensures deletion reliability.
                   <br/><br/>
                   1. Copy the SQL code below.<br/>
                   2. Go to the <a href="https://supabase.com/dashboard" target="_blank" className="underline font-bold">Supabase SQL Editor</a>.<br/>
@@ -183,7 +183,7 @@ const Settings: React.FC = () => {
 
           <div className="bg-gray-900 text-gray-300 rounded-2xl overflow-hidden border border-gray-800">
             <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
-              <span className="text-xs font-mono text-gray-400">schema_v1.2.1.sql</span>
+              <span className="text-xs font-mono text-gray-400">schema_v1.2.2.sql</span>
               <button onClick={copySQL} className="text-xs flex items-center gap-1 hover:text-white transition-colors">
                 {copied ? <Check size={12} /> : <Copy size={12} />}
                 {copied ? 'Copied' : 'Copy SQL'}
