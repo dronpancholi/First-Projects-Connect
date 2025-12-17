@@ -6,7 +6,7 @@ import {
   StickyNote, X, Wand2, Trash2, Image as ImageIcon, 
   Palette, Sparkles, Send, Layers, Copy, Trash, PenTool, 
   LayoutGrid, Loader2, Maximize, ZoomIn, ZoomOut, Move,
-  Hand, BoxSelect, Network, ArrowRightCircle
+  Hand, BoxSelect, Network, ArrowRightCircle, Info
 } from 'lucide-react';
 import { CanvasElement } from '../types.ts';
 import * as GeminiService from '../services/geminiService.ts';
@@ -38,6 +38,7 @@ const Whiteboard: React.FC = () => {
   const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
   const [aiPromptValue, setAiPromptValue] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [genStatus, setGenStatus] = useState<string>('');
   const [pendingClickPos, setPendingClickPos] = useState<{ x: number, y: number } | null>(null);
   const [isAiMindMapPromptOpen, setIsAiMindMapPromptOpen] = useState(false);
 
@@ -82,7 +83,6 @@ const Whiteboard: React.FC = () => {
       const scaleDelta = delta > 0 ? 0.9 : 1.1;
       const newScale = Math.min(Math.max(prev.scale * scaleDelta, 0.1), 5);
       
-      // Zoom centered on cursor
       const rect = containerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const mx = (centerX - rect.left - prev.x) / prev.scale;
       const my = (centerY - rect.top - prev.y) / prev.scale;
@@ -236,21 +236,29 @@ const Whiteboard: React.FC = () => {
     };
   }, [handleMouseMove, handleMouseUp]);
 
-  const handleAiMindMap = async () => {
+  const handleAiArchitect = async () => {
     if (!aiPromptValue.trim() || !activeBoardId) return;
     setIsGenerating(true);
+    setGenStatus('Determining Diagram Logic...');
     setIsAiMindMapPromptOpen(false);
     try {
-      const generated = await GeminiService.generateWhiteboardLayout(aiPromptValue);
-      const next = [...elements, ...generated];
+      const response = await GeminiService.generateWhiteboardLayout(aiPromptValue);
+      setGenStatus(`Architecting ${response.diagramType}...`);
+      
+      const next = [...elements, ...response.elements];
       setElements(next);
       saveElements(next);
-      // Center view on content
-      setTransform({ x: 200, y: 200, scale: 1 });
+      
+      // Cinematic focusing
+      if (response.elements.length > 0) {
+        const first = response.elements[0];
+        setTransform({ x: -first.x + 400, y: -first.y + 300, scale: 0.8 });
+      }
     } catch (err) {
       console.error("FP-Engine Architect Failed", err);
     } finally {
       setIsGenerating(false);
+      setGenStatus('');
       setAiPromptValue('');
     }
   };
@@ -302,8 +310,11 @@ const Whiteboard: React.FC = () => {
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
           transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .pro-node:hover { transform: translateY(-2px); }
-        .hud-blur { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); }
+        .pro-node:hover { transform: translateY(-3px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .hud-blur { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); }
+        
+        .diamond-shape { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+        .triangle-shape { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
       `}</style>
 
       {/* Strategic HUD */}
@@ -408,7 +419,7 @@ const Whiteboard: React.FC = () => {
           style={{ 
             transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
             transformOrigin: '0 0',
-            transition: isPanning ? 'none' : 'transform 0.05s linear'
+            transition: isPanning ? 'none' : 'transform 0.15s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
           className="absolute inset-0 pointer-events-none"
         >
@@ -418,7 +429,12 @@ const Whiteboard: React.FC = () => {
             <div 
               key={el.id} 
               onMouseDown={(e) => handleMouseDown(e, el.id)} 
-              className={`absolute group pro-node pointer-events-auto overflow-visible ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} ${selectedId === el.id ? 'ring-4 ring-blue-500 shadow-2xl z-50 scale-[1.02]' : 'border border-slate-200'}`} 
+              className={`absolute group pro-node pointer-events-auto overflow-visible 
+                ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} 
+                ${selectedId === el.id ? 'ring-4 ring-blue-500 shadow-2xl z-50 scale-[1.02]' : 'border border-slate-200'}
+                ${el.type === 'diamond' ? 'diamond-shape' : ''}
+                ${el.type === 'triangle' ? 'triangle-shape' : ''}
+              `} 
               style={{ 
                 left: el.x, 
                 top: el.y, 
@@ -437,9 +453,10 @@ const Whiteboard: React.FC = () => {
                 </>
               )}
 
-              <div className={`w-full h-full flex flex-col p-4 relative ${el.type === 'circle' ? 'rounded-full text-center items-center justify-center' : ''}`}>
+              <div className={`w-full h-full flex flex-col p-4 relative ${el.type === 'circle' ? 'rounded-full text-center items-center justify-center' : ''} ${el.type === 'diamond' ? 'items-center justify-center p-6' : ''}`}>
                 <textarea 
-                  className={`w-full h-full bg-transparent outline-none resize-none text-sm font-bold scrollbar-hide text-slate-800 placeholder:text-slate-300 ${el.type === 'circle' ? 'text-center' : ''}`}
+                  className={`w-full h-full bg-transparent outline-none resize-none text-sm font-bold scrollbar-hide text-slate-800 placeholder:text-slate-300 
+                    ${(el.type === 'circle' || el.type === 'diamond' || el.type === 'triangle') ? 'text-center' : ''}`}
                   value={el.content}
                   placeholder="Insert Insight..."
                   onChange={(e) => {
@@ -475,25 +492,25 @@ const Whiteboard: React.FC = () => {
                 </div>
                 <div>
                    <h3 className="font-black text-3xl tracking-tighter text-slate-900">FP-Engine Architect</h3>
-                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">High-Fidelity Strategic Visualizer</p>
+                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Universal Visual Architecture System</p>
                 </div>
              </div>
              <textarea 
                autoFocus
                className="w-full bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] p-8 text-lg font-bold text-slate-900 focus:ring-8 focus:ring-blue-500/10 focus:border-blue-500 outline-none h-60 resize-none mb-10 shadow-inner"
-               placeholder="Specify a project, strategy, or research landscape for spatial synthesis..."
+               placeholder="Describe a process, strategy, or project structure. The AI will decide on the best visualization type..."
                value={aiPromptValue}
                onChange={(e) => setAiPromptValue(e.target.value)}
              />
              <div className="flex gap-4">
                <button onClick={() => setIsAiMindMapPromptOpen(false)} className="flex-1 py-6 text-sm font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest transition-colors">Abort</button>
                <button 
-                onClick={handleAiMindMap}
+                onClick={handleAiArchitect}
                 disabled={!aiPromptValue.trim() || isGenerating}
                 className="flex-[2] bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-4"
                >
                  {isGenerating ? <Loader2 className="animate-spin" size={20}/> : <ArrowRightCircle size={20}/>}
-                 Synthesize Design
+                 Synthesize Logic
                </button>
              </div>
           </div>
@@ -508,8 +525,11 @@ const Whiteboard: React.FC = () => {
                  <div className="absolute inset-0 bg-blue-400 blur-3xl opacity-30 animate-pulse" />
                  <Loader2 size={64} className="text-blue-600 animate-spin" />
               </div>
-              <h4 className="font-black text-2xl text-slate-900 uppercase tracking-tighter">Synthesizing Workspace</h4>
-              <p className="text-[10px] text-blue-600 font-black uppercase tracking-[0.3em] mt-3 animate-pulse">Computing Spatial Logic...</p>
+              <h4 className="font-black text-2xl text-slate-900 uppercase tracking-tighter">{genStatus || 'Synthesizing...'}</h4>
+              <div className="flex items-center gap-2 mt-4 px-4 py-2 bg-blue-50 rounded-full border border-blue-100">
+                <Info size={14} className="text-blue-600" />
+                <p className="text-[10px] text-blue-600 font-black uppercase tracking-[0.3em] animate-pulse">Running Neural Blueprint Simulation</p>
+              </div>
            </div>
         </div>
       )}

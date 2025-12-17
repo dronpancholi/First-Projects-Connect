@@ -82,7 +82,7 @@ export interface CodeSnippet {
 export interface CanvasElement {
   id: string;
   parentId?: string;
-  type: 'note' | 'text' | 'rect' | 'circle' | 'image';
+  type: 'note' | 'text' | 'rect' | 'circle' | 'image' | 'diamond' | 'triangle';
   x: number;
   y: number;
   content?: string;

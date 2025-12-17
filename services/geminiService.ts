@@ -4,6 +4,12 @@ import { Project, Task, Note, CanvasElement } from '../types.ts';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+export interface WhiteboardGenerationResponse {
+  diagramType: string;
+  title: string;
+  elements: CanvasElement[];
+}
+
 export const generateProjectPlan = async (projectTitle: string, description: string): Promise<string> => {
   try {
     const prompt = `
@@ -23,27 +29,41 @@ export const generateProjectPlan = async (projectTitle: string, description: str
   }
 };
 
-export const generateWhiteboardLayout = async (description: string): Promise<CanvasElement[]> => {
+export const generateWhiteboardLayout = async (description: string): Promise<WhiteboardGenerationResponse> => {
   try {
     const prompt = `
-      You are the FP-Engine Strategic Architect. Create a high-fidelity, hierarchical mind map for: "${description}".
+      You are the FP-Engine Strategic Visual Architect. Your goal is to translate complex ideas into professional, executive-level visual architectures.
       
-      Requirements:
-      1. Structure: Hierarchical tree. Root node at (0, 0).
-      2. Depth: Create 3 levels of depth (Core Idea -> Strategic Pillars -> Implementation Details).
-      3. Logic: Every child node MUST have a 'parentId' matching its parent's 'id'.
-      4. Spatial Reasoning: Nodes should spread out radially or in a logical tree flow to avoid overlapping.
-      5. Content: Each node should contain professional, insightful content (minimum 5 words per node).
-      6. Density: Generate 12-16 connected nodes.
+      User Goal: "${description}"
       
-      Colors: 
-      - Core: #0F172A (Deep Slate)
-      - Strategy: #3B82F6 (Blue)
-      - Implementation: #10B981 (Emerald)
-      - Risks/Notes: #F59E0B (Amber)
+      Your Task:
+      1. Determine the best visual format for this request. Options: 
+         - 'Flowchart' (Use for processes, sequences, decisions)
+         - 'Mind Map' (Use for brainstorming, branching ideas)
+         - 'SWOT Analysis' (Use for strategic evaluation)
+         - 'System Architecture' (Use for technical diagrams)
+         
+      2. Construct the architecture:
+         - Nodes must be logically connected via 'parentId'.
+         - Use 'rect' for steps/tasks, 'circle' for start/milestones, 'diamond' for decisions, 'note' for insights.
+         - Ensure professional spacing (nodes should not overlap).
+         - Each node needs insightful, specific content.
+         
+      Colors:
+      - Primary/Core: #1E293B (Deep Slate)
+      - Process/Action: #2563EB (Blue)
+      - Milestone/Success: #059669 (Emerald)
+      - Decision/Warning: #D97706 (Amber)
+      - Backgrounds: Use lighter versions (#EFF6FF, #ECFDF5) for node colors.
       
-      Return ONLY a JSON array of CanvasElement objects: 
-      { id: string, parentId?: string, type: 'rect' | 'circle' | 'note', x: number, y: number, content: string, color: string, width: number, height: number }
+      Return ONLY a JSON object: 
+      { 
+        "diagramType": string, 
+        "title": string, 
+        "elements": [
+          { "id": string, "parentId": string, "type": string, "x": number, "y": number, "content": string, "color": string, "width": number, "height": number }
+        ]
+      }
     `;
 
     const response = await ai.models.generateContent({
@@ -52,30 +72,38 @@ export const generateWhiteboardLayout = async (description: string): Promise<Can
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.STRING },
-              parentId: { type: Type.STRING },
-              type: { type: Type.STRING, enum: ['rect', 'circle', 'note'] },
-              x: { type: Type.NUMBER },
-              y: { type: Type.NUMBER },
-              content: { type: Type.STRING },
-              color: { type: Type.STRING },
-              width: { type: Type.NUMBER },
-              height: { type: Type.NUMBER }
-            },
-            required: ['id', 'type', 'x', 'y', 'content', 'color', 'width', 'height']
-          }
+          type: Type.OBJECT,
+          properties: {
+            diagramType: { type: Type.STRING },
+            title: { type: Type.STRING },
+            elements: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  parentId: { type: Type.STRING },
+                  type: { type: Type.STRING, enum: ['rect', 'circle', 'note', 'diamond', 'triangle'] },
+                  x: { type: Type.NUMBER },
+                  y: { type: Type.NUMBER },
+                  content: { type: Type.STRING },
+                  color: { type: Type.STRING },
+                  width: { type: Type.NUMBER },
+                  height: { type: Type.NUMBER }
+                },
+                required: ['id', 'type', 'x', 'y', 'content', 'color', 'width', 'height']
+              }
+            }
+          },
+          required: ['diagramType', 'title', 'elements']
         }
       }
     });
 
-    return JSON.parse(response.text || "[]");
+    return JSON.parse(response.text || '{"diagramType":"Error","title":"Error","elements":[]}');
   } catch (error) {
     console.error("FP-Engine Visual Gen Error:", error);
-    return [];
+    return { diagramType: "Error", title: "Error", elements: [] };
   }
 };
 

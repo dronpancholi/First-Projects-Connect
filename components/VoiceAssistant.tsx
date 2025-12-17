@@ -183,9 +183,10 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   res = `FP-Engine created project ${fc.args.title}`;
                 } 
                 else if (fc.name === 'createMindMap') {
-                  const elements = await GeminiService.generateWhiteboardLayout(fc.args.description as string);
-                  await addWhiteboard({ title: fc.args.title as string, elements });
-                  res = `FP-Engine generated mind map "${fc.args.title}" with ${elements.length} components.`;
+                  // Fix: correctly access elements from the WhiteboardGenerationResponse object
+                  const genResponse = await GeminiService.generateWhiteboardLayout(fc.args.description as string);
+                  await addWhiteboard({ title: fc.args.title as string, elements: genResponse.elements });
+                  res = `FP-Engine generated mind map "${fc.args.title}" with ${genResponse.elements.length} components.`;
                 }
                 else if (fc.name === 'deleteProject') {
                   const p = findProject(fc.args.title as string);
@@ -283,7 +284,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           onerror: (e) => { setError("FP-Engine connection lost."); setIsActive(false); }
         },
         config: {
-          responseModalities: [Modality.AUDIO],
+          responseModalalities: [Modality.AUDIO],
           tools: [{ functionDeclarations: tools }],
           systemInstruction: "You are the FP-Engine, a professional high-performance workspace assistant. You manage projects, tasks, and notes with extreme efficiency. You can also architect visual mind maps and diagrams for whiteboards. Be technical, helpful, and concise. Always confirm your actions as FP-Engine."
         }
