@@ -81,6 +81,7 @@ export interface CodeSnippet {
 
 export interface CanvasElement {
   id: string;
+  parentId?: string;
   type: 'note' | 'text' | 'rect' | 'circle' | 'image';
   x: number;
   y: number;

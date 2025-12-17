@@ -26,19 +26,24 @@ export const generateProjectPlan = async (projectTitle: string, description: str
 export const generateWhiteboardLayout = async (description: string): Promise<CanvasElement[]> => {
   try {
     const prompt = `
-      You are the FP-Engine Visual Architect. Create a high-fidelity, comprehensive mind map for: "${description}".
+      You are the FP-Engine Strategic Architect. Create a high-fidelity, hierarchical mind map for: "${description}".
       
       Requirements:
-      1. Structure: Hierarchical tree starting from a center node (400, 400).
-      2. Content: Break the idea into distinct phases (e.g., Research, Prototype, Launch). 
-      3. Visuals: Use CanvasElement types (note, text, rect, circle).
-      4. Density: At least 12 connected nodes.
-      5. Execution: Each node must contain actionable advice or a specific component name.
+      1. Structure: Hierarchical tree. Root node at (0, 0).
+      2. Depth: Create 3 levels of depth (Core Idea -> Strategic Pillars -> Implementation Details).
+      3. Logic: Every child node MUST have a 'parentId' matching its parent's 'id'.
+      4. Spatial Reasoning: Nodes should spread out radially or in a logical tree flow to avoid overlapping.
+      5. Content: Each node should contain professional, insightful content (minimum 5 words per node).
+      6. Density: Generate 12-16 connected nodes.
+      
+      Colors: 
+      - Core: #0F172A (Deep Slate)
+      - Strategy: #3B82F6 (Blue)
+      - Implementation: #10B981 (Emerald)
+      - Risks/Notes: #F59E0B (Amber)
       
       Return ONLY a JSON array of CanvasElement objects: 
-      { id: string, type: 'note' | 'text' | 'rect' | 'circle', x: number, y: number, content: string, color: string, width: number, height: number }
-      
-      Color palette: Use #DBEAFE for research, #D1FAE5 for development, #FEF3C7 for strategy, #FEE2E2 for risks.
+      { id: string, parentId?: string, type: 'rect' | 'circle' | 'note', x: number, y: number, content: string, color: string, width: number, height: number }
     `;
 
     const response = await ai.models.generateContent({
@@ -52,7 +57,8 @@ export const generateWhiteboardLayout = async (description: string): Promise<Can
             type: Type.OBJECT,
             properties: {
               id: { type: Type.STRING },
-              type: { type: Type.STRING, enum: ['note', 'text', 'rect', 'circle'] },
+              parentId: { type: Type.STRING },
+              type: { type: Type.STRING, enum: ['rect', 'circle', 'note'] },
               x: { type: Type.NUMBER },
               y: { type: Type.NUMBER },
               content: { type: Type.STRING },

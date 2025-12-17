@@ -1,18 +1,19 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { 
-  Plus, MousePointer, Type, Square, Circle as CircleIcon, 
+  Plus, MousePointer2, Type, Square, Circle as CircleIcon, 
   StickyNote, X, Wand2, Trash2, Image as ImageIcon, 
   Palette, Sparkles, Send, Layers, Copy, Trash, PenTool, 
-  ChevronDown, LayoutGrid, Loader2
+  LayoutGrid, Loader2, Maximize, ZoomIn, ZoomOut, Move,
+  Hand, BoxSelect, Network, ArrowRightCircle
 } from 'lucide-react';
 import { CanvasElement } from '../types.ts';
 import * as GeminiService from '../services/geminiService.ts';
 
 const COLORS = [
-  '#FFFFFF', '#F3F4F6', '#DBEAFE', '#D1FAE5', '#FEF3C7', 
-  '#FEE2E2', '#EDE9FE', '#FCE7F3', '#FFEDD5', '#334155', '#1E293B'
+  '#FFFFFF', '#F8FAFC', '#EFF6FF', '#ECFDF5', '#FFFBEB', 
+  '#FEF2F2', '#F5F3FF', '#FDF2F8', '#FFF7ED', '#0F172A'
 ];
 
 type ResizeHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -22,7 +23,11 @@ const Whiteboard: React.FC = () => {
   const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const [tool, setTool] = useState<'select' | 'note' | 'text' | 'rect' | 'circle' | 'image'>('select');
+  // High-Performance Spatial State
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [tool, setTool] = useState<'select' | 'pan' | 'note' | 'text' | 'rect' | 'circle' | 'image'>('select');
+  
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -36,6 +41,7 @@ const Whiteboard: React.FC = () => {
   const [pendingClickPos, setPendingClickPos] = useState<{ x: number, y: number } | null>(null);
   const [isAiMindMapPromptOpen, setIsAiMindMapPromptOpen] = useState(false);
 
+  // Sync with active board
   useEffect(() => {
     if (whiteboards.length > 0 && !activeBoardId) {
       setActiveBoardId(whiteboards[0].id);
@@ -61,16 +67,52 @@ const Whiteboard: React.FC = () => {
     }
   }, [activeBoardId, updateWhiteboard]);
 
-  const addElement = async (e: React.MouseEvent) => {
-    if (e.target !== containerRef.current || tool === 'select') return;
-    if (!activeBoardId) {
-      alert("Please select or create a whiteboard first.");
-      return;
-    }
-    
+  // Coordinate Mapping Logic
+  const screenToCanvas = useCallback((sx: number, sy: number) => {
+    if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    return {
+      x: (sx - rect.left - transform.x) / transform.scale,
+      y: (sy - rect.top - transform.y) / transform.scale
+    };
+  }, [transform]);
+
+  const handleZoom = (delta: number, centerX: number, centerY: number) => {
+    setTransform(prev => {
+      const scaleDelta = delta > 0 ? 0.9 : 1.1;
+      const newScale = Math.min(Math.max(prev.scale * scaleDelta, 0.1), 5);
+      
+      // Zoom centered on cursor
+      const rect = containerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const mx = (centerX - rect.left - prev.x) / prev.scale;
+      const my = (centerY - rect.top - prev.y) / prev.scale;
+      
+      return {
+        x: centerX - rect.left - mx * newScale,
+        y: centerY - rect.top - my * newScale,
+        scale: newScale
+      };
+    });
+  };
+
+  const onWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      handleZoom(e.deltaY, e.clientX, e.clientY);
+    } else {
+      setTransform(prev => ({
+        ...prev,
+        x: prev.x - e.deltaX,
+        y: prev.y - e.deltaY
+      }));
+    }
+  };
+
+  const addElement = async (e: React.MouseEvent) => {
+    if (e.target !== containerRef.current || tool === 'select' || tool === 'pan') return;
+    if (!activeBoardId) return;
+    
+    const { x, y } = screenToCanvas(e.clientX, e.clientY);
 
     if (tool === 'image') { 
       setPendingClickPos({ x, y }); 
@@ -81,12 +123,12 @@ const Whiteboard: React.FC = () => {
     const newEl: CanvasElement = {
       id: Math.random().toString(36).substr(2, 9),
       type: tool as any,
-      x: x - 75,
-      y: y - 75,
-      width: 150,
-      height: 150,
-      color: tool === 'note' ? '#FEF3C7' : tool === 'text' ? 'transparent' : '#DBEAFE',
-      content: tool === 'text' ? 'New Text' : ''
+      x: x - 100,
+      y: y - 50,
+      width: 200,
+      height: 100,
+      color: tool === 'note' ? '#FEF3C7' : tool === 'text' ? 'transparent' : '#FFFFFF',
+      content: ''
     };
 
     const next = [...elements, newEl];
@@ -97,13 +139,14 @@ const Whiteboard: React.FC = () => {
   };
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
-    if (tool !== 'select') return;
+    if (tool === 'pan') return;
     e.stopPropagation();
     setSelectedId(id);
     const el = elements.find(it => it.id === id);
     if (el) { 
+      const { x, y } = screenToCanvas(e.clientX, e.clientY);
       setDraggingId(id); 
-      setDragOffset({ x: e.clientX - el.x, y: e.clientY - el.y }); 
+      setDragOffset({ x: x - el.x, y: y - el.y }); 
     }
   };
 
@@ -113,8 +156,7 @@ const Whiteboard: React.FC = () => {
     setResizeHandle(handle);
   };
 
-  const deleteElement = (e: React.MouseEvent | React.KeyboardEvent, id: string) => {
-    if ('stopPropagation' in e) e.stopPropagation();
+  const deleteElement = (id: string) => {
     const next = elements.filter(el => el.id !== id);
     setElements(next);
     setSelectedId(null);
@@ -122,55 +164,58 @@ const Whiteboard: React.FC = () => {
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isPanning || tool === 'pan') {
+      if (e.buttons === 1) {
+        setTransform(prev => ({
+          ...prev,
+          x: prev.x + e.movementX,
+          y: prev.y + e.movementY
+        }));
+      }
+      return;
+    }
+
+    const { x, y } = screenToCanvas(e.clientX, e.clientY);
+
     if (draggingId) {
       const nextEls = elements.map(el => el.id === draggingId ? { 
         ...el, 
-        x: e.clientX - dragOffset.x, 
-        y: e.clientY - dragOffset.y 
+        x: x - dragOffset.x, 
+        y: y - dragOffset.y 
       } : el);
       setElements(nextEls);
-    } else if (resizingId && resizeHandle && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const mX = e.clientX - rect.left;
-      const mY = e.clientY - rect.top;
-
+    } else if (resizingId && resizeHandle) {
       setElements(prev => prev.map(el => {
         if (el.id !== resizingId) return el;
-        
-        let { x, y, width = 150, height = 150 } = el;
+        let { x: ex, y: ey, width = 200, height = 100 } = el;
         const minSize = 40;
 
         switch (resizeHandle) {
           case 'bottom-right':
-            width = Math.max(minSize, mX - x);
-            height = Math.max(minSize, mY - y);
-            break;
-          case 'bottom-left':
-            const newWidthBL = Math.max(minSize, (x + width) - mX);
-            x = (x + width) - newWidthBL;
-            width = newWidthBL;
-            height = Math.max(minSize, mY - y);
-            break;
-          case 'top-right':
-            width = Math.max(minSize, mX - x);
-            const newHeightTR = Math.max(minSize, (y + height) - mY);
-            y = (y + height) - newHeightTR;
-            height = newHeightTR;
+            width = Math.max(minSize, x - ex);
+            height = Math.max(minSize, y - ey);
             break;
           case 'top-left':
-            const newWidthTL = Math.max(minSize, (x + width) - mX);
-            const newHeightTL = Math.max(minSize, (y + height) - mY);
-            x = (x + width) - newWidthTL;
-            y = (y + height) - newHeightTL;
-            width = newWidthTL;
-            height = newHeightTL;
+            const dw = (ex + width) - x;
+            const dh = (ey + height) - y;
+            if (dw > minSize) { ex = x; width = dw; }
+            if (dh > minSize) { ey = y; height = dh; }
+            break;
+          case 'top-right':
+            width = Math.max(minSize, x - ex);
+            const dhTR = (ey + height) - y;
+            if (dhTR > minSize) { ey = y; height = dhTR; }
+            break;
+          case 'bottom-left':
+            const dwBL = (ex + width) - x;
+            if (dwBL > minSize) { ex = x; width = dwBL; }
+            height = Math.max(minSize, y - ey);
             break;
         }
-
-        return { ...el, x, y, width, height };
+        return { ...el, x: ex, y: ey, width, height };
       }));
     }
-  }, [draggingId, resizingId, resizeHandle, dragOffset, elements]);
+  }, [draggingId, resizingId, resizeHandle, dragOffset, elements, screenToCanvas, tool, isPanning]);
 
   const handleMouseUp = useCallback(() => {
     if (draggingId || resizingId) {
@@ -179,6 +224,7 @@ const Whiteboard: React.FC = () => {
     setDraggingId(null);
     setResizingId(null);
     setResizeHandle(null);
+    setIsPanning(false);
   }, [draggingId, resizingId, elements, saveElements]);
 
   useEffect(() => {
@@ -190,279 +236,283 @@ const Whiteboard: React.FC = () => {
     };
   }, [handleMouseMove, handleMouseUp]);
 
-  const updateElementContent = (id: string, content: string) => {
-    const next = elements.map(el => el.id === id ? { ...el, content } : el);
-    setElements(next);
-    saveElements(next);
-  };
-
-  const handleAiGenerate = async () => {
-    if (!aiPromptValue.trim() || !pendingClickPos || !activeBoardId) return;
-    setIsGenerating(true);
-    setIsAiPromptOpen(false);
-    try {
-      const dataUrl = await GeminiService.generateImageForWhiteboard(aiPromptValue);
-      if (dataUrl) {
-        const newEl: CanvasElement = {
-          id: Math.random().toString(36).substr(2, 9),
-          type: 'image',
-          x: pendingClickPos.x - 100,
-          y: pendingClickPos.y - 100,
-          content: dataUrl,
-          width: 200,
-          height: 200,
-          color: '#FFFFFF'
-        };
-        const next = [...elements, newEl];
-        setElements(next);
-        setSelectedId(newEl.id);
-        saveElements(next);
-      }
-    } catch (err) {
-      console.error("FP-Engine Gen Failed", err);
-    } finally {
-      setIsGenerating(false);
-      setAiPromptValue('');
-      setPendingClickPos(null);
-      setTool('select');
-    }
-  };
-
   const handleAiMindMap = async () => {
     if (!aiPromptValue.trim() || !activeBoardId) return;
     setIsGenerating(true);
     setIsAiMindMapPromptOpen(false);
     try {
-      const generatedElements = await GeminiService.generateWhiteboardLayout(aiPromptValue);
-      const next = [...elements, ...generatedElements];
+      const generated = await GeminiService.generateWhiteboardLayout(aiPromptValue);
+      const next = [...elements, ...generated];
       setElements(next);
       saveElements(next);
+      // Center view on content
+      setTransform({ x: 200, y: 200, scale: 1 });
     } catch (err) {
-      console.error("FP-Engine Visual Failed", err);
+      console.error("FP-Engine Architect Failed", err);
     } finally {
       setIsGenerating(false);
       setAiPromptValue('');
     }
   };
 
-  const handleDeleteBoard = async () => {
-    if (!activeBoardId) return;
-    if (confirm('Permanently delete this whiteboard?')) {
-      const idToDelete = activeBoardId;
-      // Optimistic state reset
-      setElements([]);
-      setSelectedId(null);
-      
-      const remaining = whiteboards.filter(w => w.id !== idToDelete);
-      setActiveBoardId(remaining.length > 0 ? remaining[0].id : null);
-      
-      await deleteWhiteboard(idToDelete);
-    }
-  };
+  const renderConnections = useMemo(() => {
+    return (
+      <svg className="absolute inset-0 pointer-events-none w-full h-full z-0 overflow-visible opacity-30">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8" />
+          </marker>
+        </defs>
+        {elements.map(el => {
+          if (!el.parentId) return null;
+          const parent = elements.find(p => p.id === el.parentId);
+          if (!parent) return null;
+          
+          const sX = parent.x + (parent.width || 200) / 2;
+          const sY = parent.y + (parent.height || 100) / 2;
+          const eX = el.x + (el.width || 200) / 2;
+          const eY = el.y + (el.height || 100) / 2;
+          
+          const dx = eX - sX;
+          const dy = eY - sY;
+          
+          return (
+            <path 
+              key={`${el.id}-connection`}
+              d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`}
+              fill="none"
+              stroke="#94A3B8"
+              strokeWidth="2"
+              markerEnd="url(#arrow)"
+            />
+          );
+        })}
+      </svg>
+    );
+  }, [elements]);
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 relative overflow-hidden select-none">
-      {/* HUD Controls */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex justify-between pointer-events-none items-start gap-4">
-        <div className="pointer-events-auto bg-white/95 backdrop-blur-xl shadow-xl border border-gray-200 rounded-[24px] p-1.5 flex gap-1 items-center">
-           <div className="flex items-center px-3 border-r border-gray-100 gap-2">
-             <LayoutGrid size={14} className="text-blue-600" />
+    <div className="h-full flex flex-col bg-[#F1F5F9] relative overflow-hidden select-none font-sans">
+      <style>{`
+        .spatial-grid {
+          background-image: radial-gradient(#CBD5E1 1px, transparent 1px);
+          background-size: 50px 50px;
+        }
+        .pro-node {
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+          transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .pro-node:hover { transform: translateY(-2px); }
+        .hud-blur { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); }
+      `}</style>
+
+      {/* Strategic HUD */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-4 pointer-events-none">
+        <div className="pointer-events-auto hud-blur border border-white/40 shadow-2xl rounded-[2.5rem] p-2 flex items-center gap-1.5 ring-1 ring-slate-200/50">
+          <div className="flex items-center gap-2 px-4 border-r border-slate-200 mr-2">
+             <Network size={16} className="text-blue-600" />
              <select 
-               className="bg-transparent border-none text-xs font-black uppercase tracking-widest focus:ring-0 cursor-pointer min-w-[140px]" 
+               className="bg-transparent border-none text-[11px] font-black uppercase tracking-tighter text-slate-700 focus:ring-0 cursor-pointer min-w-[140px]" 
                value={activeBoardId || ''} 
                onChange={(e) => setActiveBoardId(e.target.value)}
              >
-               <option value="" disabled>Select Board</option>
                {whiteboards.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
              </select>
-           </div>
-           <button 
-             onClick={() => addWhiteboard({ title: `Board ${whiteboards.length + 1}`, elements: [] })} 
-             className="p-2.5 hover:bg-gray-100 rounded-2xl text-gray-500 hover:text-black transition-all"
-             title="New Board"
-           >
-             <Plus size={18} />
-           </button>
-           {activeBoardId && (
-             <button 
-               onClick={handleDeleteBoard} 
-               className="p-2.5 text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-               title="Delete Board"
-             >
-               <Trash2 size={18} />
-             </button>
-           )}
-        </div>
+          </div>
 
-        <div className="pointer-events-auto bg-white/95 backdrop-blur-xl shadow-2xl border border-gray-200 rounded-full p-2 flex gap-1 ring-1 ring-black/5">
           {[
-            { id: 'select', icon: <MousePointer size={18} /> },
+            { id: 'select', icon: <MousePointer2 size={18} /> },
+            { id: 'pan', icon: <Hand size={18} /> },
             { id: 'note', icon: <StickyNote size={18} /> },
             { id: 'text', icon: <Type size={18} /> },
             { id: 'rect', icon: <Square size={18} /> },
             { id: 'circle', icon: <CircleIcon size={18} /> },
-            { id: 'image', icon: <ImageIcon size={18} /> }
           ].map(t => (
             <button 
               key={t.id} 
-              onClick={() => { setTool(t.id as any); if(t.id !== 'select') setSelectedId(null); }} 
-              className={`p-3 rounded-full transition-all duration-300 ${tool === t.id ? 'bg-black text-white scale-110 shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}
-              title={t.id.charAt(0).toUpperCase() + t.id.slice(1)}
+              onClick={() => { setTool(t.id as any); setSelectedId(null); }} 
+              className={`p-3 rounded-2xl transition-all ${tool === t.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-white hover:text-slate-900'}`}
+              title={t.id.toUpperCase()}
             >
               {t.icon}
             </button>
           ))}
-          <div className="w-px h-8 bg-gray-200 mx-1 self-center" />
+
+          <div className="w-px h-6 bg-slate-200 mx-2" />
+
           <button 
-            onClick={() => { setIsAiMindMapPromptOpen(true); }}
-            className="p-3 rounded-full text-blue-600 hover:bg-blue-50 transition-all group"
-            title="FP-Engine Architect"
+            onClick={() => setIsAiMindMapPromptOpen(true)}
+            className="p-3 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition-all group flex items-center gap-2 px-5 shadow-lg shadow-blue-200"
           >
-            <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />
+            <Sparkles size={18} className="animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Architect</span>
           </button>
         </div>
+      </div>
 
-        {selectedId ? (
-          <div className="pointer-events-auto bg-white/95 backdrop-blur-xl shadow-2xl border border-gray-200 rounded-[24px] p-2 flex gap-1 items-center animate-in slide-in-from-top duration-300 ease-out">
-            <div className="flex gap-1.5 pr-2 border-r border-gray-100 px-1">
-              {COLORS.map(c => (
-                <button 
+      {/* Floating Canvas State Control */}
+      <div className="absolute bottom-8 right-8 z-[100] flex flex-col gap-3">
+        <div className="hud-blur border border-slate-200 p-1.5 rounded-3xl shadow-2xl flex flex-col">
+          <button onClick={() => setTransform(p => ({ ...p, scale: Math.min(p.scale + 0.1, 5) }))} className="p-3 text-slate-400 hover:text-slate-900"><ZoomIn size={18}/></button>
+          <div className="text-[10px] font-black text-slate-400 text-center py-1">{Math.round(transform.scale * 100)}%</div>
+          <button onClick={() => setTransform(p => ({ ...p, scale: Math.max(p.scale - 0.1, 0.1) }))} className="p-3 text-slate-400 hover:text-slate-900"><ZoomOut size={18}/></button>
+        </div>
+        <button onClick={() => setTransform({ x: 0, y: 0, scale: 1 })} className="hud-blur border border-slate-200 p-4 rounded-3xl shadow-2xl text-slate-400 hover:text-slate-900"><Maximize size={18}/></button>
+      </div>
+
+      {/* Left Workspace Management */}
+      <div className="absolute top-6 left-6 z-[100] flex gap-2">
+         <button onClick={() => { if(activeBoardId) deleteWhiteboard(activeBoardId) }} className="hud-blur border border-slate-200 p-3.5 rounded-2xl shadow-xl text-slate-400 hover:text-rose-600"><Trash size={18}/></button>
+         <button onClick={() => addWhiteboard({ title: 'New Workspace', elements: [] })} className="hud-blur border border-slate-200 p-3.5 rounded-2xl shadow-xl text-slate-400 hover:text-blue-600"><Plus size={18}/></button>
+      </div>
+
+      {/* Selected Action Bar */}
+      {selectedId && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-4 pointer-events-none">
+          <div className="pointer-events-auto bg-slate-900 text-white px-8 py-4 rounded-[2.5rem] shadow-2xl flex items-center gap-8 border border-white/10 ring-1 ring-slate-800">
+             <div className="flex gap-2.5">
+               {COLORS.map(c => (
+                 <button 
                   key={c} 
                   onClick={() => {
                     const n = elements.map(it => it.id === selectedId ? {...it, color: c} : it);
                     setElements(n);
                     saveElements(n);
                   }} 
-                  className={`w-6 h-6 rounded-full border border-gray-200 hover:scale-125 transition-transform ${elements.find(e => e.id === selectedId)?.color === c ? 'ring-2 ring-black ring-offset-2' : ''}`} 
-                  style={{ backgroundColor: c }} 
-                />
-              ))}
-            </div>
-            <button 
-              onClick={(e) => deleteElement(e, selectedId)} 
-              className="p-2.5 text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-              title="Remove Item"
-            >
-              <Trash2 size={20} />
-            </button>
+                  className={`w-7 h-7 rounded-full border border-white/10 transition-transform hover:scale-125 ${elements.find(e => e.id === selectedId)?.color === c ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-900' : ''}`}
+                  style={{ backgroundColor: c }}
+                 />
+               ))}
+             </div>
+             <div className="w-px h-8 bg-slate-800" />
+             <button onClick={() => deleteElement(selectedId)} className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-widest hover:text-rose-300">
+               <Trash2 size={18} /> Remove
+             </button>
           </div>
-        ) : <div className="w-20" />}
-      </div>
+        </div>
+      )}
 
-      {/* Main Drawing Area */}
+      {/* Infinite Drawing Engine */}
       <div 
         ref={containerRef} 
-        className="flex-1 cursor-crosshair relative bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[length:32px_32px] bg-white overflow-hidden transition-all duration-500" 
-        onMouseDown={addElement}
+        onWheel={onWheel}
+        onMouseDown={(e) => { 
+          if (tool === 'pan' || (e.button === 0 && e.target === containerRef.current)) {
+            setIsPanning(true);
+          }
+          addElement(e);
+        }}
+        className={`flex-1 overflow-hidden relative spatial-grid bg-white transition-all cursor-${tool === 'pan' || isPanning ? 'grabbing' : tool === 'select' ? 'default' : 'crosshair'}`}
       >
-        {isGenerating && (
-          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="flex flex-col items-center gap-4 bg-white/90 p-10 rounded-[40px] shadow-2xl border border-gray-100">
-               <div className="relative">
-                 <Sparkles className="text-blue-600 animate-spin-slow" size={48} />
-                 <Loader2 className="text-blue-600 animate-spin absolute inset-0" size={48} />
-               </div>
-               <div className="text-center">
-                 <h3 className="font-black tracking-tight text-xl mb-1 text-gray-900">FP-Engine Architecting</h3>
-                 <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Laying out high-fidelity strategy...</p>
-               </div>
+        <div 
+          style={{ 
+            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+            transformOrigin: '0 0',
+            transition: isPanning ? 'none' : 'transform 0.05s linear'
+          }}
+          className="absolute inset-0 pointer-events-none"
+        >
+          {renderConnections}
+
+          {elements.map(el => (
+            <div 
+              key={el.id} 
+              onMouseDown={(e) => handleMouseDown(e, el.id)} 
+              className={`absolute group pro-node pointer-events-auto overflow-visible ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} ${selectedId === el.id ? 'ring-4 ring-blue-500 shadow-2xl z-50 scale-[1.02]' : 'border border-slate-200'}`} 
+              style={{ 
+                left: el.x, 
+                top: el.y, 
+                width: el.width || 200, 
+                height: el.height || 100, 
+                backgroundColor: el.color || '#FFFFFF',
+              }}
+            >
+              {/* Pro Handles */}
+              {selectedId === el.id && (
+                <>
+                  <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-left')} className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-blue-600 rounded-full cursor-nwse-resize z-[60] shadow-md" />
+                  <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-right')} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-blue-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
+                  <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-left')} className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-blue-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
+                  <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-right')} className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-blue-600 rounded-full cursor-nwse-resize z-[60] shadow-md" />
+                </>
+              )}
+
+              <div className={`w-full h-full flex flex-col p-4 relative ${el.type === 'circle' ? 'rounded-full text-center items-center justify-center' : ''}`}>
+                <textarea 
+                  className={`w-full h-full bg-transparent outline-none resize-none text-sm font-bold scrollbar-hide text-slate-800 placeholder:text-slate-300 ${el.type === 'circle' ? 'text-center' : ''}`}
+                  value={el.content}
+                  placeholder="Insert Insight..."
+                  onChange={(e) => {
+                    const n = elements.map(it => it.id === el.id ? { ...it, content: e.target.value } : it);
+                    setElements(n);
+                    saveElements(n);
+                  }}
+                  onMouseDown={e => e.stopPropagation()}
+                />
+              </div>
             </div>
+          ))}
+        </div>
+
+        {elements.length === 0 && !isGenerating && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-1000">
+            <div className="p-16 rounded-[4rem] bg-slate-50 border border-slate-100 mb-8 shadow-inner">
+              <PenTool size={80} className="text-slate-200" />
+            </div>
+            <h3 className="font-black text-4xl text-slate-300 tracking-tighter uppercase mb-4">Spatial Architecture</h3>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.4em] opacity-40">FP-Engine Synthesis Engine Active</p>
           </div>
         )}
+      </div>
 
-        {/* AI Drawing / Mind Map Prompts */}
-        {(isAiPromptOpen || isAiMindMapPromptOpen) && (
-          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/10 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95">
-            <div className="bg-white/95 backdrop-blur p-8 rounded-[40px] shadow-2xl border border-white/20 w-full max-w-lg">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg">
-                  <Sparkles size={24} />
+      {/* Strategic Architect Overlay */}
+      {isAiMindMapPromptOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-xl p-6 animate-in fade-in duration-300">
+          <div className="bg-white p-12 rounded-[3.5rem] shadow-[0_50px_150px_rgba(0,0,0,0.3)] border border-white/20 w-full max-w-2xl transform transition-all">
+             <div className="flex items-center gap-5 mb-10">
+                <div className="w-16 h-16 rounded-[2rem] bg-blue-600 flex items-center justify-center text-white shadow-2xl">
+                   <Sparkles size={32} />
                 </div>
                 <div>
-                  <h3 className="font-black text-2xl tracking-tight text-gray-900">FP-Engine {isAiMindMapPromptOpen ? "Visual Architect" : "Illustration"}</h3>
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">High-performance reasoning</p>
+                   <h3 className="font-black text-3xl tracking-tighter text-slate-900">FP-Engine Architect</h3>
+                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">High-Fidelity Strategic Visualizer</p>
                 </div>
-              </div>
-              <textarea
-                autoFocus
-                className="w-full bg-gray-50 border border-gray-100 rounded-[24px] p-5 text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none h-40 resize-none mb-6 shadow-inner transition-all"
-                placeholder={isAiMindMapPromptOpen 
-                  ? "Describe a complex topic (e.g., Global Expansion Strategy, Product Lifecycle, Research Phase)..." 
-                  : "Describe the icon or image you want (e.g., A minimalist database icon, neon style)..."}
-                value={aiPromptValue}
-                onChange={(e) => setAiPromptValue(e.target.value)}
-              />
-              <div className="flex gap-3">
-                <button onClick={() => { setIsAiPromptOpen(false); setIsAiMindMapPromptOpen(false); setTool('select'); }} className="flex-1 py-4 text-sm font-bold text-gray-400 hover:text-black transition-colors">Cancel</button>
-                <button 
-                  onClick={isAiMindMapPromptOpen ? handleAiMindMap : handleAiGenerate} 
-                  disabled={!aiPromptValue.trim()} 
-                  className="flex-[2] bg-black text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-800 transition-all disabled:opacity-30 shadow-xl active:scale-95"
-                >
-                  Create High-Fidelity Visuals
-                </button>
-              </div>
-            </div>
+             </div>
+             <textarea 
+               autoFocus
+               className="w-full bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] p-8 text-lg font-bold text-slate-900 focus:ring-8 focus:ring-blue-500/10 focus:border-blue-500 outline-none h-60 resize-none mb-10 shadow-inner"
+               placeholder="Specify a project, strategy, or research landscape for spatial synthesis..."
+               value={aiPromptValue}
+               onChange={(e) => setAiPromptValue(e.target.value)}
+             />
+             <div className="flex gap-4">
+               <button onClick={() => setIsAiMindMapPromptOpen(false)} className="flex-1 py-6 text-sm font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest transition-colors">Abort</button>
+               <button 
+                onClick={handleAiMindMap}
+                disabled={!aiPromptValue.trim() || isGenerating}
+                className="flex-[2] bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-4"
+               >
+                 {isGenerating ? <Loader2 className="animate-spin" size={20}/> : <ArrowRightCircle size={20}/>}
+                 Synthesize Design
+               </button>
+             </div>
           </div>
-        )}
-
-        {elements.map(el => (
-          <div 
-            key={el.id} 
-            onMouseDown={(e) => handleMouseDown(e, el.id)} 
-            className={`absolute group transition-shadow shadow-sm ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} ${selectedId === el.id ? 'ring-4 ring-blue-500/30 z-40' : 'hover:ring-4 hover:ring-blue-400/20'}`} 
-            style={{ 
-              left: el.x, 
-              top: el.y, 
-              width: el.width, 
-              height: el.height, 
-              backgroundColor: el.color,
-              zIndex: selectedId === el.id ? 10 : 1
-            }}
-          >
-            {/* Resizing Handles */}
-            {selectedId === el.id && (
-              <>
-                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-left')} className="absolute -top-2 -left-2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-50 shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-right')} className="absolute -top-2 -right-2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize z-50 shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-left')} className="absolute -bottom-2 -left-2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize z-50 shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-right')} className="absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize z-50 shadow-md opacity-100" />
-              </>
-            )}
-
-            <div className={`w-full h-full relative overflow-hidden ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'}`}>
-              {el.type === 'text' || el.type === 'note' ? (
-                <textarea 
-                  className="w-full h-full bg-transparent p-5 outline-none resize-none text-sm font-black text-gray-800 placeholder:text-gray-400/50 scrollbar-hide" 
-                  value={el.content} 
-                  placeholder={el.type === 'text' ? "Aa..." : "Content..."}
-                  onChange={(e) => updateElementContent(el.id, e.target.value)} 
-                  onMouseDown={e => e.stopPropagation()} 
-                />
-              ) : el.type === 'image' ? (
-                <img src={el.content} className="w-full h-full object-contain p-2 pointer-events-none" />
-              ) : null}
-            </div>
-          </div>
-        ))}
-        
-        {elements.length === 0 && !isGenerating && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 pointer-events-none animate-in fade-in duration-700">
-            <div className="p-8 rounded-[60px] bg-gray-50/50 mb-6 ring-1 ring-gray-100">
-              <PenTool size={80} className="opacity-10" />
-            </div>
-            <h3 className="font-black text-2xl text-gray-400 tracking-tight uppercase">Infinite Canvas</h3>
-            <p className="text-sm text-gray-300 font-bold uppercase tracking-widest mt-2">Powered by FP-Engine Visuals</p>
-          </div>
-        )}
-      </div>
-      
-      {/* Footer Instructions */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none">
-        <div className="bg-black/90 text-white/50 text-[10px] px-6 py-2.5 rounded-full font-black uppercase tracking-[0.2em] shadow-2xl backdrop-blur-xl border border-white/10">
-          Double Click to Edit • Drag to Move • <span className="text-blue-400">FP-Engine Engine Active</span>
         </div>
-      </div>
+      )}
+
+      {/* Synthesis Animation Overlay */}
+      {isGenerating && (
+        <div className="absolute inset-0 z-[200] flex items-center justify-center bg-white/50 backdrop-blur-3xl animate-in fade-in">
+           <div className="flex flex-col items-center">
+              <div className="relative mb-8">
+                 <div className="absolute inset-0 bg-blue-400 blur-3xl opacity-30 animate-pulse" />
+                 <Loader2 size={64} className="text-blue-600 animate-spin" />
+              </div>
+              <h4 className="font-black text-2xl text-slate-900 uppercase tracking-tighter">Synthesizing Workspace</h4>
+              <p className="text-[10px] text-blue-600 font-black uppercase tracking-[0.3em] mt-3 animate-pulse">Computing Spatial Logic...</p>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
