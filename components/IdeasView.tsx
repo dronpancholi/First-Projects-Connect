@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Plus, Search, FileText, Tag, Calendar, X, ExternalLink } from 'lucide-react';
-import { Note } from '../types';
+import { Plus, Search, FileText, Tag, Calendar, X, ArrowUpRight } from 'lucide-react';
+import { Note, ProjectStatus } from '../types';
 
 const IdeasView: React.FC = () => {
-  const { notes, projects, addNote, updateNote } = useStore();
+  const { notes, projects, addNote, updateNote, addProject } = useStore();
   const [filter, setFilter] = useState<'ALL' | 'IDEAS' | 'PROJECTS'>('ALL');
   const [search, setSearch] = useState('');
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -39,6 +39,20 @@ const IdeasView: React.FC = () => {
     if (!editingNote) return;
     await updateNote(editingNote.id, editingNote.content);
     setEditingNote(null);
+  };
+
+  const handlePromoteToProject = async () => {
+    if (!editingNote) return;
+    if (confirm(`Create a new project from "${editingNote.title}"?`)) {
+        await addProject({
+            title: editingNote.title,
+            description: editingNote.content,
+            status: ProjectStatus.ACTIVE,
+            tags: ['promoted-idea']
+        });
+        setEditingNote(null);
+        // Optionally navigate or show toast
+    }
   };
 
   const getProjectName = (projectId?: string) => {
@@ -178,12 +192,23 @@ const IdeasView: React.FC = () => {
             <div className="p-6 flex-1 overflow-auto flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">{editingNote.title}</h2>
-                {editingNote.projectId && (
-                  <div className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500 flex items-center gap-1">
-                    <Tag size={10} />
-                    Linked to Project
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {!editingNote.projectId && (
+                      <button 
+                        onClick={handlePromoteToProject}
+                        className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-full font-medium flex items-center gap-1 hover:bg-indigo-100 transition-colors"
+                      >
+                        <ArrowUpRight size={12} />
+                        Convert to Project
+                      </button>
+                  )}
+                  {editingNote.projectId && (
+                    <div className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500 flex items-center gap-1">
+                      <Tag size={10} />
+                      Project Note
+                    </div>
+                  )}
+                </div>
               </div>
               <textarea 
                 className="flex-1 resize-none outline-none text-gray-600 leading-relaxed min-h-[300px] bg-transparent"

@@ -1,5 +1,7 @@
 {
-  "name": "Nexus",
-  "description": "A personal ecosystem orchestrator following Apple design philosophy. Centralizes projects, tasks, ideas, and assets with Gemini AI integration.",
-  "requestFramePermissions": []
+  "name": "First Projects Connect",
+  "description": "A personal ecosystem orchestrator following Apple design philosophy. Centralizes projects, tasks, ideas, and assets with deep Gemini AI integration.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

@@ -1,71 +1,84 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Plus, Move, MousePointer, Type, Square, Circle as CircleIcon, StickyNote, X, Trash2 } from 'lucide-react';
+// Added Layout icon to imports from lucide-react to fix "Cannot find name 'Layout'" error
+import { Plus, MousePointer, Type, Square, Circle as CircleIcon, StickyNote, X, Wand2, Trash2, Image as ImageIcon, Save, Layout } from 'lucide-react';
 import { CanvasElement } from '../types';
+import * as GeminiService from '../services/geminiService';
+
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return Math.random().toString(36).substring(2, 15);
+};
 
 const Whiteboard: React.FC = () => {
   const { whiteboards, addWhiteboard, updateWhiteboard } = useStore();
   const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // Create default board if none
-  useEffect(() => {
-    if (whiteboards.length === 0 && !activeBoardId) {
-      // Don't auto create for now, show empty state
-    } else if (whiteboards.length > 0 && !activeBoardId) {
-      setActiveBoardId(whiteboards[0].id);
-    }
-  }, [whiteboards]);
-
-  const activeBoard = whiteboards.find(w => w.id === activeBoardId);
-
-  // Interaction State
-  const [tool, setTool] = useState<'select' | 'note' | 'text' | 'rect' | 'circle'>('select');
-  const [elements, setElements] = useState<CanvasElement[]>(activeBoard?.elements || []);
+  const [tool, setTool] = useState<'select' | 'note' | 'text' | 'rect' | 'circle' | 'image'>('select');
+  const [elements, setElements] = useState<CanvasElement[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
-  // Update local elements when board changes
   useEffect(() => {
-    if (activeBoard) setElements(activeBoard.elements);
-  }, [activeBoard]);
+    if (whiteboards.length > 0 && !activeBoardId) setActiveBoardId(whiteboards[0].id);
+  }, [whiteboards]);
 
-  const handleCreateBoard = async () => {
-    const title = prompt("Whiteboard Name:");
-    if (title) {
-      await addWhiteboard({ title, elements: [] });
-    }
-  };
+  useEffect(() => {
+    const board = whiteboards.find(w => w.id === activeBoardId);
+    if (board) setElements(board.elements || []);
+    else setElements([]);
+  }, [activeBoardId, whiteboards]);
 
-  const handleSave = async () => {
-    if (activeBoardId) {
-      await updateWhiteboard(activeBoardId, elements);
-    }
-  };
-
-  const addElement = (e: React.MouseEvent) => {
-    if (tool === 'select') return;
+  const addElement = async (e: React.MouseEvent) => {
+    // Only add if clicking directly on the canvas background
+    if (tool === 'select' || !activeBoardId || !containerRef.current || e.target !== containerRef.current) return;
     
-    // Calculate position relative to container
-    // For V1, simple click to add at predefined spot or mouse pos
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
+    let content: string | undefined = undefined;
+    let color = '#E5E7EB';
+    let width = 150;
+    let height = 150;
+
+    if (tool === 'image') {
+      const prompt = window.prompt("AI Image Prompt:");
+      if (!prompt) return;
+      setIsGeneratingImage(true);
+      const dataUrl = await GeminiService.generateImageForWhiteboard(prompt);
+      setIsGeneratingImage(false);
+      if (!dataUrl) return;
+      content = dataUrl;
+      width = 250;
+      height = 250;
+    } else if (tool === 'note') {
+      content = 'Sticky Note';
+      color = '#FEF08A';
+    } else if (tool === 'text') {
+      content = 'Enter text...';
+      height = 60;
+      color = 'transparent';
+    }
+
     const newEl: CanvasElement = {
-      id: crypto.randomUUID(),
-      type: tool,
-      x: x - 50, // Center
-      y: y - 50,
-      content: tool === 'note' ? 'New Note' : tool === 'text' ? 'Type here' : undefined,
-      color: tool === 'note' ? '#FEF08A' : tool === 'rect' ? '#E5E7EB' : '#BFDBFE',
-      width: 150,
-      height: tool === 'text' ? 40 : 150
+      id: generateId(),
+      type: tool === 'image' ? 'note' : tool as any,
+      x: x - (width / 2),
+      y: y - (height / 2),
+      content,
+      color,
+      width,
+      height
     };
 
     const newElements = [...elements, newEl];
     setElements(newElements);
-    setTool('select'); // Reset tool
-    if (activeBoardId) updateWhiteboard(activeBoardId, newElements);
+    setTool('select'); 
+    updateWhiteboard(activeBoardId, newElements);
   };
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
@@ -74,10 +87,7 @@ const Whiteboard: React.FC = () => {
     const el = elements.find(el => el.id === id);
     if (el) {
       setDraggingId(id);
-      setDragOffset({
-        x: e.clientX - el.x,
-        y: e.clientY - el.y
-      });
+      setDragOffset({ x: e.clientX - el.x, y: e.clientY - el.y });
     }
   };
 
@@ -85,17 +95,13 @@ const Whiteboard: React.FC = () => {
     if (draggingId) {
       const newX = e.clientX - dragOffset.x;
       const newY = e.clientY - dragOffset.y;
-      
-      setElements(prev => prev.map(el => 
-        el.id === draggingId ? { ...el, x: newX, y: newY } : el
-      ));
+      setElements(prev => prev.map(el => el.id === draggingId ? { ...el, x: newX, y: newY } : el));
     }
   };
 
   const handleMouseUp = () => {
-    if (draggingId) {
-      // Autosave on drag end
-      if (activeBoardId) updateWhiteboard(activeBoardId, elements);
+    if (draggingId && activeBoardId) {
+      updateWhiteboard(activeBoardId, elements);
       setDraggingId(null);
     }
   };
@@ -107,57 +113,94 @@ const Whiteboard: React.FC = () => {
     if (activeBoardId) updateWhiteboard(activeBoardId, newEls);
   };
 
-  const updateContent = (id: string, content: string) => {
-    setElements(prev => prev.map(el => el.id === id ? { ...el, content } : el));
+  const clearCanvas = () => {
+    if (activeBoardId && confirm("Clear entire canvas?")) {
+      setElements([]);
+      updateWhiteboard(activeBoardId, []);
+    }
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 relative overflow-hidden" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
-      {/* Toolbar */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg border border-gray-200 p-1.5 flex items-center gap-1 z-20">
-        <button onClick={() => setTool('select')} className={`p-2 rounded-full transition-colors ${tool === 'select' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-500'}`} title="Select">
-          <MousePointer size={18} />
-        </button>
-        <div className="w-px h-6 bg-gray-200 mx-1"></div>
-        <button onClick={() => setTool('note')} className={`p-2 rounded-full transition-colors ${tool === 'note' ? 'bg-yellow-100 text-yellow-800' : 'hover:bg-gray-100 text-gray-500'}`} title="Sticky Note">
-          <StickyNote size={18} />
-        </button>
-        <button onClick={() => setTool('text')} className={`p-2 rounded-full transition-colors ${tool === 'text' ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-500'}`} title="Text">
-          <Type size={18} />
-        </button>
-        <button onClick={() => setTool('rect')} className={`p-2 rounded-full transition-colors ${tool === 'rect' ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100 text-gray-500'}`} title="Rectangle">
-          <Square size={18} />
-        </button>
-        <button onClick={() => setTool('circle')} className={`p-2 rounded-full transition-colors ${tool === 'circle' ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-500'}`} title="Circle">
-          <CircleIcon size={18} />
-        </button>
+    <div className="h-full flex flex-col bg-gray-50 relative overflow-hidden select-none">
+      <div className="absolute top-4 left-4 right-4 z-20 flex justify-between pointer-events-none">
+        <div className="flex items-center gap-2 pointer-events-auto bg-white/90 backdrop-blur shadow-sm border border-gray-200 rounded-2xl p-1.5">
+           <select 
+              className="bg-transparent border-none text-sm font-bold focus:ring-0 py-1 pl-3 pr-8 cursor-pointer"
+              value={activeBoardId || ''}
+              onChange={(e) => setActiveBoardId(e.target.value)}
+            >
+              <option value="" disabled>Whiteboards</option>
+              {whiteboards.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
+           </select>
+           <button 
+             onClick={() => addWhiteboard({ title: `Board ${whiteboards.length + 1}`, elements: [] })} 
+             className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 hover:text-blue-600 transition-colors"
+             title="New Board"
+           >
+             <Plus size={18} />
+           </button>
+           {activeBoardId && (
+             <button onClick={clearCanvas} className="p-2 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-600 transition-colors" title="Clear Canvas">
+               <Trash2 size={18} />
+             </button>
+           )}
+        </div>
+
+        {activeBoardId && (
+          <div className="pointer-events-auto bg-white/90 backdrop-blur shadow-xl border border-gray-200 rounded-full p-2 flex gap-1.5">
+            {[
+              { id: 'select', icon: <MousePointer size={18} />, bg: 'hover:bg-gray-100', activeBg: 'bg-black text-white' },
+              { id: 'note', icon: <StickyNote size={18} />, bg: 'hover:bg-yellow-50', activeBg: 'bg-yellow-200 text-yellow-800' },
+              { id: 'text', icon: <Type size={18} />, bg: 'hover:bg-blue-50', activeBg: 'bg-blue-100 text-blue-700' },
+              { id: 'rect', icon: <Square size={18} />, bg: 'hover:bg-gray-100', activeBg: 'bg-gray-800 text-white' },
+              { id: 'circle', icon: <CircleIcon size={18} />, bg: 'hover:bg-indigo-50', activeBg: 'bg-indigo-100 text-indigo-700' },
+              { id: 'image', icon: <ImageIcon size={18} />, bg: 'hover:bg-purple-50', activeBg: 'bg-purple-600 text-white' }
+            ].map(t => (
+              <button 
+                key={t.id}
+                onClick={() => setTool(t.id as any)} 
+                className={`p-2.5 rounded-full transition-all ${tool === t.id ? t.activeBg : `text-gray-500 ${t.bg}`}`}
+              >
+                {t.icon}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Board Selector */}
-      <div className="absolute top-4 left-4 z-20 flex gap-2">
-         <select 
-            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none shadow-sm"
-            value={activeBoardId || ''}
-            onChange={(e) => setActiveBoardId(e.target.value)}
-          >
-            <option value="" disabled>Select Board</option>
-            {whiteboards.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
-         </select>
-         <button onClick={handleCreateBoard} className="bg-black text-white p-2 rounded-lg shadow-sm hover:opacity-80">
-            <Plus size={18} />
-         </button>
-      </div>
-
-      {/* Canvas Area */}
       <div 
-        className="flex-1 w-full h-full cursor-crosshair overflow-hidden relative"
-        onClick={addElement}
-        style={{ backgroundImage: 'radial-gradient(#ddd 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+        ref={containerRef}
+        className="flex-1 w-full h-full cursor-crosshair relative bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[length:32px_32px] bg-white"
+        onMouseMove={handleMouseMove} 
+        onMouseUp={handleMouseUp}
+        onMouseDown={addElement}
       >
         {!activeBoardId && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center text-gray-400">
-              <p>Select or create a whiteboard to start.</p>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center p-12 bg-white/80 backdrop-blur rounded-[32px] border border-gray-100 shadow-2xl max-w-sm">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Layout size={32} />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Creative Canvas</h2>
+              <p className="text-gray-500 mb-8">Choose a board or create a new one to start brainstorming visually.</p>
+              <button 
+                onClick={() => addWhiteboard({ title: `Board ${whiteboards.length + 1}`, elements: [] })}
+                className="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={20} /> New Whiteboard
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isGeneratingImage && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-md z-[60]">
+            <div className="flex flex-col items-center gap-4 bg-white p-10 rounded-[40px] shadow-2xl border border-gray-100">
+               <div className="relative">
+                 <Wand2 className="text-purple-600 animate-pulse" size={48} />
+                 <div className="absolute inset-0 animate-spin border-2 border-purple-200 border-t-purple-600 rounded-full scale-150" />
+               </div>
+               <span className="font-bold text-gray-900 tracking-tight">AI Painting...</span>
             </div>
           </div>
         )}
@@ -166,36 +209,36 @@ const Whiteboard: React.FC = () => {
           <div
             key={el.id}
             onMouseDown={(e) => handleMouseDown(e, el.id)}
-            className="absolute shadow-sm group cursor-move"
-            style={{
-              left: el.x,
-              top: el.y,
-              width: el.width,
-              height: el.height,
-              backgroundColor: el.color || 'white',
-              borderRadius: el.type === 'circle' ? '50%' : '8px',
-              border: '1px solid rgba(0,0,0,0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '8px'
+            className={`absolute shadow-lg group hover:ring-2 hover:ring-blue-400/50 transition-shadow ${el.type === 'circle' ? 'rounded-full' : 'rounded-2xl'} overflow-hidden bg-white border border-gray-100`}
+            style={{ 
+              left: el.x, 
+              top: el.y, 
+              width: el.width, 
+              height: el.height, 
+              backgroundColor: el.color,
+              zIndex: draggingId === el.id ? 50 : 10
             }}
           >
-            {/* Delete Button */}
             <button 
-              onClick={(e) => deleteElement(e, el.id)}
-              className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity z-10 text-red-500 hover:bg-red-50"
+              onClick={(e) => deleteElement(e, el.id)} 
+              className="absolute top-2 right-2 bg-white/90 backdrop-blur rounded-full p-1 opacity-0 group-hover:opacity-100 shadow-sm text-red-500 hover:bg-red-50 z-20 transition-all"
             >
-              <X size={12} />
+              <X size={14} />
             </button>
-
-            {/* Content Editable */}
-            {(el.type === 'note' || el.type === 'text') && (
+            
+            {el.content?.startsWith('data:image') ? (
+              <img src={el.content} className="w-full h-full object-contain p-4 pointer-events-none select-none" />
+            ) : (el.type === 'note' || el.type === 'text') && (
               <textarea
-                className="w-full h-full bg-transparent resize-none outline-none text-center text-sm font-medium overflow-hidden"
+                className={`w-full h-full bg-transparent resize-none outline-none p-5 text-sm font-semibold text-gray-800 leading-relaxed ${el.type === 'text' ? 'placeholder-gray-300' : ''}`}
                 value={el.content}
-                onChange={(e) => updateContent(el.id, e.target.value)}
-                onMouseDown={e => e.stopPropagation()} // Allow text selection
+                placeholder={el.type === 'text' ? "Enter text..." : ""}
+                onChange={(e) => {
+                   const newEls = elements.map(item => item.id === el.id ? { ...item, content: e.target.value } : item);
+                   setElements(newEls);
+                   updateWhiteboard(activeBoardId!, newEls);
+                }}
+                onMouseDown={e => e.stopPropagation()}
               />
             )}
           </div>

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Project, Task, TaskStatus, Priority, AssetType } from '../types';
 import { 
   ArrowLeft, Plus, CheckCircle2, Circle, Bot, FileText, 
   Link as LinkIcon, Github, X, 
   Figma, Layout, Database, Wand2, Slack, ArrowRight,
-  Trello, Video, GitBranch, Server, Cloud, CreditCard, Box, MessageSquare, AlertTriangle
+  Trello, Video, GitBranch, Server, Cloud, CreditCard, Box, MessageSquare, AlertTriangle, ListFilter
 } from 'lucide-react';
 import * as GeminiService from '../services/geminiService';
 
@@ -53,6 +53,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
   const project = projects.find(p => p.id === projectId);
   
   const [activeTab, setActiveTab] = useState<'tasks' | 'notes' | 'assets'>('tasks');
+  const [taskFilter, setTaskFilter] = useState<'ALL' | 'PENDING' | 'DONE'>('PENDING');
+  
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
@@ -63,9 +65,34 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
   const [assetUrl, setAssetUrl] = useState('');
   const [assetType, setAssetType] = useState<AssetType>('link');
 
+  // Auto-detect asset type from URL
+  useEffect(() => {
+    if (!assetUrl) return;
+    const url = assetUrl.toLowerCase();
+    if (url.includes('github.com')) setAssetType('github');
+    else if (url.includes('gitlab.com')) setAssetType('gitlab');
+    else if (url.includes('bitbucket')) setAssetType('bitbucket');
+    else if (url.includes('figma.com')) setAssetType('figma');
+    else if (url.includes('miro.com')) setAssetType('miro');
+    else if (url.includes('linear.app')) setAssetType('linear');
+    else if (url.includes('notion.so')) setAssetType('notion');
+    else if (url.includes('vercel.app') || url.includes('vercel.com')) setAssetType('vercel');
+    else if (url.includes('drive.google.com')) setAssetType('google_drive');
+    else if (url.includes('dropbox.com')) setAssetType('dropbox');
+    else if (url.includes('trello.com')) setAssetType('trello');
+    else if (url.includes('slack.com')) setAssetType('slack');
+    else if (url.includes('zoom.us')) setAssetType('zoom');
+  }, [assetUrl]);
+
   if (!project) return <div>Project not found</div>;
 
-  const projectTasks = tasks.filter(t => t.projectId === projectId);
+  const projectTasks = tasks.filter(t => {
+    if (t.projectId !== projectId) return false;
+    if (taskFilter === 'PENDING') return t.status !== TaskStatus.DONE;
+    if (taskFilter === 'DONE') return t.status === TaskStatus.DONE;
+    return true;
+  });
+
   const projectNotes = notes.filter(n => n.projectId === projectId);
   const projectAssets = assets.filter(a => a.projectId === projectId);
 
@@ -167,14 +194,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg hover:shadow-md transition-all text-sm font-medium"
           >
             <Bot size={16} />
-            Ask Gemini
+            Assistant
           </button>
         </div>
 
         <div className="flex items-center gap-2 mt-2">
           <TabButton label="Tasks" active={activeTab === 'tasks'} onClick={() => setActiveTab('tasks')} />
           <TabButton label="Notes" active={activeTab === 'notes'} onClick={() => setActiveTab('notes')} />
-          <TabButton label="Assets & Integrations" active={activeTab === 'assets'} onClick={() => setActiveTab('assets')} />
+          <TabButton label="Connections" active={activeTab === 'assets'} onClick={() => setActiveTab('assets')} />
         </div>
       </div>
 
@@ -185,7 +212,20 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
         {activeTab === 'tasks' && (
           <div className="max-w-3xl mx-auto space-y-4">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Tasks ({projectTasks.filter(t => t.status !== TaskStatus.DONE).length} remaining)</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold">Tasks</h2>
+                <div className="flex bg-white rounded-lg p-0.5 border border-gray-200">
+                  {(['PENDING', 'DONE', 'ALL'] as const).map(f => (
+                     <button
+                        key={f}
+                        onClick={() => setTaskFilter(f)}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${taskFilter === f ? 'bg-black text-white' : 'text-gray-500 hover:text-black'}`}
+                     >
+                       {f === 'PENDING' ? 'To Do' : f === 'DONE' ? 'Completed' : 'All'}
+                     </button>
+                  ))}
+                </div>
+              </div>
               <button 
                 onClick={() => addTask({ projectId, title: 'New Task', status: TaskStatus.PENDING, priority: Priority.MEDIUM })}
                 className="p-2 hover:bg-gray-200 rounded-full text-gray-600"
@@ -196,7 +236,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
             
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden divide-y divide-gray-100">
               {projectTasks.length === 0 && (
-                <div className="p-8 text-center text-gray-500">No tasks yet. Create one or use AI to generate a plan.</div>
+                <div className="p-8 text-center text-gray-500">
+                  {taskFilter === 'PENDING' ? 'All caught up!' : 'No tasks found.'}
+                </div>
               )}
               {projectTasks.map(task => (
                 <div key={task.id} className="flex items-center p-4 hover:bg-gray-50 transition-colors group">
@@ -269,9 +311,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
 
         {/* ASSETS VIEW */}
         {activeTab === 'assets' && (
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-4xl mx-auto">
              <div className="flex justify-between items-center mb-6">
-               <h2 className="text-lg font-semibold">Connections</h2>
+               <h2 className="text-lg font-semibold">External Connections</h2>
                <button 
                  onClick={() => setShowAssetModal(true)}
                  className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-80 shadow-md shadow-gray-200"
@@ -292,29 +334,78 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                  <button onClick={() => setShowAssetModal(true)} className="text-apple-blue font-medium text-sm hover:underline">Browse Integrations</button>
                </div>
              ) : (
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {projectAssets.map(asset => {
-                   const config = getAssetConfig(asset.type);
-                   return (
-                     <a 
-                      key={asset.id} 
-                      href={asset.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-start gap-4 group"
-                     >
-                       <div className={`p-3 rounded-lg text-white ${config.color}`}>
-                         {config.icon}
-                       </div>
-                       <div className="flex-1 min-w-0">
-                         <h3 className="font-medium text-gray-900 truncate">{asset.name}</h3>
-                         <p className="text-xs text-gray-500 truncate mt-0.5 capitalize flex items-center gap-1">
-                          {asset.type.replace('_', ' ')} <ArrowRight size={10} className="-rotate-45" />
-                         </p>
-                       </div>
-                     </a>
-                   );
+               <div className="space-y-6">
+                 {/* Group by rough category */}
+                 {[
+                   { title: 'Development', types: ['github', 'gitlab', 'bitbucket', 'linear', 'jira', 'vercel', 'netlify', 'docker', 'cloudflare'] },
+                   { title: 'Design', types: ['figma', 'miro', 'adobe_xd', 'sketch', 'framer', 'canva'] },
+                   { title: 'Documents & Files', types: ['google_drive', 'dropbox', 'onedrive', 'notion', 'file_ref'] },
+                   { title: 'Communication', types: ['slack', 'discord', 'teams', 'zoom'] },
+                   { title: 'Other', types: ['stripe', 'openai', 'link', 'trello', 'asana'] } // Catch-all
+                 ].map(group => {
+                    const groupAssets = projectAssets.filter(a => group.types.includes(a.type) || (group.title === 'Other' && !projectAssets.some(pa => pa.id === a.id && group.types.includes(pa.type))));
+                    // Logic fix: The filter above is tricky. Let's simplfy:
+                    // Just map and filter.
+                    const assetsInGroup = projectAssets.filter(a => group.types.includes(a.type));
+                    // Handle "Other" separately if needed, but for now simple grouping is fine.
+                    // Actually, let's just dump "Other" logic for simplicity and rely on the list.
+                    // Re-approach: Just render grid.
+                    
+                    if (assetsInGroup.length === 0) return null;
+
+                    return (
+                      <div key={group.title}>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{group.title}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {assetsInGroup.map(asset => {
+                            const config = getAssetConfig(asset.type);
+                            return (
+                              <a 
+                                key={asset.id} 
+                                href={asset.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-start gap-4 group"
+                              >
+                                <div className={`p-3 rounded-lg text-white ${config.color}`}>
+                                  {config.icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-medium text-gray-900 truncate">{asset.name}</h3>
+                                  <p className="text-xs text-gray-500 truncate mt-0.5 capitalize flex items-center gap-1">
+                                    {asset.type.replace('_', ' ')} <ArrowRight size={10} className="-rotate-45 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </p>
+                                </div>
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )
                  })}
+                 
+                 {/* Catch-all for Link/Other if not matched above (simplified implementation) */}
+                 {projectAssets.some(a => a.type === 'link' || a.type === 'stripe' || a.type === 'openai') && (
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Links & Services</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {projectAssets.filter(a => ['link', 'stripe', 'openai'].includes(a.type)).map(asset => {
+                           const config = getAssetConfig(asset.type);
+                           return (
+                             <a key={asset.id} href={asset.url} target="_blank" className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-start gap-4 group">
+                               <div className={`p-3 rounded-lg text-white ${config.color}`}>{config.icon}</div>
+                               <div className="flex-1 min-w-0">
+                                 <h3 className="font-medium text-gray-900 truncate">{asset.name}</h3>
+                                 <p className="text-xs text-gray-500 truncate mt-0.5 capitalize flex items-center gap-1">
+                                    {asset.type} <ArrowRight size={10} className="-rotate-45 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                 </p>
+                               </div>
+                             </a>
+                           )
+                        })}
+                      </div>
+                    </div>
+                 )}
                </div>
              )}
           </div>
@@ -331,62 +422,37 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
             </div>
             
             <div className="p-6 overflow-auto bg-gray-50/30">
-              
-              {/* Category: Development */}
-              <div className="mb-6">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Development</h4>
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                  <IntegrationCard icon={<Github />} label="GitHub" color="bg-gray-900" selected={assetType === 'github'} onClick={() => setAssetType('github')} />
-                  <IntegrationCard icon={<GitBranch />} label="GitLab" color="bg-orange-600" selected={assetType === 'gitlab'} onClick={() => setAssetType('gitlab')} />
-                  <IntegrationCard icon={<GitBranch />} label="BitBucket" color="bg-blue-600" selected={assetType === 'bitbucket'} onClick={() => setAssetType('bitbucket')} />
-                  <IntegrationCard icon={<Layout />} label="Linear" color="bg-indigo-600" selected={assetType === 'linear'} onClick={() => setAssetType('linear')} />
-                  <IntegrationCard icon={<Layout />} label="Jira" color="bg-blue-500" selected={assetType === 'jira'} onClick={() => setAssetType('jira')} />
-                  <IntegrationCard icon={<Server />} label="Vercel" color="bg-black" selected={assetType === 'vercel'} onClick={() => setAssetType('vercel')} />
-                  <IntegrationCard icon={<Cloud />} label="Netlify" color="bg-teal-500" selected={assetType === 'netlify'} onClick={() => setAssetType('netlify')} />
-                  <IntegrationCard icon={<Cloud />} label="Cloudflare" color="bg-orange-500" selected={assetType === 'cloudflare'} onClick={() => setAssetType('cloudflare')} />
-                  <IntegrationCard icon={<Server />} label="Docker" color="bg-blue-500" selected={assetType === 'docker'} onClick={() => setAssetType('docker')} />
+              {/* Quick Paste */}
+              <div className="mb-8 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <label className="block text-sm font-bold text-gray-900 mb-2">Quick Paste URL</label>
+                <div className="flex gap-2">
+                  <input 
+                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors font-mono text-sm"
+                    placeholder="Paste any link (GitHub, Figma, Google Drive...)"
+                    value={assetUrl}
+                    onChange={e => setAssetUrl(e.target.value)}
+                  />
                 </div>
+                {assetUrl && (
+                  <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                    Detected Type: <span className="font-bold text-black capitalize">{assetType.replace('_', ' ')}</span>
+                  </div>
+                )}
               </div>
 
-              {/* Category: Design */}
+              {/* Manual Selection (Visual Grid) */}
               <div className="mb-6">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Design</h4>
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                  <IntegrationCard icon={<Figma />} label="Figma" color="bg-purple-600" selected={assetType === 'figma'} onClick={() => setAssetType('figma')} />
-                  <IntegrationCard icon={<Box />} label="Miro" color="bg-yellow-500" selected={assetType === 'miro'} onClick={() => setAssetType('miro')} />
-                  <IntegrationCard icon={<Box />} label="Adobe XD" color="bg-pink-600" selected={assetType === 'adobe_xd'} onClick={() => setAssetType('adobe_xd')} />
-                  <IntegrationCard icon={<Box />} label="Sketch" color="bg-orange-400" selected={assetType === 'sketch'} onClick={() => setAssetType('sketch')} />
-                  <IntegrationCard icon={<Box />} label="Framer" color="bg-black" selected={assetType === 'framer'} onClick={() => setAssetType('framer')} />
-                  <IntegrationCard icon={<Box />} label="Canva" color="bg-blue-400" selected={assetType === 'canva'} onClick={() => setAssetType('canva')} />
-                </div>
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Or Select Manually</h4>
+                 {/* Only showing a few popular ones to save space since we have auto-detect */}
+                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 opacity-80 hover:opacity-100 transition-opacity">
+                    <IntegrationCard icon={<Github />} label="GitHub" color="bg-gray-900" selected={assetType === 'github'} onClick={() => setAssetType('github')} />
+                    <IntegrationCard icon={<Figma />} label="Figma" color="bg-purple-600" selected={assetType === 'figma'} onClick={() => setAssetType('figma')} />
+                    <IntegrationCard icon={<Database />} label="G-Drive" color="bg-blue-600" selected={assetType === 'google_drive'} onClick={() => setAssetType('google_drive')} />
+                    <IntegrationCard icon={<Layout />} label="Linear" color="bg-indigo-600" selected={assetType === 'linear'} onClick={() => setAssetType('linear')} />
+                    <IntegrationCard icon={<Slack />} label="Slack" color="bg-emerald-600" selected={assetType === 'slack'} onClick={() => setAssetType('slack')} />
+                    <IntegrationCard icon={<LinkIcon />} label="Other Link" color="bg-gray-400" selected={assetType === 'link'} onClick={() => setAssetType('link')} />
+                 </div>
               </div>
-
-              {/* Category: Productivity */}
-              <div className="mb-6">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Productivity & Communication</h4>
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                  <IntegrationCard icon={<Database />} label="G-Drive" color="bg-blue-600" selected={assetType === 'google_drive'} onClick={() => setAssetType('google_drive')} />
-                  <IntegrationCard icon={<Box />} label="Dropbox" color="bg-blue-700" selected={assetType === 'dropbox'} onClick={() => setAssetType('dropbox')} />
-                  <IntegrationCard icon={<Cloud />} label="OneDrive" color="bg-blue-500" selected={assetType === 'onedrive'} onClick={() => setAssetType('onedrive')} />
-                  <IntegrationCard icon={<FileText />} label="Notion" color="bg-gray-800" selected={assetType === 'notion'} onClick={() => setAssetType('notion')} />
-                  <IntegrationCard icon={<Trello />} label="Trello" color="bg-blue-500" selected={assetType === 'trello'} onClick={() => setAssetType('trello')} />
-                  <IntegrationCard icon={<CheckCircle2 />} label="Asana" color="bg-red-500" selected={assetType === 'asana'} onClick={() => setAssetType('asana')} />
-                  <IntegrationCard icon={<Slack />} label="Slack" color="bg-emerald-600" selected={assetType === 'slack'} onClick={() => setAssetType('slack')} />
-                  <IntegrationCard icon={<MessageSquare />} label="Discord" color="bg-indigo-500" selected={assetType === 'discord'} onClick={() => setAssetType('discord')} />
-                  <IntegrationCard icon={<Video />} label="Zoom" color="bg-blue-500" selected={assetType === 'zoom'} onClick={() => setAssetType('zoom')} />
-                  <IntegrationCard icon={<Video />} label="Teams" color="bg-blue-800" selected={assetType === 'teams'} onClick={() => setAssetType('teams')} />
-                </div>
-              </div>
-              
-               {/* Category: Other */}
-               <div className="mb-6">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Services</h4>
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                   <IntegrationCard icon={<CreditCard />} label="Stripe" color="bg-indigo-600" selected={assetType === 'stripe'} onClick={() => setAssetType('stripe')} />
-                   <IntegrationCard icon={<Bot />} label="OpenAI" color="bg-green-600" selected={assetType === 'openai'} onClick={() => setAssetType('openai')} />
-                   <IntegrationCard icon={<LinkIcon />} label="Website" color="bg-gray-400" selected={assetType === 'link'} onClick={() => setAssetType('link')} />
-                </div>
-               </div>
 
               <div className="space-y-4 pt-4 border-t border-gray-100 mt-6 bg-white p-4 rounded-xl">
                 <div>
@@ -396,15 +462,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                     placeholder="e.g. Project Repository"
                     value={assetName}
                     onChange={e => setAssetName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Link URL</label>
-                  <input 
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors font-mono text-sm"
-                    placeholder="https://..."
-                    value={assetUrl}
-                    onChange={e => setAssetUrl(e.target.value)}
                   />
                 </div>
               </div>

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Project, Task, Note, Asset, CodeSnippet, Whiteboard, CanvasElement, TaskStatus } from '../types';
 import { useAuth } from './AuthContext';
@@ -11,6 +12,7 @@ interface StoreContextType {
   snippets: CodeSnippet[];
   whiteboards: Whiteboard[];
   isLoading: boolean;
+  needsInitialization: boolean;
   
   // Actions
   addProject: (p: Omit<Project, 'id' | 'createdAt' | 'progress'>) => Promise<void>;
@@ -47,6 +49,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [snippets, setSnippets] = useState<CodeSnippet[]>([]);
   const [whiteboards, setWhiteboards] = useState<Whiteboard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [needsInitialization, setNeedsInitialization] = useState(false);
 
   // Helper to map DB response to types
   const mapProject = (p: any): Project => ({ ...p, createdAt: new Date(p.created_at) });
@@ -56,12 +59,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const mapSnippet = (s: any): CodeSnippet => ({ ...s, updatedAt: new Date(s.updated_at) });
   const mapWhiteboard = (w: any): Whiteboard => ({ ...w, updatedAt: new Date(w.updated_at) });
 
+  const logError = (context: string, error: any) => {
+    const code = error?.code;
+    const message = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
+    
+    // Postgres code 42P01 (undefined_table) OR PostgREST cache errors
+    if (code === '42P01' || message.includes('schema cache') || message.includes('does not exist')) {
+      if (!needsInitialization) {
+        console.warn(`${context}: Table missing. System initialization required.`);
+        setNeedsInitialization(true);
+      }
+      return 'INITIALIZATION_REQUIRED';
+    }
+
+    console.error(`${context}:`, message, error?.details || '');
+    return message;
+  };
+
   const fetchData = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) return;
     setIsLoading(true);
     
     try {
-      const [pRes, tRes, nRes, aRes, sRes, wRes] = await Promise.all([
+      const results = await Promise.allSettled([
         supabase.from('projects').select('*').order('created_at', { ascending: false }),
         supabase.from('tasks').select('*'),
         supabase.from('notes').select('*').order('updated_at', { ascending: false }),
@@ -70,14 +90,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         supabase.from('whiteboards').select('*').order('updated_at', { ascending: false }),
       ]);
 
-      if (pRes.data) setProjects(pRes.data.map(mapProject));
-      if (tRes.data) setTasks(tRes.data.map(mapTask));
-      if (nRes.data) setNotes(nRes.data.map(mapNote));
-      if (aRes.data) setAssets(aRes.data.map(mapAsset));
-      if (sRes.data) setSnippets(sRes.data.map(mapSnippet));
-      if (wRes.data) setWhiteboards(wRes.data.map(mapWhiteboard));
+      const [pRes, tRes, nRes, aRes, sRes, wRes] = results;
+
+      if (pRes.status === 'fulfilled' && pRes.value.data) setProjects(pRes.value.data.map(mapProject));
+      if (tRes.status === 'fulfilled' && tRes.value.data) setTasks(tRes.value.data.map(mapTask));
+      if (nRes.status === 'fulfilled' && nRes.value.data) setNotes(nRes.value.data.map(mapNote));
+      if (aRes.status === 'fulfilled' && aRes.value.data) setAssets(aRes.value.data.map(mapAsset));
+      if (sRes.status === 'fulfilled' && sRes.value.data) setSnippets(sRes.value.data.map(mapSnippet));
+      if (wRes.status === 'fulfilled' && wRes.value.data) setWhiteboards(wRes.value.data.map(mapWhiteboard));
+      
+      const resArray = [pRes, tRes, nRes, aRes, sRes, wRes];
+      const tableNames = ['projects', 'tasks', 'notes', 'assets', 'snippets', 'whiteboards'];
+      
+      resArray.forEach((res, i) => {
+        if (res.status === 'fulfilled' && res.value.error) {
+           logError(`Fetch Table ${tableNames[i]} Error`, res.value.error);
+        }
+      });
+
     } catch (e) {
-      console.error("Error fetching data", e);
+      logError("Critical error fetching data", e);
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +126,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return Math.round((completed / projectTasks.length) * 100);
   }, [tasks]);
 
-  // Update local progress calc
   useEffect(() => {
     setProjects(prev => {
       const updated = prev.map(p => ({
@@ -106,7 +137,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   }, [tasks, getProjectProgress]);
 
-  // Actions
   const addProject = async (p: Omit<Project, 'id' | 'createdAt' | 'progress'>) => {
     if (!user) return;
     const { data, error } = await supabase.from('projects').insert({
@@ -120,22 +150,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (data && !error) {
       setProjects([mapProject(data), ...projects]);
+    } else if (error) {
+      const msg = logError("Add Project Error", error);
+      if (msg === 'INITIALIZATION_REQUIRED') {
+        alert("Database tables missing. Please run the SQL Schema in Settings.");
+      } else {
+        alert(`Failed to create project: ${msg}`);
+      }
     }
   };
 
   const updateProject = async (id: string, updates: Partial<Project>) => {
     setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    await supabase.from('projects').update({
+    const { error } = await supabase.from('projects').update({
       title: updates.title,
       description: updates.description,
       status: updates.status,
       tags: updates.tags
     }).eq('id', id);
+    if (error) logError("Update Project Error", error);
   };
 
   const deleteProject = async (id: string) => {
     setProjects(prev => prev.filter(p => p.id !== id));
-    await supabase.from('projects').delete().eq('id', id);
+    const { error } = await supabase.from('projects').delete().eq('id', id);
+    if (error) logError("Delete Project Error", error);
   };
 
   const addTask = async (t: Omit<Task, 'id'>) => {
@@ -151,17 +190,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (data && !error) {
       setTasks([...tasks, mapTask(data)]);
+    } else if (error) {
+      logError("Add Task Error", error);
     }
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-    await supabase.from('tasks').update({
+    const { error } = await supabase.from('tasks').update({
       title: updates.title,
       status: updates.status,
       priority: updates.priority,
       due_date: updates.dueDate
     }).eq('id', id);
+    if (error) logError("Update Task Error", error);
   };
 
   const addNote = async (n: Omit<Note, 'id' | 'updatedAt'>) => {
@@ -175,13 +217,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (data && !error) {
       setNotes([mapNote(data), ...notes]);
+    } else if (error) {
+      logError("Add Note Error", error);
     }
   };
 
   const updateNote = async (id: string, content: string) => {
     const now = new Date();
     setNotes(prev => prev.map(n => n.id === id ? { ...n, content, updatedAt: now } : n));
-    await supabase.from('notes').update({ content, updated_at: now }).eq('id', id);
+    const { error } = await supabase.from('notes').update({ content, updated_at: now }).eq('id', id);
+    if (error) logError("Update Note Error", error);
   };
 
   const addAsset = async (a: Omit<Asset, 'id'>) => {
@@ -197,6 +242,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (data && !error) {
       setAssets([...assets, mapAsset(data)]);
+    } else if (error) {
+      const msg = logError("Add Asset Error", error);
+      alert(`Connection failed: ${msg}`);
     }
   };
 
@@ -208,13 +256,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       language: s.language,
       code: s.code
     }).select().single();
-    if (data && !error) setSnippets([mapSnippet(data), ...snippets]);
+    if (data && !error) {
+      setSnippets([mapSnippet(data), ...snippets]);
+    } else if (error) {
+       const msg = logError("Add Snippet Error", error);
+       if (msg === 'INITIALIZATION_REQUIRED') {
+         alert("Snippet table missing. Run the SQL Schema in Settings.");
+       } else {
+         alert(`Failed to create snippet: ${msg}`);
+       }
+    }
   };
 
   const updateSnippet = async (id: string, code: string) => {
     const now = new Date();
     setSnippets(prev => prev.map(s => s.id === id ? { ...s, code, updatedAt: now } : s));
-    await supabase.from('snippets').update({ code, updated_at: now }).eq('id', id);
+    const { error } = await supabase.from('snippets').update({ code, updated_at: now }).eq('id', id);
+    if (error) logError("Update Snippet Error", error);
   };
 
   const addWhiteboard = async (w: Omit<Whiteboard, 'id' | 'updatedAt'>) => {
@@ -224,19 +282,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       title: w.title,
       elements: w.elements
     }).select().single();
-    if (data && !error) setWhiteboards([mapWhiteboard(data), ...whiteboards]);
+    if (data && !error) {
+      setWhiteboards([mapWhiteboard(data), ...whiteboards]);
+    } else if (error) {
+      const msg = logError("Add Whiteboard Error", error);
+      if (msg === 'INITIALIZATION_REQUIRED') {
+        alert("Whiteboard table missing. Run the SQL Schema in Settings.");
+      }
+    }
   };
 
   const updateWhiteboard = async (id: string, elements: CanvasElement[]) => {
     const now = new Date();
     setWhiteboards(prev => prev.map(w => w.id === id ? { ...w, elements, updatedAt: now } : w));
-    // Debounced update recommended in production, direct for now
-    await supabase.from('whiteboards').update({ elements, updated_at: now }).eq('id', id);
+    const { error } = await supabase.from('whiteboards').update({ elements, updated_at: now }).eq('id', id);
+    if (error) logError("Update Whiteboard Error", error);
   };
 
   return (
     <StoreContext.Provider value={{
-      projects, tasks, notes, assets, snippets, whiteboards, isLoading,
+      projects, tasks, notes, assets, snippets, whiteboards, isLoading, needsInitialization,
       addProject, updateProject, deleteProject,
       addTask, updateTask,
       addNote, updateNote,

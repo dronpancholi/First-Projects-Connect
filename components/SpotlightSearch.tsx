@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Search, Folder, CheckSquare, FileText, ArrowRight } from 'lucide-react';
+import { Search, Folder, CheckSquare, FileText, ArrowRight, Link as LinkIcon } from 'lucide-react';
 import { ViewState } from '../types';
 
 interface SpotlightProps {
@@ -10,7 +10,7 @@ interface SpotlightProps {
 }
 
 const SpotlightSearch: React.FC<SpotlightProps> = ({ isOpen, onClose, setView }) => {
-  const { projects, tasks, notes } = useStore();
+  const { projects, tasks, notes, assets } = useStore();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -26,18 +26,50 @@ const SpotlightSearch: React.FC<SpotlightProps> = ({ isOpen, onClose, setView })
     
     const projectResults = projects
       .filter(p => p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q))
-      .map(p => ({ type: 'Project', id: p.id, title: p.title, detail: p.description, onClick: () => setView({ type: 'PROJECT_DETAIL', projectId: p.id }) }));
+      .map(p => ({ 
+        type: 'Project', 
+        id: p.id, 
+        title: p.title, 
+        detail: 'Project Workspace', 
+        onClick: () => setView({ type: 'PROJECT_DETAIL', projectId: p.id }) 
+      }));
       
     const taskResults = tasks
       .filter(t => t.title.toLowerCase().includes(q))
-      .map(t => ({ type: 'Task', id: t.id, title: t.title, detail: 'Task', onClick: () => setView({ type: 'PROJECT_DETAIL', projectId: t.projectId }) })); // Ideally deep link to task
+      .map(t => ({ 
+        type: 'Task', 
+        id: t.id, 
+        title: t.title, 
+        detail: `Task in ${projects.find(p => p.id === t.projectId)?.title || 'Unknown Project'}`, 
+        onClick: () => setView({ type: 'PROJECT_DETAIL', projectId: t.projectId }) 
+      }));
 
     const noteResults = notes
       .filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
-      .map(n => ({ type: 'Note', id: n.id, title: n.title, detail: 'Note', onClick: () => setView({ type: 'PROJECT_DETAIL', projectId: n.projectId || '' }) }));
+      .map(n => ({ 
+        type: 'Note', 
+        id: n.id, 
+        title: n.title, 
+        detail: 'Note / Idea', 
+        onClick: () => {
+          if (n.projectId) setView({ type: 'PROJECT_DETAIL', projectId: n.projectId });
+          else setView({ type: 'IDEAS' });
+        } 
+      }));
 
-    return [...projectResults, ...taskResults, ...noteResults].slice(0, 5);
-  }, [query, projects, tasks, notes, setView]);
+    const assetResults = assets
+      .filter(a => a.name.toLowerCase().includes(q) || a.url.toLowerCase().includes(q))
+      .map(a => ({
+        type: 'Asset',
+        id: a.id,
+        title: a.name,
+        detail: `Linked ${a.type}`,
+        onClick: () => window.open(a.url, '_blank')
+      }));
+
+    // Prioritize projects, then assets, then tasks
+    return [...projectResults, ...assetResults, ...taskResults, ...noteResults].slice(0, 8);
+  }, [query, projects, tasks, notes, assets, setView]);
 
   if (!isOpen) return null;
 
@@ -52,7 +84,7 @@ const SpotlightSearch: React.FC<SpotlightProps> = ({ isOpen, onClose, setView })
           <input
             ref={inputRef}
             className="flex-1 bg-transparent outline-none text-lg text-gray-900 placeholder-gray-400"
-            placeholder="Search ecosystem..."
+            placeholder="Search projects, tasks, notes, or connected apps..."
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
@@ -70,16 +102,21 @@ const SpotlightSearch: React.FC<SpotlightProps> = ({ isOpen, onClose, setView })
                 }}
                 className="w-full px-4 py-3 flex items-center hover:bg-apple-blue hover:text-white transition-colors group text-left"
               >
-                <div className="mr-4 text-gray-400 group-hover:text-white/80">
+                <div className="mr-4 text-gray-400 group-hover:text-white/80 w-6 flex justify-center">
                   {item.type === 'Project' && <Folder size={18} />}
                   {item.type === 'Task' && <CheckSquare size={18} />}
                   {item.type === 'Note' && <FileText size={18} />}
+                  {item.type === 'Asset' && <LinkIcon size={18} />}
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium">{item.title}</div>
-                  <div className="text-xs text-gray-500 group-hover:text-white/70">{item.detail}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{item.title}</div>
+                  <div className="text-xs text-gray-500 group-hover:text-white/70 truncate">{item.detail}</div>
                 </div>
-                <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                {item.type === 'Asset' ? (
+                  <LinkIcon size={14} className="opacity-0 group-hover:opacity-100 transition-opacity rotate-[-45deg]" />
+                ) : (
+                  <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
               </button>
             ))}
           </div>
@@ -91,7 +128,7 @@ const SpotlightSearch: React.FC<SpotlightProps> = ({ isOpen, onClose, setView })
 
         {!query && (
            <div className="p-4 bg-gray-50/50 text-xs text-gray-400 text-center">
-             Type to search projects, tasks, notes, and assets.
+             Type to search your entire ecosystem.
            </div>
         )}
       </div>

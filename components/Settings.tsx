@@ -1,12 +1,17 @@
+
 import React, { useState } from 'react';
 import { saveSupabaseConfig, getSupabaseConfig } from '../services/supabaseClient';
-import { Database, Check, AlertCircle, Copy } from 'lucide-react';
+import { Database, Check, AlertCircle, Copy, RefreshCw } from 'lucide-react';
 
 const SQL_SCHEMA = `
--- Run this in your Supabase SQL Editor
+-- NexusOS v1.2.1 Database Schema (Full / Repair)
+-- Run this in your Supabase SQL Editor to initialize or update your ecosystem.
+
+-- Enable UUID extension
+create extension if not exists "pgcrypto";
 
 -- 1. Projects & Tasks
-create table projects (
+create table if not exists projects (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   title text not null,
@@ -17,7 +22,7 @@ create table projects (
   created_at timestamptz default now()
 );
 
-create table tasks (
+create table if not exists tasks (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   project_id uuid references projects on delete cascade,
@@ -28,7 +33,7 @@ create table tasks (
 );
 
 -- 2. Notes & Assets
-create table notes (
+create table if not exists notes (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   project_id uuid references projects on delete set null,
@@ -37,7 +42,7 @@ create table notes (
   updated_at timestamptz default now()
 );
 
-create table assets (
+create table if not exists assets (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   project_id uuid references projects on delete cascade,
@@ -48,7 +53,7 @@ create table assets (
 );
 
 -- 3. Code Studio & Whiteboards
-create table snippets (
+create table if not exists snippets (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   title text not null,
@@ -57,7 +62,7 @@ create table snippets (
   updated_at timestamptz default now()
 );
 
-create table whiteboards (
+create table if not exists whiteboards (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   title text not null,
@@ -65,13 +70,21 @@ create table whiteboards (
   updated_at timestamptz default now()
 );
 
--- Security Policies
+-- Security Policies (RLS)
 alter table projects enable row level security;
 alter table tasks enable row level security;
 alter table notes enable row level security;
 alter table assets enable row level security;
 alter table snippets enable row level security;
 alter table whiteboards enable row level security;
+
+-- Drop existing policies to avoid conflicts on re-run
+drop policy if exists "Users can crud their own projects" on projects;
+drop policy if exists "Users can crud their own tasks" on tasks;
+drop policy if exists "Users can crud their own notes" on notes;
+drop policy if exists "Users can crud their own assets" on assets;
+drop policy if exists "Users can crud their own snippets" on snippets;
+drop policy if exists "Users can crud their own whiteboards" on whiteboards;
 
 create policy "Users can crud their own projects" on projects for all using (auth.uid() = user_id);
 create policy "Users can crud their own tasks" on tasks for all using (auth.uid() = user_id);
@@ -102,7 +115,10 @@ const Settings: React.FC = () => {
 
   return (
     <div className="p-8 max-w-4xl mx-auto pb-20">
-      <h1 className="text-3xl font-bold text-apple-text tracking-tight mb-8">System Settings</h1>
+      <div className="flex items-center gap-3 mb-8">
+        <h1 className="text-3xl font-bold text-apple-text tracking-tight">System Settings</h1>
+        <div className="px-2 py-1 bg-gray-100 rounded text-xs font-mono text-gray-500">v1.2.1</div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
@@ -113,7 +129,7 @@ const Settings: React.FC = () => {
             <h2 className="text-lg font-bold">Backend Connection</h2>
           </div>
           <p className="text-sm text-gray-500 mb-6">
-            Connect Nexus to your own Supabase instance. Data is owned by you and stored securely in your database.
+            Connect Nexus to your Supabase instance. This acts as your personal cloud sync engine.
           </p>
           
           <form onSubmit={handleSave} className="space-y-4">
@@ -121,7 +137,7 @@ const Settings: React.FC = () => {
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Supabase URL</label>
               <input 
                 type="text" 
-                className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none text-sm font-mono"
+                className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none text-sm font-mono transition-all"
                 placeholder="https://xyz.supabase.co"
                 value={url}
                 onChange={e => setUrl(e.target.value)}
@@ -131,7 +147,7 @@ const Settings: React.FC = () => {
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Anon Key</label>
               <input 
                 type="password" 
-                className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none text-sm font-mono"
+                className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none text-sm font-mono transition-all"
                 placeholder="eyJh..."
                 value={key}
                 onChange={e => setKey(e.target.value)}
@@ -139,9 +155,9 @@ const Settings: React.FC = () => {
             </div>
             <button 
               type="submit" 
-              className="w-full bg-black text-white font-medium py-2 rounded-lg hover:bg-gray-800 transition-colors"
+              className="w-full bg-black text-white font-medium py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
             >
-              Save & Connect
+              <RefreshCw size={14} /> Save & Reboot System
             </button>
           </form>
         </div>
@@ -152,11 +168,13 @@ const Settings: React.FC = () => {
             <div className="flex items-start gap-3">
               <AlertCircle className="text-blue-600 shrink-0 mt-0.5" size={20} />
               <div>
-                <h3 className="text-blue-900 font-semibold mb-1">First Time Setup?</h3>
+                <h3 className="text-blue-900 font-semibold mb-1">Database Update Required</h3>
                 <p className="text-blue-800 text-sm leading-relaxed">
-                  1. Create a free project at <a href="https://supabase.com" target="_blank" className="underline">supabase.com</a>.<br/>
-                  2. Copy the Project URL and Anon Key to the form on the left.<br/>
-                  3. Go to the SQL Editor in Supabase and run the schema below to set up your tables.
+                  If features like "Code Studio" or "Whiteboard" are throwing schema errors, your database needs to be updated.
+                  <br/><br/>
+                  1. Copy the SQL code below.<br/>
+                  2. Go to the <a href="https://supabase.com/dashboard" target="_blank" className="underline font-bold">Supabase SQL Editor</a>.<br/>
+                  3. Paste and run the code to create the missing <code>snippets</code> and <code>whiteboards</code> tables.
                 </p>
               </div>
             </div>
@@ -164,13 +182,13 @@ const Settings: React.FC = () => {
 
           <div className="bg-gray-900 text-gray-300 rounded-2xl overflow-hidden border border-gray-800">
             <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
-              <span className="text-xs font-mono">schema.sql</span>
+              <span className="text-xs font-mono text-gray-400">schema_v1.2.1.sql</span>
               <button onClick={copySQL} className="text-xs flex items-center gap-1 hover:text-white transition-colors">
                 {copied ? <Check size={12} /> : <Copy size={12} />}
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? 'Copied' : 'Copy SQL'}
               </button>
             </div>
-            <pre className="p-4 text-xs font-mono overflow-x-auto h-64">
+            <pre className="p-4 text-xs font-mono overflow-x-auto h-64 text-blue-200">
               {SQL_SCHEMA}
             </pre>
           </div>
