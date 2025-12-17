@@ -4,8 +4,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nexus Ecosystem</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>First Projects Connect</title>
+    <!-- Define process for libraries that expect it -->
+    <script>
+      window.process = { env: { NODE_ENV: 'production' } };
+    </script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography,forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
@@ -46,32 +50,34 @@
   <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "react": "https://esm.sh/react@19.0.0",
+    "react/": "https://esm.sh/react@19.0.0/",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
+    "@google/genai": "https://esm.sh/@google/genai@1.34.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
+    "recharts": "https://esm.sh/recharts@2.13.3",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.46.1",
     "codemirror": "https://esm.sh/codemirror@6.0.1",
-    "@codemirror/view": "https://esm.sh/@codemirror/view@6.0.0",
-    "@codemirror/state": "https://esm.sh/@codemirror/state@6.0.0",
-    "@codemirror/language": "https://esm.sh/@codemirror/language@6.0.0",
-    "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.0.0",
-    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.0.0",
-    "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.0.0",
-    "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6.0.0",
-    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.0.0",
-    "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.0.0",
-    "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.0.0",
-    "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.0",
-    "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.0.0",
-    "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.0"
+    "@codemirror/view": "https://esm.sh/@codemirror/view@6.34.1",
+    "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1",
+    "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.3",
+    "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.1",
+    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2",
+    "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.2",
+    "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6.1.6",
+    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.9",
+    "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.3.1",
+    "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.8.0",
+    "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.1",
+    "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.3.1",
+    "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.1"
   }
 }
 </script>
 </head>
   <body class="bg-apple-gray text-apple-text antialiased overflow-hidden selection:bg-apple-blue selection:text-white">
     <div id="root"></div>
+    <script type="module" src="index.tsx" crossorigin></script>
   </body>
 </html>

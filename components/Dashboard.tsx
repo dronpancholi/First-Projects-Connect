@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useStore } from '../context/StoreContext';
 import { ProjectStatus, TaskStatus, ViewState } from '../types';
-import { Activity, CheckCircle, Clock, Folder, ExternalLink, Sparkles, Wand2, Plus, Zap, ArrowRight, Share2 } from 'lucide-react';
+import { Activity, CheckCircle, Clock, Folder, ExternalLink, Plus, Zap, ArrowRight, Share2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { GoogleGenAI } from "@google/genai";
 
 const StatCard: React.FC<{ 
   title: string; 
@@ -41,26 +40,6 @@ const QuickAction: React.FC<{ label: string; icon: React.ReactNode; onClick: () 
 
 const Dashboard: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) => {
   const { projects, tasks, notes, assets, addProject, addNote } = useStore();
-  const [aiSpark, setAiSpark] = useState<string>("Initializing your productivity engine...");
-  const [isSparkLoading, setIsSparkLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchSpark = async () => {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: "Give a 1-sentence productivity tip for a high-performance engineer today. Make it inspiring and professional.",
-        });
-        setAiSpark(response.text || "Build something amazing today.");
-      } catch (e) {
-        setAiSpark("Focus on one task at a time for maximum momentum.");
-      } finally {
-        setIsSparkLoading(false);
-      }
-    };
-    fetchSpark();
-  }, []);
 
   const activeProjects = projects.filter(p => p.status === ProjectStatus.ACTIVE).length;
   const pendingTasks = tasks.filter(t => t.status !== TaskStatus.DONE).length;
@@ -86,25 +65,19 @@ const Dashboard: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2 py-0.5 bg-blue-600 text-[10px] font-bold text-white rounded uppercase tracking-widest">Nexus Pro</span>
+            <span className="px-2 py-0.5 bg-blue-600 text-[10px] font-bold text-white rounded uppercase tracking-widest">Workspace</span>
           </div>
           <h1 className="text-4xl font-black text-apple-text tracking-tight">First Projects Connect</h1>
           <p className="text-gray-400 font-medium">Your personal ecosystem is optimized and ready.</p>
         </div>
         
-        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-6 rounded-[32px] text-white shadow-2xl flex items-center gap-6 max-w-lg w-full relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-150 transition-transform duration-1000">
-             <Sparkles size={120} />
-           </div>
-           <div className="p-4 bg-white/20 backdrop-blur rounded-3xl relative z-10"><Zap size={28} /></div>
-           <div className="relative z-10">
-             <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1.5 flex items-center gap-2">
-               <Wand2 size={12} /> AI Intelligence Layer
-             </div>
-             <p className="text-sm font-semibold leading-relaxed">
-               {isSparkLoading ? "Scanning your workspace..." : `"${aiSpark}"`}
-             </p>
-           </div>
+        <div className="flex gap-4">
+           <button 
+            onClick={handleQuickProject}
+            className="bg-black text-white px-6 py-4 rounded-[24px] font-bold flex items-center gap-3 shadow-xl hover:bg-gray-800 transition-all active:scale-95"
+          >
+             <Plus size={20} /> Create New
+           </button>
         </div>
       </header>
 

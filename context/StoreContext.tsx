@@ -29,6 +29,7 @@ interface StoreContextType {
 
   addSnippet: (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => Promise<void>;
   updateSnippet: (id: string, code: string) => Promise<void>;
+  deleteSnippet: (id: string) => Promise<void>;
 
   addWhiteboard: (w: Omit<Whiteboard, 'id' | 'updatedAt'>) => Promise<void>;
   updateWhiteboard: (id: string, elements: CanvasElement[]) => Promise<void>;
@@ -63,7 +64,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const code = error?.code;
     const message = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
     
-    // Postgres code 42P01 (undefined_table) OR PostgREST cache errors
     if (code === '42P01' || message.includes('schema cache') || message.includes('does not exist')) {
       if (!needsInitialization) {
         console.warn(`${context}: Table missing. System initialization required.`);
@@ -275,6 +275,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (error) logError("Update Snippet Error", error);
   };
 
+  const deleteSnippet = async (id: string) => {
+    setSnippets(prev => prev.filter(s => s.id !== id));
+    const { error } = await supabase.from('snippets').delete().eq('id', id);
+    if (error) logError("Delete Snippet Error", error);
+  };
+
   const addWhiteboard = async (w: Omit<Whiteboard, 'id' | 'updatedAt'>) => {
     if (!user) return;
     const { data, error } = await supabase.from('whiteboards').insert({
@@ -306,7 +312,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       addTask, updateTask,
       addNote, updateNote,
       addAsset,
-      addSnippet, updateSnippet,
+      addSnippet, updateSnippet, deleteSnippet,
       addWhiteboard, updateWhiteboard,
       getProjectProgress
     }}>

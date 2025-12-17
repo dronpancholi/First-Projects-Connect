@@ -1,6 +1,7 @@
+
 import { createClient } from '@supabase/supabase-js';
 
-const CONFIG_KEY = 'nexus_supabase_config';
+const CONFIG_KEY = 'fpc_supabase_config';
 
 // Default credentials provided by user
 const DEFAULT_URL = 'https://dublfowbviweyuauecma.supabase.co';

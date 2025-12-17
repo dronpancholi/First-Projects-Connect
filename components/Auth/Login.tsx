@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Loader2, ArrowRight, Settings, Database } from 'lucide-react';
@@ -29,10 +30,10 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
 
       <div className="text-center mb-8">
         <div className="w-12 h-12 bg-black rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg">
-           <span className="text-white font-bold text-xl">N</span>
+           <span className="text-white font-bold text-xl">F</span>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Sign in to Nexus</h2>
-        <p className="text-sm text-gray-500 mt-2">Your personal ecosystem awaits.</p>
+        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">First Projects Connect</h2>
+        <p className="text-sm text-gray-500 mt-2">Sign in to your personal ecosystem.</p>
       </div>
 
       {error && (
@@ -70,7 +71,7 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
           onClick={onSettingsClick}
           className="w-full bg-white border border-gray-200 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
         >
-          <Database size={16} /> Connect App
+          <Database size={16} /> Connection Settings
         </button>
 
         <button 
@@ -78,7 +79,7 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
           disabled={isLoading}
           className="w-full bg-black text-white font-medium py-3 rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Sign In <ArrowRight size={16} /></>}
+          {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Enter Ecosystem <ArrowRight size={16} /></>}
         </button>
       </form>
 

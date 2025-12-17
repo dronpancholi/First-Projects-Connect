@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { X, Mic, MicOff, Waves, Volume2, AlertCircle, PlayCircle } from 'lucide-react';
+import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from '@google/genai';
+import { X, Mic, MicOff, Waves, Volume2, AlertCircle, PlayCircle, Sparkles } from 'lucide-react';
+import { useStore } from '../context/StoreContext';
+import { ProjectStatus } from '../types';
 
 const encode = (bytes: Uint8Array) => {
   let binary = '';
@@ -39,11 +41,37 @@ interface VoiceAssistantProps {
   onClose: () => void;
 }
 
+const createProjectDeclaration: FunctionDeclaration = {
+  name: 'createProject',
+  parameters: {
+    type: Type.OBJECT,
+    description: 'Creates a new project workspace in the user ecosystem.',
+    properties: {
+      title: { type: Type.STRING, description: 'The title of the project.' },
+      description: { type: Type.STRING, description: 'A short summary of the project goals.' },
+    },
+    required: ['title', 'description'],
+  },
+};
+
+const createIdeaDeclaration: FunctionDeclaration = {
+  name: 'createIdea',
+  parameters: {
+    type: Type.OBJECT,
+    description: 'Creates a new standalone idea or note.',
+    properties: {
+      title: { type: Type.STRING, description: 'The title of the idea.' },
+      content: { type: Type.STRING, description: 'The detailed content of the thought or idea.' },
+    },
+    required: ['title', 'content'],
+  },
+};
+
 const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
+  const { addProject, addNote } = useStore();
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [permissionDenied, setPermissionDenied] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const inputContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef(0);
@@ -51,23 +79,18 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
 
   const startSession = async () => {
-    // Call getUserMedia immediately to maximize user gesture context
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
       setError(null);
-      setPermissionDenied(false);
       setIsConnecting(true);
 
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
       const outCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       const inCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       
       audioContextRef.current = outCtx;
       inputContextRef.current = inCtx;
 
-      // Force resume to ensure AudioContext is running in all browsers
       await outCtx.resume();
       await inCtx.resume();
       
@@ -97,6 +120,43 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
             processor.connect(inCtx.destination);
           },
           onmessage: async (msg: LiveServerMessage) => {
+            // Handle Tool Calls (Agentic Actions)
+            if (msg.toolCall) {
+              for (const fc of msg.toolCall.functionCalls) {
+                let result = "ok";
+                try {
+                  if (fc.name === 'createProject') {
+                    await addProject({
+                      title: fc.args.title as string,
+                      description: fc.args.description as string,
+                      status: ProjectStatus.IDEA,
+                      tags: ['voice-agent']
+                    });
+                    result = `Success: Project "${fc.args.title}" created.`;
+                  } else if (fc.name === 'createIdea') {
+                    await addNote({
+                      title: fc.args.title as string,
+                      content: fc.args.content as string,
+                    });
+                    result = `Success: Idea "${fc.args.title}" saved.`;
+                  }
+                } catch (err) {
+                  result = "Error: Could not complete the action.";
+                }
+
+                sessionPromise.then((session) => {
+                  session.sendToolResponse({
+                    functionResponses: [{
+                      id: fc.id,
+                      name: fc.name,
+                      response: { result },
+                    }]
+                  });
+                });
+              }
+            }
+
+            // Handle Audio Output
             if (msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data) {
               const base64 = msg.serverContent.modelTurn.parts[0].inlineData.data;
               nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outCtx.currentTime);
@@ -112,8 +172,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
               nextStartTimeRef.current += buffer.duration;
             }
 
-            const interrupted = msg.serverContent?.interrupted;
-            if (interrupted) {
+            if (msg.serverContent?.interrupted) {
               for (const source of sourcesRef.current.values()) {
                 try { source.stop(); } catch(e) {}
               }
@@ -130,18 +189,14 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
         },
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: "You are the Voice Assistant for First Projects Connect. Keep responses brief, conversational, and helpful."
+          tools: [{ functionDeclarations: [createProjectDeclaration, createIdeaDeclaration] }],
+          systemInstruction: "You are the Agentic Voice Assistant for 'First Projects Connect'. You MUST only speak English. You have the power to create projects and save ideas in the user's system. When the user asks to create something, call the appropriate tool. Keep your spoken responses concise and professional. Do not generate or recite any quotes."
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
       console.error(err);
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || err.message?.includes('denied')) {
-        setPermissionDenied(true);
-        setError("Microphone access denied. Please check your browser permissions.");
-      } else {
-        setError(err.message || "Failed to start voice session.");
-      }
+      setError(err.message || "Failed to start voice session.");
       setIsConnecting(false);
     }
   };
@@ -158,7 +213,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-xl animate-in fade-in duration-300">
       <div className="bg-white/90 w-full max-w-sm rounded-[40px] shadow-2xl p-8 flex flex-col items-center gap-6 border border-white/20">
         <div className="w-full flex justify-between items-center">
-          <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Live Assistant</span>
+          <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Agentic Assistant</span>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X size={20} />
           </button>
@@ -179,7 +234,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
 
         <div className="text-center space-y-2">
           <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-            {isConnecting ? "Connecting..." : isActive ? "I'm Listening..." : "Start Conversation"}
+            {isConnecting ? "Connecting..." : isActive ? "I'm Listening..." : "First Projects Connect"}
           </h2>
           {error && !isActive && (
             <div className="flex flex-col items-center gap-2 justify-center text-red-500 text-xs bg-red-50 p-3 rounded-xl border border-red-100 mt-2">
@@ -192,7 +247,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
           )}
           {!isActive && !isConnecting && (
             <p className="text-sm text-gray-500 max-w-[200px] mx-auto">
-              Tap the button below to grant microphone access and start talking.
+              Command your workspace with voice in English. Try "Create a project called Website Redesign".
             </p>
           )}
         </div>
@@ -202,7 +257,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
             onClick={startSession}
             className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
           >
-            <PlayCircle size={20} /> Start Live Voice
+            <PlayCircle size={20} /> Activate Agent
           </button>
         )}
 
@@ -218,7 +273,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onClose }) => {
 
         <div className="flex items-center gap-4">
            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase">
-             <Volume2 size={12} /> Real-time PCM
+             <Sparkles size={12} /> Agentic Mode (EN-Only)
            </div>
         </div>
       </div>

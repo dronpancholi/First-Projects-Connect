@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Loader2, ArrowRight } from 'lucide-react';
@@ -21,10 +22,10 @@ const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
     <div className="w-full max-w-md p-8 bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100">
       <div className="text-center mb-8">
         <div className="w-12 h-12 bg-black rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg">
-           <span className="text-white font-bold text-xl">N</span>
+           <span className="text-white font-bold text-xl">F</span>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Create Nexus ID</h2>
-        <p className="text-sm text-gray-500 mt-2">Orchestrate your life.</p>
+        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">First Projects Connect</h2>
+        <p className="text-sm text-gray-500 mt-2">Create your identity in the ecosystem.</p>
       </div>
 
       {error && (
@@ -73,7 +74,7 @@ const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
           disabled={isLoading}
           className="w-full bg-black text-white font-medium py-3 rounded-lg mt-2 hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Create Account <ArrowRight size={16} /></>}
+          {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Register Account <ArrowRight size={16} /></>}
         </button>
       </form>
 

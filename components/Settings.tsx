@@ -4,7 +4,7 @@ import { saveSupabaseConfig, getSupabaseConfig } from '../services/supabaseClien
 import { Database, Check, AlertCircle, Copy, RefreshCw } from 'lucide-react';
 
 const SQL_SCHEMA = `
--- NexusOS v1.2.1 Database Schema (Full / Repair)
+-- First Projects Connect v1.2.1 Database Schema (Full / Repair)
 -- Run this in your Supabase SQL Editor to initialize or update your ecosystem.
 
 -- Enable UUID extension
@@ -129,7 +129,7 @@ const Settings: React.FC = () => {
             <h2 className="text-lg font-bold">Backend Connection</h2>
           </div>
           <p className="text-sm text-gray-500 mb-6">
-            Connect Nexus to your Supabase instance. This acts as your personal cloud sync engine.
+            Connect First Projects Connect to your Supabase instance.
           </p>
           
           <form onSubmit={handleSave} className="space-y-4">
@@ -170,11 +170,11 @@ const Settings: React.FC = () => {
               <div>
                 <h3 className="text-blue-900 font-semibold mb-1">Database Update Required</h3>
                 <p className="text-blue-800 text-sm leading-relaxed">
-                  If features like "Code Studio" or "Whiteboard" are throwing schema errors, your database needs to be updated.
+                  Ensure your database has all the required tables.
                   <br/><br/>
                   1. Copy the SQL code below.<br/>
                   2. Go to the <a href="https://supabase.com/dashboard" target="_blank" className="underline font-bold">Supabase SQL Editor</a>.<br/>
-                  3. Paste and run the code to create the missing <code>snippets</code> and <code>whiteboards</code> tables.
+                  3. Paste and run the code.
                 </p>
               </div>
             </div>
