@@ -1,4 +1,5 @@
 
+// Import React to fix TS error: Cannot find namespace 'React'
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types.ts';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient.ts';
@@ -26,16 +27,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          name: session.user.user_metadata.full_name || session.user.email || 'User'
-        });
-      }
-      setIsLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata.full_name || session.user.email || 'User'
+          });
+        }
+      })
+      .catch((err) => {
+        console.error("Auth initialization failed:", err);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
@@ -77,8 +84,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
       if (error) throw error;
-      // Note: Supabase might require email confirmation by default.
-      // If configured to disable confirm, it logs in automatically.
     } catch (err: any) {
       setError(err.message);
     } finally {

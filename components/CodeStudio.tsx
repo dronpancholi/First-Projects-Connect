@@ -100,7 +100,8 @@ const CodeStudio: React.FC = () => {
     if (!searchQuery) return folderTree;
     const q = searchQuery.toLowerCase();
     const result: Record<string, CodeSnippet[]> = {};
-    Object.entries(folderTree).forEach(([folder, items]) => {
+    // Cast Object.entries to fix TS error: Property 'filter' does not exist on type 'unknown'
+    (Object.entries(folderTree) as [string, CodeSnippet[]][]).forEach(([folder, items]) => {
       const matched = items.filter(s => s.title.toLowerCase().includes(q));
       if (matched.length > 0) result[folder] = matched;
     });
@@ -249,7 +250,8 @@ const CodeStudio: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-auto py-1 custom-scrollbar">
-          {Object.entries(filteredFolders).sort((a, b) => {
+          {/* Cast Object.entries to fix TS error: Property 'length' and 'map' do not exist on type 'unknown' */}
+          {(Object.entries(filteredFolders) as [string, CodeSnippet[]][]).sort((a, b) => {
             if (a[0] === 'root') return 1;
             if (b[0] === 'root') return -1;
             return a[0].localeCompare(b[0]);

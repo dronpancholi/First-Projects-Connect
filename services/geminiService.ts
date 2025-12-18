@@ -2,16 +2,17 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Project, Task, Note, CanvasElement } from '../types.ts';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export interface WhiteboardGenerationResponse {
   diagramType: string;
   title: string;
   elements: CanvasElement[];
 }
 
+const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+
 export const generateProjectPlan = async (projectTitle: string, description: string): Promise<string> => {
   try {
+    const ai = getAi();
     const prompt = `
       You are the FP-Engine, a high-level project architect.
       Project: "${projectTitle}"
@@ -31,6 +32,7 @@ export const generateProjectPlan = async (projectTitle: string, description: str
 
 export const generateWhiteboardLayout = async (description: string): Promise<WhiteboardGenerationResponse> => {
   try {
+    const ai = getAi();
     const prompt = `
       You are the FP-Engine Strategic Visual Architect. Your goal is to translate complex ideas into professional, executive-level visual architectures.
       
@@ -109,6 +111,7 @@ export const generateWhiteboardLayout = async (description: string): Promise<Whi
 
 export const generateImageForWhiteboard = async (prompt: string): Promise<string | null> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: [{ text: `Generate a minimalist icon for FP-Engine: ${prompt}. Clean professional design on white background.` }],
@@ -130,6 +133,7 @@ export const generateImageForWhiteboard = async (prompt: string): Promise<string
 
 export const explainCode = async (code: string, language: string): Promise<string> => {
   try {
+    const ai = getAi();
     const prompt = `You are FP-Engine Code Assistant. Analyze this ${language} code and suggest optimizations:\n\n${code}`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -143,6 +147,7 @@ export const explainCode = async (code: string, language: string): Promise<strin
 
 export const suggestSubtasks = async (taskTitle: string): Promise<string[]> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `You are FP-Engine. Break down "${taskTitle}" into 5 technical, actionable sub-steps. Return ONLY a JSON array of strings.`,
