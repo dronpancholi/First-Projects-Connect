@@ -15,7 +15,7 @@ export const getSupabaseConfig = () => {
       if (parsed.url && parsed.key) return parsed;
     }
   } catch (e) {
-    console.warn('FPC: Local storage access restricted or config corrupt.');
+    console.warn('FPC System: Local storage access restricted or config corrupted.');
   }
   return {
     url: DEFAULT_URL,
@@ -25,31 +25,42 @@ export const getSupabaseConfig = () => {
 
 export const saveSupabaseConfig = (url: string, key: string) => {
   try {
+    if (!url || !url.startsWith('http')) {
+      throw new Error("Invalid Supabase URL format.");
+    }
     localStorage.setItem(CONFIG_KEY, JSON.stringify({ url, key }));
     window.location.reload();
-  } catch (e) {
-    alert('Failed to save configuration. Local storage may be disabled.');
+  } catch (e: any) {
+    alert(`Configuration Failure: ${e.message}`);
   }
 };
 
 export const isSupabaseConfigured = () => {
   const { url, key } = getSupabaseConfig();
-  return Boolean(url && key && url.startsWith('http'));
+  return Boolean(url && key && url.startsWith('http') && key.length > 20);
 };
 
 const createSafeClient = () => {
   const { url, key } = getSupabaseConfig();
+  
   if (!url || !key || !url.startsWith('http')) {
-    console.error('FPC: Supabase client cannot be initialized with missing URL/Key.');
+    console.warn('FPC System: Supabase configuration incomplete. Authenticated features disabled.');
     return null;
   }
+  
   try {
-    return createClient(url, key);
+    return createClient(url, key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
   } catch (e) {
-    console.error('FPC: Failed to instantiate Supabase client:', e);
+    console.error('FPC System: Critical failure during Supabase instantiation:', e);
     return null;
   }
 };
 
-// Initialize client. If it fails, the app should handle null state gracefully.
+// Singleton safe client export
 export const supabase = createSafeClient() as ReturnType<typeof createClient>;

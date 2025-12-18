@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Project, Task, Note, Asset, CodeSnippet, Whiteboard, CanvasElement, TaskStatus } from '../types.ts';
+import { Project, Task, Note, Asset, CodeSnippet, Whiteboard, CanvasElement, TaskStatus, ProjectStatus, Priority } from '../types.ts';
 import { useAuth } from './AuthContext.tsx';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient.ts';
 
@@ -53,49 +53,76 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState(false);
   const [needsInitialization, setNeedsInitialization] = useState(false);
 
-  // Safety wrappers for data mapping
-  const mapProject = (p: any): Project => ({ 
-    ...p, 
-    createdAt: p?.created_at ? new Date(p.created_at) : new Date(),
-    progress: p?.progress ?? 0,
-    tags: Array.isArray(p?.tags) ? p.tags : []
-  });
+  // High-performance safety wrappers for data mapping
+  const mapProject = useCallback((p: any): Project => ({ 
+    id: p?.id || '',
+    title: p?.title || 'Untitled Project',
+    description: p?.description || '',
+    status: (p?.status as ProjectStatus) || ProjectStatus.IDEA,
+    progress: typeof p?.progress === 'number' ? p.progress : 0,
+    tags: (() => {
+      try {
+        if (Array.isArray(p?.tags)) return p.tags;
+        if (typeof p?.tags === 'string') return JSON.parse(p.tags);
+      } catch (e) {
+        console.warn("FPC: Failed to parse project tags", e);
+      }
+      return [];
+    })(),
+    createdAt: p?.created_at ? new Date(p.created_at) : new Date()
+  }), []);
 
-  const mapTask = (t: any): Task => ({ 
-    ...t, 
-    dueDate: t?.due_date ? new Date(t.due_date) : undefined, 
-    projectId: t?.project_id 
-  });
+  const mapTask = useCallback((t: any): Task => ({ 
+    id: t?.id || '',
+    projectId: t?.project_id || '',
+    title: t?.title || 'Untitled Task',
+    status: (t?.status as TaskStatus) || TaskStatus.PENDING,
+    priority: (t?.priority as Priority) || Priority.MEDIUM,
+    dueDate: t?.due_date ? new Date(t.due_date) : undefined
+  }), []);
 
-  const mapNote = (n: any): Note => ({ 
-    ...n, 
-    updatedAt: n?.updated_at ? new Date(n.updated_at) : new Date(), 
-    projectId: n?.project_id 
-  });
+  const mapNote = useCallback((n: any): Note => ({ 
+    id: n?.id || '',
+    projectId: n?.project_id || undefined,
+    title: n?.title || 'Untitled Note',
+    content: n?.content || '',
+    updatedAt: n?.updated_at ? new Date(n.updated_at) : new Date()
+  }), []);
 
-  const mapAsset = (a: any): Asset => ({ 
-    ...a, 
-    projectId: a?.project_id 
-  });
+  const mapAsset = useCallback((a: any): Asset => ({ 
+    id: a?.id || '',
+    projectId: a?.project_id || '',
+    name: a?.name || 'Linked Resource',
+    type: a?.type || 'link',
+    url: a?.url || '#',
+    description: a?.description || ''
+  }), []);
 
-  const mapSnippet = (s: any): CodeSnippet => ({ 
-    ...s, 
+  const mapSnippet = useCallback((s: any): CodeSnippet => ({ 
+    id: s?.id || '',
+    title: s?.title || 'Untitled Script',
+    language: s?.language || 'javascript',
+    code: s?.code || '',
+    folder: s?.folder || undefined,
     updatedAt: s?.updated_at ? new Date(s.updated_at) : new Date() 
-  });
+  }), []);
   
-  const mapWhiteboard = (w: any): Whiteboard => {
+  const mapWhiteboard = useCallback((w: any): Whiteboard => {
     let elements: CanvasElement[] = [];
     try {
-      elements = typeof w?.elements === 'string' ? JSON.parse(w.elements) : (w?.elements || []);
+      if (w?.elements) {
+        elements = typeof w.elements === 'string' ? JSON.parse(w.elements) : w.elements;
+      }
     } catch (e) {
       console.error("FPC: Failed to parse whiteboard elements", e);
     }
     return { 
-      ...w, 
-      elements, 
+      id: w?.id || '',
+      title: w?.title || 'Untitled Whiteboard',
+      elements: Array.isArray(elements) ? elements : [], 
       updatedAt: w?.updated_at ? new Date(w.updated_at) : new Date() 
     };
-  };
+  }, []);
 
   const logError = (context: string, error: any) => {
     const message = error?.message || "Unknown error";
@@ -130,7 +157,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, mapProject, mapTask, mapNote, mapAsset, mapSnippet, mapWhiteboard]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
