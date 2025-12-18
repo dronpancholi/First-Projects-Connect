@@ -53,7 +53,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState(false);
   const [needsInitialization, setNeedsInitialization] = useState(false);
 
-  // Defensive data mapping with robust fallbacks
+  // High-performance defensive mapping functions
   const mapProject = useCallback((p: any): Project => ({ 
     id: p?.id || String(Math.random()),
     title: p?.title || 'Untitled Project',
@@ -127,7 +127,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const logError = (context: string, error: any) => {
     const message = error?.message || "Unknown communication error";
-    // Check if table missing error - common in Supabase new setups
+    // Check if table missing error - common in new Supabase setups
     if (message.includes('relation') || message.includes('does not exist') || message.includes('404')) {
       setNeedsInitialization(true);
     }
@@ -171,7 +171,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const getProjectProgress = useCallback((projectId: string) => {
-    const pTasks = tasks.filter(t => t.projectId === projectId);
+    const pTasks = tasks.filter(t => (t.projectId || (t as any).project_id) === projectId);
     if (pTasks.length === 0) return 0;
     const completed = pTasks.filter(t => t.status === TaskStatus.DONE).length;
     return Math.round((completed / pTasks.length) * 100);
@@ -184,9 +184,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       logError("DeleteProject", error);
     } else {
       setProjects(prev => prev.filter(p => p.id !== id));
-      setTasks(prev => prev.filter(t => t.projectId !== id));
-      setNotes(prev => prev.filter(n => n.projectId !== id));
-      setAssets(prev => prev.filter(a => a.projectId !== id));
+      setTasks(prev => prev.filter(t => (t.projectId || (t as any).project_id) !== id));
+      setNotes(prev => prev.filter(n => (n.projectId || (n as any).project_id) !== id));
+      setAssets(prev => prev.filter(a => (a.projectId || (a as any).project_id) !== id));
     }
   };
 

@@ -27,10 +27,10 @@
         removeListener: () => {}
       };
       
-      // Enhanced Global Error Diagnostics
+      // Enhanced Global Error Diagnostics to capture boot-time failures
       window.addEventListener('error', function(event) {
         const root = document.getElementById('root');
-        // Only show if the app hasn't rendered yet (catch boot errors)
+        // Only show if the app hasn't rendered yet (catch boot/module errors)
         if (root && (root.innerHTML === '' || root.children.length === 0)) {
           root.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1d1d1f; background: #f5f5f7; padding: 20px; text-align: center;">
@@ -39,7 +39,7 @@
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.02em;">System Initialization Error</h1>
-                <p style="color: #86868b; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">Ecosystem failed to load critical modules. This usually happens due to connection issues or incompatible configurations.</p>
+                <p style="color: #86868b; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">The application failed to initialize critical modules. This is often caused by a dependency conflict or network failure.</p>
                 <div style="background: #fdf2f2; border: 1px solid #fee2e2; padding: 12px; border-radius: 12px; margin-bottom: 24px; text-align: left;">
                   <p style="font-family: monospace; font-size: 12px; color: #b91c1c; margin: 0; word-break: break-all;">${event.message || 'Unknown Runtime Exception'}</p>
                 </div>
