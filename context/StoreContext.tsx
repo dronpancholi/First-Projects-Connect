@@ -53,9 +53,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState(false);
   const [needsInitialization, setNeedsInitialization] = useState(false);
 
-  // High-performance safety wrappers for data mapping
+  // Defensive data mapping with robust fallbacks
   const mapProject = useCallback((p: any): Project => ({ 
-    id: p?.id || '',
+    id: p?.id || String(Math.random()),
     title: p?.title || 'Untitled Project',
     description: p?.description || '',
     status: (p?.status as ProjectStatus) || ProjectStatus.IDEA,
@@ -63,9 +63,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     tags: (() => {
       try {
         if (Array.isArray(p?.tags)) return p.tags;
-        if (typeof p?.tags === 'string') return JSON.parse(p.tags);
+        if (typeof p?.tags === 'string' && p.tags.trim() !== '') return JSON.parse(p.tags);
       } catch (e) {
-        console.warn("FPC: Failed to parse project tags", e);
+        console.warn("FPC: Project tag parsing failed", e);
       }
       return [];
     })(),
@@ -73,8 +73,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }), []);
 
   const mapTask = useCallback((t: any): Task => ({ 
-    id: t?.id || '',
-    projectId: t?.project_id || '',
+    id: t?.id || String(Math.random()),
+    projectId: t?.project_id || t?.projectId || '',
     title: t?.title || 'Untitled Task',
     status: (t?.status as TaskStatus) || TaskStatus.PENDING,
     priority: (t?.priority as Priority) || Priority.MEDIUM,
@@ -82,16 +82,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }), []);
 
   const mapNote = useCallback((n: any): Note => ({ 
-    id: n?.id || '',
-    projectId: n?.project_id || undefined,
+    id: n?.id || String(Math.random()),
+    projectId: n?.project_id || n?.projectId || undefined,
     title: n?.title || 'Untitled Note',
     content: n?.content || '',
     updatedAt: n?.updated_at ? new Date(n.updated_at) : new Date()
   }), []);
 
   const mapAsset = useCallback((a: any): Asset => ({ 
-    id: a?.id || '',
-    projectId: a?.project_id || '',
+    id: a?.id || String(Math.random()),
+    projectId: a?.project_id || a?.projectId || '',
     name: a?.name || 'Linked Resource',
     type: a?.type || 'link',
     url: a?.url || '#',
@@ -99,7 +99,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }), []);
 
   const mapSnippet = useCallback((s: any): CodeSnippet => ({ 
-    id: s?.id || '',
+    id: s?.id || String(Math.random()),
     title: s?.title || 'Untitled Script',
     language: s?.language || 'javascript',
     code: s?.code || '',
@@ -111,25 +111,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let elements: CanvasElement[] = [];
     try {
       if (w?.elements) {
-        elements = typeof w.elements === 'string' ? JSON.parse(w.elements) : w.elements;
+        const raw = typeof w.elements === 'string' ? JSON.parse(w.elements) : w.elements;
+        elements = Array.isArray(raw) ? raw : [];
       }
     } catch (e) {
-      console.error("FPC: Failed to parse whiteboard elements", e);
+      console.error("FPC: Whiteboard element reconstruction failed", e);
     }
     return { 
-      id: w?.id || '',
+      id: w?.id || String(Math.random()),
       title: w?.title || 'Untitled Whiteboard',
-      elements: Array.isArray(elements) ? elements : [], 
+      elements: elements, 
       updatedAt: w?.updated_at ? new Date(w.updated_at) : new Date() 
     };
   }, []);
 
   const logError = (context: string, error: any) => {
-    const message = error?.message || "Unknown error";
-    if (message.includes('relation') || message.includes('does not exist')) {
+    const message = error?.message || "Unknown communication error";
+    // Check if table missing error - common in Supabase new setups
+    if (message.includes('relation') || message.includes('does not exist') || message.includes('404')) {
       setNeedsInitialization(true);
     }
-    console.error(`FPC: [${context}]`, message, error);
+    console.error(`FPC System: [${context}]`, message, error);
     return message;
   };
 
@@ -146,6 +148,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         supabase.from('whiteboards').select('*').order('updated_at', { ascending: false }),
       ]);
 
+      if (p.error) logError("FetchProjects", p.error);
+      if (t.error) logError("FetchTasks", t.error);
+      if (n.error) logError("FetchNotes", n.error);
+      if (a.error) logError("FetchAssets", a.error);
+      if (s.error) logError("FetchSnippets", s.error);
+      if (w.error) logError("FetchWhiteboards", w.error);
+
       if (p.data) setProjects(p.data.map(mapProject));
       if (t.data) setTasks(t.data.map(mapTask));
       if (n.data) setNotes(n.data.map(mapNote));
@@ -153,7 +162,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (s.data) setSnippets(s.data.map(mapSnippet));
       if (w.data) setWhiteboards(w.data.map(mapWhiteboard));
     } catch (e) {
-      logError("FetchData", e);
+      logError("DataSync", e);
     } finally {
       setIsLoading(false);
     }

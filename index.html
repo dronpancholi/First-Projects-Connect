@@ -38,17 +38,20 @@
                 <div style="width: 60px; height: 60px; background: #ff3b30; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
-                <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.02em;">Unable to Start Ecosystem</h1>
-                <p style="color: #86868b; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">A critical module failed to load. This may be due to a connection error or a configuration issue.</p>
+                <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.02em;">System Initialization Error</h1>
+                <p style="color: #86868b; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">Ecosystem failed to load critical modules. This usually happens due to connection issues or incompatible configurations.</p>
                 <div style="background: #fdf2f2; border: 1px solid #fee2e2; padding: 12px; border-radius: 12px; margin-bottom: 24px; text-align: left;">
-                  <p style="font-family: monospace; font-size: 12px; color: #b91c1c; margin: 0; word-break: break-all;">${event.message || 'Unknown Runtime Error'}</p>
+                  <p style="font-family: monospace; font-size: 12px; color: #b91c1c; margin: 0; word-break: break-all;">${event.message || 'Unknown Runtime Exception'}</p>
                 </div>
-                <button onclick="location.reload()" style="background: #0071e3; color: white; border: none; padding: 12px 32px; border-radius: 980px; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s ease;">Retry Connection</button>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                   <button onclick="location.reload()" style="background: #0071e3; color: white; border: none; padding: 12px 24px; border-radius: 980px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease;">Retry Connection</button>
+                   <button onclick="localStorage.clear(); location.reload();" style="background: #f5f5f7; color: #1d1d1f; border: 1px solid #d2d2d7; padding: 12px 24px; border-radius: 980px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease;">Reset Config</button>
+                </div>
               </div>
             </div>
           `;
         }
-        console.error('Boot Error:', event.error || event.message);
+        console.error('Critical Boot Failure:', event.error || event.message);
       }, true);
     </script>
     <script src="https://cdn.tailwindcss.com?plugins=typography,forms"></script>
