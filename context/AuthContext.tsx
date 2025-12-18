@@ -26,37 +26,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    let subscription: { unsubscribe: () => void } | null = null;
+
     // Check active session
     supabase.auth.getSession()
-      .then(({ data: { session } }) => {
+      .then(({ data: { session } }: any) => {
         if (session?.user) {
           setUser({
             id: session.user.id,
             email: session.user.email || '',
-            name: session.user.user_metadata.full_name || session.user.email || 'User'
+            name: session.user.user_metadata?.full_name || session.user.email || 'User'
           });
         }
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("Auth initialization failed:", err);
       })
       .finally(() => {
         setIsLoading(false);
       });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
           email: session.user.email || '',
-          name: session.user.user_metadata.full_name || session.user.email || 'User'
+          name: session.user.user_metadata?.full_name || session.user.email || 'User'
         });
       } else {
         setUser(null);
       }
     });
+    
+    subscription = data.subscription;
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
