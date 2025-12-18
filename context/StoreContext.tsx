@@ -53,20 +53,48 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState(false);
   const [needsInitialization, setNeedsInitialization] = useState(false);
 
-  const mapProject = (p: any): Project => ({ ...p, createdAt: new Date(p.created_at) });
-  const mapTask = (t: any): Task => ({ ...t, dueDate: t.due_date ? new Date(t.due_date) : undefined, projectId: t.project_id });
-  const mapNote = (n: any): Note => ({ ...n, updatedAt: new Date(n.updated_at), projectId: n.project_id });
-  const mapAsset = (a: any): Asset => ({ ...a, projectId: a.project_id });
-  const mapSnippet = (s: any): CodeSnippet => ({ ...s, updatedAt: new Date(s.updated_at) });
+  // Safety wrappers for data mapping
+  const mapProject = (p: any): Project => ({ 
+    ...p, 
+    createdAt: p?.created_at ? new Date(p.created_at) : new Date(),
+    progress: p?.progress ?? 0,
+    tags: Array.isArray(p?.tags) ? p.tags : []
+  });
+
+  const mapTask = (t: any): Task => ({ 
+    ...t, 
+    dueDate: t?.due_date ? new Date(t.due_date) : undefined, 
+    projectId: t?.project_id 
+  });
+
+  const mapNote = (n: any): Note => ({ 
+    ...n, 
+    updatedAt: n?.updated_at ? new Date(n.updated_at) : new Date(), 
+    projectId: n?.project_id 
+  });
+
+  const mapAsset = (a: any): Asset => ({ 
+    ...a, 
+    projectId: a?.project_id 
+  });
+
+  const mapSnippet = (s: any): CodeSnippet => ({ 
+    ...s, 
+    updatedAt: s?.updated_at ? new Date(s.updated_at) : new Date() 
+  });
   
   const mapWhiteboard = (w: any): Whiteboard => {
     let elements: CanvasElement[] = [];
     try {
-      elements = typeof w.elements === 'string' ? JSON.parse(w.elements) : (w.elements || []);
+      elements = typeof w?.elements === 'string' ? JSON.parse(w.elements) : (w?.elements || []);
     } catch (e) {
-      console.error("Failed to parse whiteboard elements", e);
+      console.error("FPC: Failed to parse whiteboard elements", e);
     }
-    return { ...w, elements, updatedAt: new Date(w.updated_at) };
+    return { 
+      ...w, 
+      elements, 
+      updatedAt: w?.updated_at ? new Date(w.updated_at) : new Date() 
+    };
   };
 
   const logError = (context: string, error: any) => {
@@ -74,12 +102,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (message.includes('relation') || message.includes('does not exist')) {
       setNeedsInitialization(true);
     }
-    console.error(`[${context}]`, message, error);
+    console.error(`FPC: [${context}]`, message, error);
     return message;
   };
 
   const fetchData = useCallback(async () => {
-    if (!user || !isSupabaseConfigured()) return;
+    if (!user || !isSupabaseConfigured() || !supabase) return;
     setIsLoading(true);
     try {
       const [p, t, n, a, s, w] = await Promise.all([
@@ -114,11 +142,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [tasks]);
 
   const deleteProject = async (id: string) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', user.id);
     if (error) {
       logError("DeleteProject", error);
-      alert("Failed to delete project. Check SQL schema (v1.2.2) and permissions.");
     } else {
       setProjects(prev => prev.filter(p => p.id !== id));
       setTasks(prev => prev.filter(t => t.projectId !== id));
@@ -128,7 +155,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteTask = async (id: string) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { error } = await supabase.from('tasks').delete().eq('id', id).eq('user_id', user.id);
     if (!error) {
       setTasks(prev => prev.filter(t => t.id !== id));
@@ -138,7 +165,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteNote = async (id: string) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', user.id);
     if (!error) {
       setNotes(prev => prev.filter(n => n.id !== id));
@@ -148,7 +175,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteAsset = async (id: string) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { error } = await supabase.from('assets').delete().eq('id', id).eq('user_id', user.id);
     if (!error) {
       setAssets(prev => prev.filter(a => a.id !== id));
@@ -158,7 +185,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteSnippet = async (id: string) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { error } = await supabase.from('snippets').delete().eq('id', id).eq('user_id', user.id);
     if (!error) {
       setSnippets(prev => prev.filter(s => s.id !== id));
@@ -168,7 +195,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteWhiteboard = async (id: string) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { error } = await supabase.from('whiteboards').delete().eq('id', id).eq('user_id', user.id);
     if (!error) {
       setWhiteboards(prev => prev.filter(w => w.id !== id));
@@ -178,7 +205,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addProject = async (p: Omit<Project, 'id' | 'createdAt' | 'progress'>) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { data, error } = await supabase.from('projects').insert({
       user_id: user.id, ...p, tags: JSON.stringify(p.tags)
     }).select().single();
@@ -187,13 +214,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateProject = async (id: string, updates: Partial<Project>) => {
+    if (!supabase) return;
     const { error } = await supabase.from('projects').update(updates).eq('id', id);
     if (!error) setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
     else logError("UpdateProject", error);
   };
 
   const addTask = async (t: Omit<Task, 'id'>) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { data, error } = await supabase.from('tasks').insert({
       user_id: user.id, project_id: t.projectId, ...t
     }).select().single();
@@ -202,13 +230,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
+    if (!supabase) return;
     const { error } = await supabase.from('tasks').update(updates).eq('id', id);
     if (!error) setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
     else logError("UpdateTask", error);
   };
 
   const addNote = async (n: Omit<Note, 'id' | 'updatedAt'>) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { data, error } = await supabase.from('notes').insert({
       user_id: user.id, project_id: n.projectId, ...n
     }).select().single();
@@ -217,13 +246,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateNote = async (id: string, content: string) => {
+    if (!supabase) return;
     const { error } = await supabase.from('notes').update({ content, updated_at: new Date() }).eq('id', id);
     if (!error) setNotes(prev => prev.map(n => n.id === id ? { ...n, content, updatedAt: new Date() } : n));
     else logError("UpdateNote", error);
   };
 
   const addAsset = async (a: Omit<Asset, 'id'>) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { data, error } = await supabase.from('assets').insert({
       user_id: user.id, project_id: a.projectId, ...a
     }).select().single();
@@ -232,7 +262,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addSnippet = async (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { data, error } = await supabase.from('snippets').insert({
       user_id: user.id, ...s
     }).select().single();
@@ -241,13 +271,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateSnippet = async (id: string, code: string) => {
+    if (!supabase) return;
     const { error } = await supabase.from('snippets').update({ code, updated_at: new Date() }).eq('id', id);
     if (!error) setSnippets(prev => prev.map(s => s.id === id ? { ...s, code, updatedAt: new Date() } : s));
     else logError("UpdateSnippet", error);
   };
 
   const addWhiteboard = async (w: Omit<Whiteboard, 'id' | 'updatedAt'>) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { data, error } = await supabase.from('whiteboards').insert({
       user_id: user.id, ...w, elements: JSON.stringify(w.elements)
     }).select().single();
@@ -256,6 +287,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateWhiteboard = async (id: string, elements: CanvasElement[]) => {
+    if (!supabase) return;
     const { error } = await supabase.from('whiteboards').update({ 
       elements: JSON.stringify(elements), 
       updated_at: new Date() 

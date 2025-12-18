@@ -29,11 +29,16 @@
       
       // Enhanced Global Error Diagnostics
       window.addEventListener('error', function(event) {
-        if (event.message === "Script error." || (!event.error && event.message === "")) {
-          console.group('%c 🚀 Critical Module Failure', 'color: #ff4d4d; font-weight: bold;');
-          console.error('A module script failed to load or resolve. Check importmap and network headers.');
-          console.groupEnd();
-          return;
+        const root = document.getElementById('root');
+        if (root && root.innerHTML === '') {
+          root.innerHTML = `
+            <div style="padding: 2rem; font-family: sans-serif; color: #ff4d4d; background: #fff; height: 100vh;">
+              <h1 style="margin: 0 0 1rem 0;">Critical Load Error</h1>
+              <p>The application failed to start. This is usually due to a module resolution error or a top-level runtime exception.</p>
+              <pre style="background: #f5f5f5; padding: 1rem; border-radius: 8px; overflow: auto;">${event.message || 'Unknown Error'}\n${event.filename || ''}:${event.lineno || ''}</pre>
+              <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; cursor: pointer;">Retry Load</button>
+            </div>
+          `;
         }
         console.error('Runtime Exception:', event.error || event.message);
       }, true);
@@ -70,7 +75,7 @@
         -moz-osx-font-smoothing: grayscale;
         margin: 0;
         padding: 0;
-        background: #1e1e1e;
+        background: #F5F5F7;
       }
     </style>
     <script type="importmap">
@@ -78,7 +83,7 @@
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client?deps=react@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
     "lucide-react": "https://esm.sh/lucide-react@0.460.0?deps=react@19.0.0",
     "recharts": "https://esm.sh/recharts@2.13.3?deps=react@19.0.0,react-dom@19.0.0",
@@ -100,8 +105,8 @@
     "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.1?deps=codemirror@6.0.1",
     "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.3.1?deps=codemirror@6.0.1",
     "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.1?deps=codemirror@6.0.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
   }
 }
 </script>
