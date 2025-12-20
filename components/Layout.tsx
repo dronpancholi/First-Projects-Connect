@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, Code2, PenTool, Mic, Sparkles } from 'lucide-react';
+import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, Code2, PenTool, Mic, Sparkles, Cloud, CloudOff, RefreshCw, CheckCircle } from 'lucide-react';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
 import VoiceAssistant from './VoiceAssistant.tsx';
@@ -34,9 +34,23 @@ const NavItem: React.FC<{
   </button>
 );
 
+const ProgressBar: React.FC<{ active: boolean }> = ({ active }) => (
+  <div className={`fixed top-0 left-0 right-0 z-[1000] h-[2px] pointer-events-none transition-opacity duration-300 ${active ? 'opacity-100' : 'opacity-0'}`}>
+    <div className="h-full bg-apple-blue shadow-[0_0_8px_rgba(0,113,227,0.5)] relative overflow-hidden">
+      <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]" />
+    </div>
+    <style>{`
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+    `}</style>
+  </div>
+);
+
 const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   const { user, logout } = useAuth();
-  const { needsInitialization } = useStore();
+  const { needsInitialization, isLoading, isSyncing, lastSyncTime } = useStore();
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
 
@@ -53,6 +67,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
 
   return (
     <div className="flex h-screen w-full bg-apple-gray">
+      <ProgressBar active={isLoading || isSyncing} />
+      
       {/* Sidebar */}
       <aside className="w-64 flex-shrink-0 border-r border-apple-border/50 bg-gray-50/80 backdrop-blur-xl flex flex-col pt-6 pb-4 px-3">
         <div className="px-3 mb-8 flex items-center justify-between">
@@ -130,6 +146,26 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
               </span>
             )}
           />
+
+          {/* Sync Status Overlay */}
+          <div className="px-3 py-2 mt-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all duration-500">
+             {isSyncing || isLoading ? (
+               <>
+                 <RefreshCw size={10} className="text-blue-500 animate-spin" />
+                 <span className="text-blue-500">Syncing...</span>
+               </>
+             ) : lastSyncTime ? (
+               <>
+                 <CheckCircle size={12} className="text-emerald-500" />
+                 <span className="text-gray-400">Saved {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+               </>
+             ) : (
+               <>
+                 <CloudOff size={12} className="text-gray-300" />
+                 <span className="text-gray-300">Offline</span>
+               </>
+             )}
+          </div>
           
           <div className="mt-4 px-3 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-apple-blue font-bold text-xs uppercase border border-blue-200">
