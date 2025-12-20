@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from '@google/genai';
 import { 
   X, Mic, MicOff, Sparkles, Loader2, Globe, Eye, 
-  Terminal, History, Activity, Zap
+  Terminal, History, Activity, Zap, ShieldCheck, Link2
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ProjectStatus } from '../types.ts';
@@ -53,6 +54,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [isApiKeyLinked, setIsApiKeyLinked] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transcriptions, setTranscriptions] = useState<{role: 'user' | 'agent', text: string}[]>([]);
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -68,6 +70,23 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const streamRef = useRef<MediaStream | null>(null);
   const frameInterval = useRef<number | null>(null);
 
+  useEffect(() => {
+    const checkKey = async () => {
+      if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
+        const linked = await (window as any).aistudio.hasSelectedApiKey();
+        setIsApiKeyLinked(linked);
+      }
+    };
+    checkKey();
+  }, []);
+
+  const handleLinkKey = async () => {
+    if (typeof (window as any).aistudio?.openSelectKey === 'function') {
+      await (window as any).aistudio.openSelectKey();
+      setIsApiKeyLinked(true); // Assume success per guidelines
+    }
+  };
+
   const cleanup = useCallback(() => {
     setIsActive(false);
     setIsConnecting(false);
@@ -80,7 +99,6 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     sources.current.clear();
   }, []);
 
-  // Updated to receive sessionPromise to avoid stale closures and ensure proper initialization
   const startVision = (stream: MediaStream, sessionPromise: Promise<any>) => {
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
@@ -88,7 +106,6 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     frameInterval.current = window.setInterval(() => {
-      // Fix: Follow guidelines by using the sessionPromise to send data and avoid race conditions
       if (!canvasRef.current || !videoRef.current) return;
       
       const canvas = canvasRef.current;
@@ -100,7 +117,6 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             const reader = new FileReader();
             reader.onloadend = () => {
               const base64 = (reader.result as string).split(',')[1];
-              // Fix: CRITICAL: Solely rely on sessionPromise resolves and then call `session.sendRealtimeInput`
               sessionPromise.then((session) => {
                 session.sendRealtimeInput({
                   media: { data: base64, mimeType: 'image/jpeg' }
@@ -125,6 +141,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
       streamRef.current = stream;
 
+      // Fresh instance right before call as per guidelines
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       outCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       inCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -141,7 +158,6 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               const d = e.inputBuffer.getChannelData(0);
               const i16 = new Int16Array(d.length);
               for (let i = 0; i < d.length; i++) i16[i] = d[i] * 32768;
-              // Fix: CRITICAL: Solely rely on sessionPromise resolves and then call `session.sendRealtimeInput`
               sessionPromise.then((session) => {
                 session.sendRealtimeInput({ 
                   media: { data: encode(new Uint8Array(i16.buffer)), mimeType: 'audio/pcm;rate=16000' } 
@@ -189,7 +205,6 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   }
                 } catch (e) { result = { error: "Tool execution failed" }; }
                 
-                // Fix: Use sessionPromise to ensure reliable delivery of tool responses
                 sessionPromise.then((session) => {
                   session.sendToolResponse({ 
                     functionResponses: { id: fc.id, name: fc.name, response: { result } } 
@@ -220,7 +235,15 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             }
           },
           onclose: () => cleanup(),
-          onerror: (e) => { setError("FP-Agent uplink interrupted."); cleanup(); }
+          onerror: (e: any) => { 
+            if (e?.message?.includes('Requested entity was not found')) {
+              setIsApiKeyLinked(false);
+              setError("API Key verification failed. Please re-link your AI account.");
+            } else {
+              setError("FP-Agent uplink interrupted."); 
+            }
+            cleanup(); 
+          }
         },
         config: {
           responseModalities: [Modality.AUDIO],
@@ -232,7 +255,12 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
-      setError(err.message || "Failed to start session.");
+      if (err?.message?.includes('API must be linked')) {
+        setIsApiKeyLinked(false);
+        setError("Your browser requires a linked AI account for Pro features.");
+      } else {
+        setError(err.message || "Failed to start session.");
+      }
       setIsConnecting(false);
       cleanup();
     }
@@ -271,9 +299,23 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
 
           {!isActive && !isConnecting && (
-            <button onClick={startSession} className="w-full max-w-xs bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
-              <Mic size={18} /> Engage FP-Agent
-            </button>
+            <div className="w-full flex flex-col items-center gap-3">
+              {!isApiKeyLinked ? (
+                <button 
+                  onClick={handleLinkKey} 
+                  className="w-full max-w-xs bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                >
+                  <Link2 size={18} /> Authorize AI Assistant
+                </button>
+              ) : (
+                <button 
+                  onClick={startSession} 
+                  className="w-full max-w-xs bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                >
+                  <Mic size={18} /> Engage FP-Agent
+                </button>
+              )}
+            </div>
           )}
 
           {isActive && (
@@ -287,7 +329,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="flex-1 bg-slate-50/50 flex flex-col">
           <div className="h-14 px-6 flex items-center justify-between border-b border-slate-200 bg-white">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><Terminal size={14}/> Intelligence HUD</span>
-            {activeTool && <div className="text-blue-600 text-[10px] font-black uppercase animate-pulse">Running: {activeTool}</div>}
+            {isApiKeyLinked && <div className="text-emerald-500 text-[10px] font-black uppercase flex items-center gap-1"><ShieldCheck size={12} /> Secure Uplink</div>}
           </div>
           
           <div className="flex-1 overflow-auto p-6 space-y-4 custom-scrollbar">

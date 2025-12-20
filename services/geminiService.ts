@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Project, Task, Note, CanvasElement } from '../types.ts';
 
@@ -14,7 +15,7 @@ export const generateProjectPlan = async (projectTitle: string, description: str
     const ai = getAi();
     const prompt = `You are the FP-Engine, a high-level project architect. Project: "${projectTitle}". Description: "${description}". Generate an actionable Markdown plan.`;
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
     return response.text || "FP-Engine: No plan generated.";
@@ -28,7 +29,7 @@ export const generateWhiteboardLayout = async (description: string): Promise<Whi
     const ai = getAi();
     const prompt = `Synthesize a diagram for: "${description}". Return JSON with elements.`;
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -73,7 +74,6 @@ export const suggestSubtasks = async (taskTitle: string): Promise<string[]> => {
       contents: `Break down "${taskTitle}" into 5 steps. Return JSON array.`,
       config: { 
         responseMimeType: "application/json",
-        // Fix: Recommended way is to configure a responseSchema for the expected JSON output.
         responseSchema: {
           type: Type.ARRAY,
           items: {
@@ -88,7 +88,6 @@ export const suggestSubtasks = async (taskTitle: string): Promise<string[]> => {
   }
 };
 
-// Added explainCode to support CodeStudio assist features
 export const explainCode = async (code: string, language: string): Promise<string> => {
   try {
     const ai = getAi();
