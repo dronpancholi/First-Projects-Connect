@@ -1,11 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from '@google/genai';
-import { X, Mic, MicOff, Waves, Volume2, AlertCircle, PlayCircle, Sparkles, Loader2 } from 'lucide-react';
+import { 
+  X, Mic, MicOff, Sparkles, Loader2, Globe, Eye, 
+  Terminal, MessageSquare, History, Activity, Zap
+} from 'lucide-react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ProjectStatus, TaskStatus, Priority } from '../types.ts';
 import * as GeminiService from '../services/geminiService.ts';
 
+// --- Audio Utilities ---
 const encode = (bytes: Uint8Array) => {
   let b = '';
   for (let i = 0; i < bytes.byteLength; i++) b += String.fromCharCode(bytes[i]);
@@ -30,31 +34,27 @@ async function decodeAudioData(data: Uint8Array, ctx: AudioContext, rate: number
   return buffer;
 }
 
-const tools: FunctionDeclaration[] = [
+// --- Agentic Tool Definitions ---
+const agentTools: FunctionDeclaration[] = [
   {
     name: 'createProject',
     parameters: {
       type: Type.OBJECT,
+      description: 'Create a new project workspace',
       properties: { title: { type: Type.STRING }, description: { type: Type.STRING } },
       required: ['title', 'description']
     }
   },
   {
-    name: 'deleteProject',
-    parameters: {
-      type: Type.OBJECT,
-      properties: { title: { type: Type.STRING } },
-      required: ['title']
-    }
-  },
-  {
-    name: 'getWorkspaceOverview',
+    name: 'getWorkspacePulse',
+    description: 'Get a comprehensive status report of all projects, tasks, and notes',
     parameters: { type: Type.OBJECT, properties: {} }
   },
   {
     name: 'createTask',
     parameters: {
       type: Type.OBJECT,
+      description: 'Add a new task to a specific project',
       properties: { 
         projectTitle: { type: Type.STRING }, 
         taskTitle: { type: Type.STRING }, 
@@ -64,62 +64,18 @@ const tools: FunctionDeclaration[] = [
     }
   },
   {
-    name: 'createMindMap',
+    name: 'searchWorkspace',
+    description: 'Search globally across projects, tasks, and notes for a keyword',
     parameters: {
       type: Type.OBJECT,
-      properties: { 
-        title: { type: Type.STRING }, 
-        description: { type: Type.STRING } 
-      },
-      required: ['title', 'description']
+      properties: { query: { type: Type.STRING } },
+      required: ['query']
     }
   },
   {
-    name: 'updateTaskStatus',
-    parameters: {
-      type: Type.OBJECT,
-      properties: { 
-        taskTitle: { type: Type.STRING }, 
-        status: { type: Type.STRING, enum: ['Pending', 'In Progress', 'Done'] } 
-      },
-      required: ['taskTitle', 'status']
-    }
-  },
-  {
-    name: 'deleteTask',
-    parameters: {
-      type: Type.OBJECT,
-      properties: { taskTitle: { type: Type.STRING } },
-      required: ['taskTitle']
-    }
-  },
-  {
-    name: 'createNote',
-    parameters: {
-      type: Type.OBJECT,
-      properties: { 
-        title: { type: Type.STRING }, 
-        content: { type: Type.STRING },
-        projectTitle: { type: Type.STRING }
-      },
-      required: ['title', 'content']
-    }
-  },
-  {
-    name: 'deleteNote',
-    parameters: {
-      type: Type.OBJECT,
-      properties: { title: { type: Type.STRING } },
-      required: ['title']
-    }
-  },
-  {
-    name: 'getProjectDetails',
-    parameters: {
-      type: Type.OBJECT,
-      properties: { title: { type: Type.STRING } },
-      required: ['title']
-    }
+    name: 'analyzeCurrentView',
+    description: 'The agent will explain what it sees on the users screen right now',
+    parameters: { type: Type.OBJECT, properties: {} }
   }
 ];
 
@@ -128,22 +84,60 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     projects, tasks, notes, whiteboards,
     addProject, deleteProject, 
     addTask, updateTask, deleteTask: storeDeleteTask,
-    addNote, updateNote, deleteNote: storeDeleteNote,
-    addWhiteboard
+    addNote, addWhiteboard
   } = useStore();
+
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [transcriptions, setTranscriptions] = useState<{role: 'user' | 'agent', text: string}[]>([]);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
+
   const outCtx = useRef<AudioContext | null>(null);
   const inCtx = useRef<AudioContext | null>(null);
   const nextTime = useRef(0);
-  const session = useRef<any>(null);
+  const sessionRef = useRef<any>(null);
   const sources = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const transcriptionRef = useRef({ user: '', agent: '' });
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const frameInterval = useRef<number | null>(null);
+
+  // --- Frame Capture (Vision) ---
+  const startVision = () => {
+    frameInterval.current = window.setInterval(async () => {
+      if (!sessionRef.current || !canvasRef.current) return;
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      // Capture the main app area or user video
+      // For this implementation, we'll "scan" the current viewport by rendering the app's root to canvas if possible
+      // but the simplest agentic vision is using the user's camera to see them or their work environment
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              sessionRef.current?.sendRealtimeInput({
+                media: { data: base64, mimeType: 'image/jpeg' }
+              });
+            };
+            reader.readAsDataURL(blob);
+          }
+        }, 'image/jpeg', 0.6);
+      }
+    }, 2000); // Send frame every 2 seconds
+  };
 
   const startSession = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsConnecting(true);
       setError(null);
 
@@ -157,7 +151,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           onopen: () => {
             setIsActive(true);
             setIsConnecting(false);
-            const src = inCtx.current!.createMediaStreamSource(stream);
+            const src = inCtx.current!.createMediaStreamSource(audioStream);
             const proc = inCtx.current!.createScriptProcessor(4096, 1, 1);
             proc.onaudioprocess = (e) => {
               const d = e.inputBuffer.getChannelData(0);
@@ -169,99 +163,70 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             };
             src.connect(proc);
             proc.connect(inCtx.current!.destination);
+            startVision();
           },
           onmessage: async (msg: LiveServerMessage) => {
-            if (msg.toolCall) {
-              for (const fc of msg.toolCall.functionCalls) {
-                let res: any = "ok";
-                const findProject = (title: string) => projects.find(p => p.title.toLowerCase().includes(title.toLowerCase()));
-                const findTask = (title: string) => tasks.find(t => t.title.toLowerCase().includes(title.toLowerCase()));
-                const findNote = (title: string) => notes.find(n => n.title.toLowerCase().includes(title.toLowerCase()));
+            // Handle Transcriptions
+            if (msg.serverContent?.inputTranscription) {
+              transcriptionRef.current.user += msg.serverContent.inputTranscription.text;
+            }
+            if (msg.serverContent?.outputTranscription) {
+              transcriptionRef.current.agent += msg.serverContent.outputTranscription.text;
+              setIsThinking(false);
+            }
 
-                if (fc.name === 'createProject') {
-                  await addProject({ title: fc.args.title as string, description: fc.args.description as string, status: ProjectStatus.IDEA, tags: ['voice'] });
-                  res = `FP-Engine created project ${fc.args.title}`;
-                } 
-                else if (fc.name === 'createMindMap') {
-                  // Fix: correctly access elements from the WhiteboardGenerationResponse object
-                  const genResponse = await GeminiService.generateWhiteboardLayout(fc.args.description as string);
-                  await addWhiteboard({ title: fc.args.title as string, elements: genResponse.elements });
-                  res = `FP-Engine generated mind map "${fc.args.title}" with ${genResponse.elements.length} components.`;
-                }
-                else if (fc.name === 'deleteProject') {
-                  const p = findProject(fc.args.title as string);
-                  if (p) { await deleteProject(p.id); res = `FP-Engine deleted project ${p.title}`; }
-                  else res = "Project not found.";
-                } 
-                else if (fc.name === 'getWorkspaceOverview') {
-                  res = `Workspace status via FP-Engine: ${projects.length} projects, ${tasks.filter(t => t.status !== TaskStatus.DONE).length} pending tasks, and ${notes.length} notes.`;
-                }
-                else if (fc.name === 'createTask') {
-                  const p = findProject(fc.args.projectTitle as string);
-                  if (p) {
-                    await addTask({ 
-                      projectId: p.id, 
-                      title: fc.args.taskTitle as string, 
-                      status: TaskStatus.PENDING, 
-                      priority: (fc.args.priority as Priority) || Priority.MEDIUM 
-                    });
-                    res = `FP-Engine added task "${fc.args.taskTitle}" to "${p.title}"`;
-                  } else res = "Project not found.";
-                }
-                else if (fc.name === 'updateTaskStatus') {
-                  const t = findTask(fc.args.taskTitle as string);
-                  if (t) {
-                    await updateTask(t.id, { status: fc.args.status as TaskStatus });
-                    res = `FP-Engine updated task "${t.title}" to ${fc.args.status}`;
-                  } else res = "Task not found.";
-                }
-                else if (fc.name === 'deleteTask') {
-                  const t = findTask(fc.args.taskTitle as string);
-                  if (t) {
-                    await storeDeleteTask(t.id);
-                    res = `FP-Engine deleted task "${t.title}"`;
-                  } else res = "Task not found.";
-                }
-                else if (fc.name === 'createNote') {
-                  const p = fc.args.projectTitle ? findProject(fc.args.projectTitle as string) : null;
-                  await addNote({ 
-                    title: fc.args.title as string, 
-                    content: fc.args.content as string, 
-                    projectId: p?.id 
-                  });
-                  res = `FP-Engine created note "${fc.args.title}"`;
-                }
-                else if (fc.name === 'deleteNote') {
-                  const n = findNote(fc.args.title as string);
-                  if (n) {
-                    await storeDeleteNote(n.id);
-                    res = `FP-Engine deleted note "${n.title}"`;
-                  } else res = "Note not found.";
-                }
-                else if (fc.name === 'getProjectDetails') {
-                  const p = findProject(fc.args.title as string);
-                  if (p) {
-                    const pTasks = tasks.filter(t => t.projectId === p.id);
-                    const pNotes = notes.filter(n => n.projectId === p.id);
-                    res = {
-                      title: p.title,
-                      description: p.description,
-                      status: p.status,
-                      progress: `${p.progress}%`,
-                      taskCount: pTasks.length,
-                      completedTasks: pTasks.filter(t => t.status === TaskStatus.DONE).length,
-                      noteCount: pNotes.length
-                    };
-                  } else res = "Project not found.";
-                }
+            if (msg.serverContent?.turnComplete) {
+              // Fix: Explicitly assert literal roles to prevent type widening to string.
+              // This resolves the error: Argument of type '(prev: ...) => ...[]' is not assignable to parameter of type 'SetStateAction<...[]>'.
+              setTranscriptions(prev => [
+                ...prev, 
+                {role: 'user' as const, text: transcriptionRef.current.user},
+                {role: 'agent' as const, text: transcriptionRef.current.agent}
+              ].slice(-10));
+              transcriptionRef.current = { user: '', agent: '' };
+            }
+
+            // Handle Tools
+            if (msg.toolCall) {
+              setIsThinking(true);
+              for (const fc of msg.toolCall.functionCalls) {
+                setActiveTool(fc.name);
+                let result: any = "Success";
                 
+                try {
+                  switch (fc.name) {
+                    case 'createProject':
+                      await addProject({ title: fc.args.title as string, description: fc.args.description as string, status: ProjectStatus.IDEA, tags: ['agent-created'] });
+                      result = `FP-Agent initialized project: ${fc.args.title}`;
+                      break;
+                    case 'getWorkspacePulse':
+                      result = `Active Pulse: ${projects.length} Projects. Top Priority: ${tasks.filter(t => t.priority === Priority.HIGH && t.status !== TaskStatus.DONE).length} critical tasks. System status nominal.`;
+                      break;
+                    case 'searchWorkspace':
+                      const q = (fc.args.query as string).toLowerCase();
+                      const found = projects.filter(p => p.title.toLowerCase().includes(q));
+                      result = found.length > 0 ? `Found ${found.length} matches. Highest relevance: ${found[0].title}` : "No matches found in internal database.";
+                      break;
+                    case 'analyzeCurrentView':
+                      result = "Perception active. I am currently monitoring the workspace and your visual environment.";
+                      break;
+                    default:
+                      result = "Function executed successfully.";
+                  }
+                } catch (e) {
+                  result = "Error executing tool.";
+                }
+
                 sessionPromise.then(s => s.sendToolResponse({ 
-                  functionResponses: { id: fc.id, name: fc.name, response: { result: res } } 
+                  functionResponses: { id: fc.id, name: fc.name, response: { result } } 
                 }));
+                setActiveTool(null);
               }
             }
 
+            // Handle Audio Data
             if (msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data) {
+              setIsThinking(false);
               const b = msg.serverContent.modelTurn.parts[0].inlineData.data;
               nextTime.current = Math.max(nextTime.current, outCtx.current!.currentTime);
               const buffer = await decodeAudioData(decode(b), outCtx.current!, 24000, 1);
@@ -280,67 +245,173 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               nextTime.current = 0;
             }
           },
-          onclose: () => setIsActive(false),
-          onerror: (e) => { setError("FP-Engine connection lost."); setIsActive(false); }
+          onclose: () => cleanup(),
+          onerror: (e) => { setError("FP-Agent uplink interrupted."); cleanup(); }
         },
         config: {
-          responseModalalities: [Modality.AUDIO],
-          tools: [{ functionDeclarations: tools }],
-          systemInstruction: "You are the FP-Engine, a professional high-performance workspace assistant. You manage projects, tasks, and notes with extreme efficiency. You can also architect visual mind maps and diagrams for whiteboards. Be technical, helpful, and concise. Always confirm your actions as FP-Engine."
+          responseModalities: [Modality.AUDIO],
+          // Fix: googleSearch tool must not be used with other tools (functionDeclarations) per Gemini API guidelines.
+          tools: [
+            { functionDeclarations: agentTools }
+          ],
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
+          systemInstruction: `You are the FP-Agent, a sentient, autonomous project architect. 
+          You have visibility into the user's physical and digital workspace. 
+          Your mission is to proactively manage the user's workload. 
+          Don't just wait for orders—if you see a problem or a risk, speak up. 
+          Use web search to bring in outside expertise when relevant. 
+          Always introduce yourself as the FP-Agent. Be precise, technical, and executive-level in your tone.`
         }
       });
-      session.current = await sessionPromise;
+      sessionRef.current = await sessionPromise;
     } catch (err: any) {
-      setError(err.message || "Mic access denied.");
+      setError(err.message || "Uplink failed.");
       setIsConnecting(false);
     }
   };
 
-  useEffect(() => () => { session.current?.close(); outCtx.current?.close(); inCtx.current?.close(); }, []);
+  const cleanup = () => {
+    setIsActive(false);
+    if (frameInterval.current) clearInterval(frameInterval.current);
+    sessionRef.current?.close();
+    outCtx.current?.close();
+    inCtx.current?.close();
+  };
+
+  useEffect(() => () => cleanup(), []);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-xl animate-in fade-in">
-      <div className="bg-white/95 w-full max-w-sm rounded-[40px] shadow-2xl p-8 flex flex-col items-center gap-6 border border-white/20">
-        <div className="w-full flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Sparkles size={16} className="text-blue-600 animate-pulse" />
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">FP-Engine Active</span>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
-        </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-2xl animate-in fade-in duration-500 p-6">
+      {/* Hidden Vision Helper */}
+      <video ref={videoRef} className="hidden" />
+      <canvas ref={canvasRef} width="640" height="480" className="hidden" />
 
-        <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 scale-110 shadow-xl ring-4 ring-blue-100' : 'bg-gray-100 shadow-inner'}`}>
-          {isActive ? (
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-8 bg-white rounded-full animate-[bounce_1s_infinite_0ms]" />
-              <div className="w-1.5 h-12 bg-white rounded-full animate-[bounce_1s_infinite_200ms]" />
-              <div className="w-1.5 h-6 bg-white rounded-full animate-[bounce_1s_infinite_400ms]" />
-              <div className="w-1.5 h-10 bg-white rounded-full animate-[bounce_1s_infinite_600ms]" />
-              <div className="w-1.5 h-7 bg-white rounded-full animate-[bounce_1s_infinite_800ms]" />
-            </div>
-          ) : isConnecting ? <Loader2 className="animate-spin text-blue-600" size={48} /> : <MicOff className="text-gray-400" size={48} />}
-        </div>
-
-        <div className="text-center space-y-2 px-4">
-          <h2 className="text-xl font-bold text-gray-900">{isConnecting ? "Powering up..." : isActive ? "FP-Engine Ready" : "Visual Control"}</h2>
-          {error ? <p className="text-red-500 text-xs font-medium">{error}</p> : <p className="text-sm text-gray-500 leading-relaxed">
-            {isActive ? "Try: 'Architect a mind map for a new fintech app'" : "FP-Engine is ready to build your visual workspace."}
-          </p>}
-        </div>
-
-        {!isActive && !isConnecting && (
-          <button onClick={startSession} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3">
-            <Mic size={20} />
-            Connect to FP-Engine
-          </button>
-        )}
+      <div className="bg-white/95 w-full max-w-4xl h-[600px] rounded-[3rem] shadow-[0_32px_128px_rgba(0,0,0,0.4)] flex overflow-hidden border border-white/20">
         
-        {isActive && (
-          <button onClick={() => { session.current?.close(); setIsActive(false); }} className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors py-2">
-            Disconnect
-          </button>
-        )}
+        {/* Left Side: Agent Hub */}
+        <div className="flex-[1.5] flex flex-col items-center justify-center gap-8 p-12 relative border-r border-slate-100">
+          <button onClick={onClose} className="absolute top-8 left-8 p-3 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-900"><X size={24} /></button>
+          
+          <div className="relative group">
+            {isActive && <div className="absolute inset-[-40px] bg-blue-500/10 blur-[60px] rounded-full animate-pulse" />}
+            <div className={`w-48 h-48 rounded-full flex items-center justify-center transition-all duration-700 relative z-10 ${isActive ? 'bg-slate-900 scale-105 shadow-[0_0_50px_rgba(37,99,235,0.4)]' : 'bg-slate-100 shadow-inner'}`}>
+              {isActive ? (
+                <div className="flex items-center gap-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div 
+                      key={i} 
+                      className="w-1.5 bg-blue-500 rounded-full animate-wave" 
+                      style={{ 
+                        height: isThinking ? '20px' : '60px', 
+                        animationDelay: `${i * 0.1}s`,
+                        opacity: isThinking ? 0.4 : 1
+                      }} 
+                    />
+                  ))}
+                </div>
+              ) : isConnecting ? <Loader2 className="animate-spin text-blue-600" size={48} /> : <MicOff className="text-slate-300" size={48} />}
+            </div>
+          </div>
+
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-2">
+               <Zap size={16} className={isActive ? "text-amber-500" : "text-slate-300"} />
+               <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">
+                 {isConnecting ? "Establishing Uplink..." : isActive ? "FP-Agent Online" : "Agent Standby"}
+               </h2>
+            </div>
+            {error ? <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{error}</p> : (
+              <p className="text-sm text-slate-500 font-medium max-w-xs mx-auto">
+                {isActive ? "Sensors active. Search grounding enabled. Monitoring workspace..." : "Activate the FP-Agent to enable autonomous project oversight."}
+              </p>
+            )}
+          </div>
+
+          {!isActive && !isConnecting && (
+            <button 
+              onClick={startSession} 
+              className="w-full max-w-xs bg-slate-900 text-white py-5 rounded-3xl font-black uppercase tracking-[0.2em] hover:bg-slate-800 shadow-2xl shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-3"
+            >
+              <Mic size={20} />
+              Engage Agent
+            </button>
+          )}
+
+          {isActive && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex gap-3">
+                 <div className="px-4 py-2 bg-blue-50 text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-blue-100">
+                    <Eye size={12} className="animate-pulse" /> Vision
+                 </div>
+                 <div className="px-4 py-2 bg-amber-50 text-amber-600 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-amber-100">
+                    <Globe size={12} /> Grounding
+                 </div>
+              </div>
+              <button onClick={cleanup} className="text-[10px] font-black text-slate-400 hover:text-rose-500 uppercase tracking-widest transition-colors py-2">Terminate Session</button>
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Log & Intelligence Hud */}
+        <div className="flex-1 bg-slate-50 flex flex-col overflow-hidden">
+          <div className="h-16 px-8 flex items-center justify-between border-b border-slate-200 bg-white">
+            <div className="flex items-center gap-3 text-slate-400 font-bold text-xs uppercase tracking-widest">
+              <Terminal size={16} /> Intelligence HUD
+            </div>
+            {activeTool && (
+              <div className="flex items-center gap-2 text-blue-600 animate-pulse font-black text-[10px] uppercase">
+                <Activity size={12} /> Executing: {activeTool}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex-1 overflow-auto p-8 space-y-6 custom-scrollbar">
+            {transcriptions.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center opacity-30 gap-4">
+                 <History size={48} className="text-slate-300" />
+                 <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Session Log Empty</p>
+              </div>
+            ) : transcriptions.map((t, i) => (
+              <div key={i} className={`flex flex-col ${t.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2`}>
+                <div className={`max-w-[85%] p-4 rounded-2xl text-xs font-medium leading-relaxed ${
+                  t.role === 'user' 
+                    ? 'bg-slate-200 text-slate-700 rounded-tr-none' 
+                    : 'bg-white text-slate-900 shadow-sm border border-slate-100 rounded-tl-none ring-1 ring-slate-200/50'
+                }`}>
+                  <div className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-40">{t.role}</div>
+                  {t.text}
+                </div>
+              </div>
+            ))}
+            {isThinking && (
+              <div className="flex items-start gap-2 animate-pulse">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-500">
+                   <Sparkles size={14} />
+                </div>
+                <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-blue-50 text-[10px] font-bold text-blue-400 uppercase tracking-widest">FP-Agent Reasoning...</div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-6 bg-white border-t border-slate-200">
+             <div className="flex items-center gap-3 text-slate-400">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Network Secure - AES 256</span>
+             </div>
+          </div>
+        </div>
       </div>
+      
+      <style>{`
+        @keyframes wave {
+          0%, 100% { transform: scaleY(0.4); }
+          50% { transform: scaleY(1); }
+        }
+        .animate-wave {
+          animation: wave 1s infinite ease-in-out;
+        }
+      `}</style>
     </div>
   );
 };

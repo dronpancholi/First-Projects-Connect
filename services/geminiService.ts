@@ -112,9 +112,10 @@ export const generateWhiteboardLayout = async (description: string): Promise<Whi
 export const generateImageForWhiteboard = async (prompt: string): Promise<string | null> => {
   try {
     const ai = getAi();
+    // Fix: contents must be a string or a Content object (with parts), not a raw Part[].
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: [{ text: `Generate a minimalist icon for FP-Engine: ${prompt}. Clean professional design on white background.` }],
+      contents: `Generate a minimalist icon for FP-Engine: ${prompt}. Clean professional design on white background.`,
       config: {
         imageConfig: { aspectRatio: "1:1" }
       }
