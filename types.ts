@@ -32,14 +32,19 @@ export interface Note {
   updatedAt: Date;
 }
 
+export interface CodeSnippet {
+  id: string;
+  title: string;
+  language: string;
+  code: string;
+  folder?: string;
+  updatedAt: Date;
+}
+
 export type AssetType = 
-  // Dev
   | 'github' | 'gitlab' | 'bitbucket' | 'linear' | 'jira' | 'vercel' | 'netlify' | 'cloudflare' | 'docker'
-  // Design
   | 'figma' | 'miro' | 'adobe_xd' | 'sketch' | 'framer' | 'canva'
-  // Productivity
   | 'google_drive' | 'notion' | 'trello' | 'asana' | 'slack' | 'discord' | 'teams' | 'zoom' | 'dropbox' | 'onedrive'
-  // Other
   | 'stripe' | 'openai' | 'link' | 'file_ref';
 
 export interface Asset {
@@ -87,15 +92,6 @@ export interface Whiteboard {
   title: string;
   elements: CanvasElement[];
   updatedAt: Date;
-}
-
-// Add CodeSnippet interface for the Code Studio feature
-export interface CodeSnippet {
-  id: string;
-  title: string;
-  language: string;
-  code: string;
-  folder?: string;
 }
 
 export type ViewState = 

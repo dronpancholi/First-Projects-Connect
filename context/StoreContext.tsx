@@ -35,7 +35,7 @@ interface StoreContextType {
   updateWhiteboard: (id: string, elements: CanvasElement[]) => Promise<void>;
   deleteWhiteboard: (id: string) => Promise<void>;
 
-  addSnippet: (s: Omit<CodeSnippet, 'id'>) => Promise<void>;
+  addSnippet: (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => Promise<void>;
   updateSnippet: (id: string, code: string) => Promise<void>;
   deleteSnippet: (id: string) => Promise<void>;
   
@@ -57,22 +57,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [needsInitialization, setNeedsInitialization] = useState(false);
 
-  // High-performance defensive mapping functions
   const mapProject = useCallback((p: any): Project => ({ 
     id: p?.id || String(Math.random()),
     title: p?.title || 'Untitled Project',
     description: p?.description || '',
     status: (p?.status as ProjectStatus) || ProjectStatus.IDEA,
     progress: typeof p?.progress === 'number' ? p.progress : 0,
-    tags: (() => {
-      try {
-        if (Array.isArray(p?.tags)) return p.tags;
-        if (typeof p?.tags === 'string' && p.tags.trim() !== '') return JSON.parse(p.tags);
-      } catch (e) {
-        console.warn("FPC: Project tag parsing failed", e);
-      }
-      return [];
-    })(),
+    tags: Array.isArray(p?.tags) ? p.tags : [],
     createdAt: p?.created_at ? new Date(p.created_at) : new Date()
   }), []);
 
@@ -96,66 +87,47 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const mapAsset = useCallback((a: any): Asset => ({ 
     id: a?.id || String(Math.random()),
     projectId: a?.project_id || a?.projectId || '',
-    name: a?.name || 'Linked Resource',
+    name: a?.name || 'Resource',
     type: a?.type || 'link',
     url: a?.url || '#',
     description: a?.description || ''
   }), []);
 
-  const mapWhiteboard = useCallback((w: any): Whiteboard => {
-    let elements: CanvasElement[] = [];
-    try {
-      if (w?.elements) {
-        const raw = typeof w.elements === 'string' ? JSON.parse(w.elements) : w.elements;
-        elements = Array.isArray(raw) ? raw : [];
-      }
-    } catch (e) {
-      console.error("FPC: Whiteboard element reconstruction failed", e);
-    }
-    return { 
-      id: w?.id || String(Math.random()),
-      title: w?.title || 'Untitled Whiteboard',
-      elements: elements, 
-      updatedAt: w?.updated_at ? new Date(w.updated_at) : new Date() 
-    };
-  }, []);
+  const mapWhiteboard = useCallback((w: any): Whiteboard => ({ 
+    id: w?.id || String(Math.random()),
+    title: w?.title || 'Untitled Whiteboard',
+    elements: Array.isArray(w?.elements) ? w.elements : [], 
+    updatedAt: w?.updated_at ? new Date(w.updated_at) : new Date() 
+  }), []);
 
-  const mapSnippet = useCallback((s: any): CodeSnippet => ({ 
+  const mapSnippet = useCallback((s: any): CodeSnippet => ({
     id: s?.id || String(Math.random()),
     title: s?.title || 'Untitled Script',
     language: s?.language || 'javascript',
     code: s?.code || '',
-    folder: s?.folder || undefined
+    folder: s?.folder || undefined,
+    updatedAt: s?.updated_at ? new Date(s.updated_at) : new Date()
   }), []);
 
   const logError = (context: string, error: any) => {
-    const message = error?.message || "Unknown communication error";
-    if (message.includes('relation') || message.includes('does not exist') || message.includes('404')) {
-      setNeedsInitialization(true);
-    }
-    console.error(`FPC System: [${context}]`, message, error);
+    const message = error?.message || "Unknown error";
+    if (message.includes('relation')) setNeedsInitialization(true);
+    console.error(`FPC System: [${context}]`, message);
     return message;
   };
 
   const fetchData = useCallback(async () => {
-    if (!user || !isSupabaseConfigured() || !supabase) return;
+    if (!user || !supabase) return;
     setIsLoading(true);
     try {
       const [p, t, n, a, w, s] = await Promise.all([
-        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('projects').select('*'),
         supabase.from('tasks').select('*'),
-        supabase.from('notes').select('*').order('updated_at', { ascending: false }),
+        supabase.from('notes').select('*'),
         supabase.from('assets').select('*'),
-        supabase.from('whiteboards').select('*').order('updated_at', { ascending: false }),
+        supabase.from('whiteboards').select('*'),
         supabase.from('snippets').select('*'),
       ]);
-
-      if (p.error) logError("FetchProjects", p.error);
-      if (t.error) logError("FetchTasks", t.error);
-      if (n.error) logError("FetchNotes", n.error);
-      if (a.error) logError("FetchAssets", a.error);
-      if (w.error) logError("FetchWhiteboards", w.error);
-      if (s.error) logError("FetchSnippets", s.error);
 
       if (p.data) setProjects(p.data.map(mapProject));
       if (t.data) setTasks(t.data.map(mapTask));
@@ -173,196 +145,109 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const getProjectProgress = useCallback((projectId: string) => {
-    const pTasks = tasks.filter(t => (t.projectId || (t as any).project_id) === projectId);
+  const getProjectProgress = (projectId: string) => {
+    const pTasks = tasks.filter(t => t.projectId === projectId);
     if (pTasks.length === 0) return 0;
     const completed = pTasks.filter(t => t.status === TaskStatus.DONE).length;
     return Math.round((completed / pTasks.length) * 100);
-  }, [tasks]);
+  };
 
-  const syncWrapper = async (operation: () => Promise<void>, name: string) => {
+  const syncWrapper = async (operation: () => Promise<void>) => {
     setIsSyncing(true);
     try {
       await operation();
       setLastSyncTime(new Date());
     } catch (e) {
-      logError(name, e);
+      logError("Sync", e);
     } finally {
       setIsSyncing(false);
     }
   };
 
-  const deleteProject = async (id: string) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', user.id);
-      if (error) throw error;
-      setProjects(prev => prev.filter(p => p.id !== id));
-      setTasks(prev => prev.filter(t => (t.projectId || (t as any).project_id) !== id));
-      setNotes(prev => prev.filter(n => (n.projectId || (n as any).project_id) !== id));
-      setAssets(prev => prev.filter(a => (a.projectId || (a as any).project_id) !== id));
-    }, "DeleteProject");
-  };
+  const addProject = async (p: any) => syncWrapper(async () => {
+    const { data } = await supabase.from('projects').insert({ user_id: user?.id, ...p }).select().single();
+    if (data) setProjects(prev => [mapProject(data), ...prev]);
+  });
 
-  const deleteTask = async (id: string) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('tasks').delete().eq('id', id).eq('user_id', user.id);
-      if (error) throw error;
-      setTasks(prev => prev.filter(t => t.id !== id));
-    }, "DeleteTask");
-  };
+  const updateProject = async (id: string, updates: any) => syncWrapper(async () => {
+    await supabase.from('projects').update(updates).eq('id', id);
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  });
 
-  const deleteNote = async (id: string) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', user.id);
-      if (error) throw error;
-      setNotes(prev => prev.filter(n => n.id !== id));
-    }, "DeleteNote");
-  };
+  const deleteProject = async (id: string) => syncWrapper(async () => {
+    await supabase.from('projects').delete().eq('id', id);
+    setProjects(prev => prev.filter(p => p.id !== id));
+  });
 
-  const deleteAsset = async (id: string) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('assets').delete().eq('id', id).eq('user_id', user.id);
-      if (error) throw error;
-      setAssets(prev => prev.filter(a => a.id !== id));
-    }, "DeleteAsset");
-  };
+  const addTask = async (t: any) => syncWrapper(async () => {
+    const { data } = await supabase.from('tasks').insert({ user_id: user?.id, ...t, project_id: t.projectId }).select().single();
+    if (data) setTasks(prev => [...prev, mapTask(data)]);
+  });
 
-  const deleteWhiteboard = async (id: string) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('whiteboards').delete().eq('id', id).eq('user_id', user.id);
-      if (error) throw error;
-      setWhiteboards(prev => prev.filter(w => w.id !== id));
-    }, "DeleteWhiteboard");
-  };
+  const updateTask = async (id: string, updates: any) => syncWrapper(async () => {
+    await supabase.from('tasks').update(updates).eq('id', id);
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  });
 
-  const addProject = async (p: Omit<Project, 'id' | 'createdAt' | 'progress'>) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { data, error } = await supabase.from('projects').insert({
-        user_id: user.id, ...p, tags: JSON.stringify(p.tags)
-      }).select().single();
-      if (error) throw error;
-      if (data) setProjects([mapProject(data), ...projects]);
-    }, "AddProject");
-  };
+  const deleteTask = async (id: string) => syncWrapper(async () => {
+    await supabase.from('tasks').delete().eq('id', id);
+    setTasks(prev => prev.filter(t => t.id !== id));
+  });
 
-  const updateProject = async (id: string, updates: Partial<Project>) => {
-    if (!supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('projects').update(updates).eq('id', id);
-      if (error) throw error;
-      setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    }, "UpdateProject");
-  };
+  const addNote = async (n: any) => syncWrapper(async () => {
+    const { data } = await supabase.from('notes').insert({ user_id: user?.id, ...n, project_id: n.projectId }).select().single();
+    if (data) setNotes(prev => [mapNote(data), ...prev]);
+  });
 
-  const addTask = async (t: Omit<Task, 'id'>) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { data, error } = await supabase.from('tasks').insert({
-        user_id: user.id, project_id: t.projectId, ...t
-      }).select().single();
-      if (error) throw error;
-      if (data) setTasks([...tasks, mapTask(data)]);
-    }, "AddTask");
-  };
+  const updateNote = async (id: string, content: string) => syncWrapper(async () => {
+    await supabase.from('notes').update({ content, updated_at: new Date() }).eq('id', id);
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, content, updatedAt: new Date() } : n));
+  });
 
-  const updateTask = async (id: string, updates: Partial<Task>) => {
-    if (!supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('tasks').update(updates).eq('id', id);
-      if (error) throw error;
-      setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-    }, "UpdateTask");
-  };
+  const deleteNote = async (id: string) => syncWrapper(async () => {
+    await supabase.from('notes').delete().eq('id', id);
+    setNotes(prev => prev.filter(n => n.id !== id));
+  });
 
-  const addNote = async (n: Omit<Note, 'id' | 'updatedAt'>) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { data, error } = await supabase.from('notes').insert({
-        user_id: user.id, project_id: n.projectId, ...n
-      }).select().single();
-      if (error) throw error;
-      if (data) setNotes([mapNote(data), ...notes]);
-    }, "AddNote");
-  };
+  const addAsset = async (a: any) => syncWrapper(async () => {
+    const { data } = await supabase.from('assets').insert({ user_id: user?.id, ...a, project_id: a.projectId }).select().single();
+    if (data) setAssets(prev => [...prev, mapAsset(data)]);
+  });
 
-  const updateNote = async (id: string, content: string) => {
-    if (!supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('notes').update({ content, updated_at: new Date() }).eq('id', id);
-      if (error) throw error;
-      setNotes(prev => prev.map(n => n.id === id ? { ...n, content, updatedAt: new Date() } : n));
-    }, "UpdateNote");
-  };
+  const deleteAsset = async (id: string) => syncWrapper(async () => {
+    await supabase.from('assets').delete().eq('id', id);
+    setAssets(prev => prev.filter(a => a.id !== id));
+  });
 
-  const addAsset = async (a: Omit<Asset, 'id'>) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { data, error } = await supabase.from('assets').insert({
-        user_id: user.id, project_id: a.projectId, ...a
-      }).select().single();
-      if (error) throw error;
-      if (data) setAssets([...assets, mapAsset(data)]);
-    }, "AddAsset");
-  };
+  const addWhiteboard = async (w: any) => syncWrapper(async () => {
+    const { data } = await supabase.from('whiteboards').insert({ user_id: user?.id, ...w }).select().single();
+    if (data) setWhiteboards(prev => [mapWhiteboard(data), ...prev]);
+  });
 
-  const addWhiteboard = async (w: Omit<Whiteboard, 'id' | 'updatedAt'>) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { data, error } = await supabase.from('whiteboards').insert({
-        user_id: user.id, ...w, elements: JSON.stringify(w.elements)
-      }).select().single();
-      if (error) throw error;
-      if (data) setWhiteboards([mapWhiteboard(data), ...whiteboards]);
-    }, "AddWhiteboard");
-  };
+  const updateWhiteboard = async (id: string, elements: any) => syncWrapper(async () => {
+    await supabase.from('whiteboards').update({ elements, updated_at: new Date() }).eq('id', id);
+    setWhiteboards(prev => prev.map(w => w.id === id ? { ...w, elements, updatedAt: new Date() } : w));
+  });
 
-  const updateWhiteboard = async (id: string, elements: CanvasElement[]) => {
-    if (!supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('whiteboards').update({ 
-        elements: JSON.stringify(elements), 
-        updated_at: new Date() 
-      }).eq('id', id);
-      if (error) throw error;
-      setWhiteboards(prev => prev.map(w => w.id === id ? { ...w, elements, updatedAt: new Date() } : w));
-    }, "UpdateWhiteboard");
-  };
+  const deleteWhiteboard = async (id: string) => syncWrapper(async () => {
+    await supabase.from('whiteboards').delete().eq('id', id);
+    setWhiteboards(prev => prev.filter(w => w.id !== id));
+  });
 
-  // Add methods to manage Code Snippets in StoreContext
-  const addSnippet = async (s: Omit<CodeSnippet, 'id'>) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { data, error } = await supabase.from('snippets').insert({
-        user_id: user.id, ...s
-      }).select().single();
-      if (error) throw error;
-      if (data) setSnippets([...snippets, mapSnippet(data)]);
-    }, "AddSnippet");
-  };
+  const addSnippet = async (s: any) => syncWrapper(async () => {
+    const { data } = await supabase.from('snippets').insert({ user_id: user?.id, ...s }).select().single();
+    if (data) setSnippets(prev => [mapSnippet(data), ...prev]);
+  });
 
-  const updateSnippet = async (id: string, code: string) => {
-    if (!supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('snippets').update({ code }).eq('id', id);
-      if (error) throw error;
-      setSnippets(prev => prev.map(s => s.id === id ? { ...s, code } : s));
-    }, "UpdateSnippet");
-  };
+  const updateSnippet = async (id: string, code: string) => syncWrapper(async () => {
+    await supabase.from('snippets').update({ code, updated_at: new Date() }).eq('id', id);
+    setSnippets(prev => prev.map(s => s.id === id ? { ...s, code, updatedAt: new Date() } : s));
+  });
 
-  const deleteSnippet = async (id: string) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('snippets').delete().eq('id', id).eq('user_id', user.id);
-      if (error) throw error;
-      setSnippets(prev => prev.filter(s => s.id !== id));
-    }, "DeleteSnippet");
-  };
+  const deleteSnippet = async (id: string) => syncWrapper(async () => {
+    await supabase.from('snippets').delete().eq('id', id);
+    setSnippets(prev => prev.filter(s => s.id !== id));
+  });
 
   return (
     <StoreContext.Provider value={{

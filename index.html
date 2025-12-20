@@ -27,31 +27,23 @@
         removeListener: () => {}
       };
       
-      // Enhanced Global Error Diagnostics to capture boot-time failures
+      // Enhanced Global Error Diagnostics
       window.addEventListener('error', function(event) {
         const root = document.getElementById('root');
-        // Only show if the app hasn't rendered yet (catch boot/module errors)
         if (root && (root.innerHTML === '' || root.children.length === 0)) {
           root.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1d1d1f; background: #f5f5f7; padding: 20px; text-align: center;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: -apple-system, sans-serif; background: #f5f5f7; padding: 20px; text-align: center;">
               <div style="background: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); max-width: 500px; width: 100%;">
-                <div style="width: 60px; height: 60px; background: #ff3b30; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
-                <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.02em;">System Initialization Error</h1>
-                <p style="color: #86868b; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">The application failed to initialize critical modules. This is often caused by a dependency conflict or network failure.</p>
+                <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 12px;">System Boot Failure</h1>
+                <p style="color: #86868b; font-size: 15px; margin-bottom: 24px;">Failed to initialize modules. Please refresh or reset.</p>
                 <div style="background: #fdf2f2; border: 1px solid #fee2e2; padding: 12px; border-radius: 12px; margin-bottom: 24px; text-align: left;">
-                  <p style="font-family: monospace; font-size: 12px; color: #b91c1c; margin: 0; word-break: break-all;">${event.message || 'Unknown Runtime Exception'}</p>
+                  <p style="font-family: monospace; font-size: 12px; color: #b91c1c; margin: 0;">${event.message}</p>
                 </div>
-                <div style="display: flex; gap: 12px; justify-content: center;">
-                   <button onclick="location.reload()" style="background: #0071e3; color: white; border: none; padding: 12px 24px; border-radius: 980px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease;">Retry Connection</button>
-                   <button onclick="localStorage.clear(); location.reload();" style="background: #f5f5f7; color: #1d1d1f; border: 1px solid #d2d2d7; padding: 12px 24px; border-radius: 980px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease;">Reset Config</button>
-                </div>
+                <button onclick="location.reload()" style="background: #0071e3; color: white; border: none; padding: 12px 24px; border-radius: 980px; font-weight: 600; cursor: pointer;">Retry</button>
               </div>
             </div>
           `;
         }
-        console.error('Critical Boot Failure:', event.error || event.message);
       }, true);
     </script>
     <script src="https://cdn.tailwindcss.com?plugins=typography,forms"></script>
@@ -65,29 +57,17 @@
               mono: ['JetBrains Mono', 'monospace'],
             },
             colors: {
-              apple: {
-                gray: '#F5F5F7',
-                blue: '#0071E3',
-                text: '#1D1D1F',
-                border: '#D2D2D7'
-              }
+              apple: { gray: '#F5F5F7', blue: '#0071E3', text: '#1D1D1F', border: '#D2D2D7' }
             }
           }
         }
       }
     </script>
     <style>
-      ::-webkit-scrollbar { width: 10px; height: 10px; }
-      ::-webkit-scrollbar-track { background: #1e1e1e; }
-      ::-webkit-scrollbar-thumb { background: #333; border-radius: 5px; border: 2px solid #1e1e1e; }
-      ::-webkit-scrollbar-thumb:hover { background: #444; }
-      body {
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        margin: 0;
-        padding: 0;
-        background: #F5F5F7;
-      }
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #d1d1d6; border-radius: 10px; }
+      body { -webkit-font-smoothing: antialiased; margin: 0; background: #F5F5F7; overflow: hidden; }
     </style>
     <script type="importmap">
 {
@@ -100,29 +80,27 @@
     "recharts": "https://esm.sh/recharts@2.13.3?deps=react@19.0.0,react-dom@19.0.0",
     "@google/genai": "https://esm.sh/@google/genai@1.34.0",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.46.1",
-    "codemirror": "https://esm.sh/codemirror@6.0.1",
-    "@codemirror/view": "https://esm.sh/@codemirror/view@6.34.1?deps=codemirror@6.0.1",
-    "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1?deps=codemirror@6.0.1",
-    "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.3?deps=codemirror@6.0.1",
-    "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.1?deps=codemirror@6.0.1",
-    "@codemirror/search": "https://esm.sh/@codemirror/search@6.5.6?deps=codemirror@6.0.1",
-    "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.18.3?deps=codemirror@6.0.1",
-    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2?deps=codemirror@6.0.1",
-    "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.2?deps=codemirror@6.0.1",
-    "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6.1.6?deps=codemirror@6.0.1",
-    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.9?deps=codemirror@6.0.1",
-    "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.3.1?deps=codemirror@6.0.1",
-    "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.8.0?deps=codemirror@6.0.1",
-    "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.1?deps=codemirror@6.0.1",
-    "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.3.1?deps=codemirror@6.0.1",
-    "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.1?deps=codemirror@6.0.1",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@^6.0.2",
+    "@codemirror/view": "https://esm.sh/@codemirror/view@^6.39.4",
+    "codemirror": "https://esm.sh/codemirror@^6.0.2",
+    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@^6.4.11",
+    "@codemirror/state": "https://esm.sh/@codemirror/state@^6.5.2",
+    "@codemirror/search": "https://esm.sh/@codemirror/search@^6.5.11",
+    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@^6.1.3",
+    "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@^6.3.1",
+    "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@^6.5.0",
+    "@codemirror/commands": "https://esm.sh/@codemirror/commands@^6.10.1",
+    "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@^6.10.0",
+    "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@^6.2.1",
+    "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@^6.0.2",
+    "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@^6.2.4"
   }
 }
 </script>
   </head>
-  <body class="bg-apple-gray text-apple-text overflow-hidden selection:bg-apple-blue selection:text-white">
+  <body>
     <div id="root"></div>
     <script type="module" src="index.tsx" crossorigin="anonymous"></script>
   </body>
