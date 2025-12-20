@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from '@google/genai';
-import { X, Mic, MicOff, Sparkles, Loader2, Eye, Terminal, History, Zap, ShieldCheck, Link2, Monitor } from 'lucide-react';
+import { X, Mic, MicOff, Sparkles, Loader2, Eye, Terminal, History, Zap, ShieldCheck, Link2 } from 'lucide-react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ProjectStatus } from '../types.ts';
 
@@ -66,20 +66,25 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const streamRef = useRef<MediaStream | null>(null);
   const frameInterval = useRef<number | null>(null);
 
-  useEffect(() => {
-    const checkKey = async () => {
-      if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
-        const linked = await (window as any).aistudio.hasSelectedApiKey();
-        setIsApiKeyLinked(linked);
-      }
-    };
-    checkKey();
+  const checkKeyLink = useCallback(async () => {
+    if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
+      const linked = await (window as any).aistudio.hasSelectedApiKey();
+      setIsApiKeyLinked(linked);
+      return linked;
+    }
+    return true; // Not in AI Studio context
   }, []);
+
+  useEffect(() => {
+    checkKeyLink();
+  }, [checkKeyLink]);
 
   const handleLinkKey = async () => {
     if (typeof (window as any).aistudio?.openSelectKey === 'function') {
       await (window as any).aistudio.openSelectKey();
-      setIsApiKeyLinked(true);
+      setIsApiKeyLinked(true); 
+      // Proceed immediately as per guidelines
+      setTimeout(() => startSession(), 500);
     }
   };
 
@@ -87,10 +92,22 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setIsActive(false);
     setIsConnecting(false);
     if (frameInterval.current) clearInterval(frameInterval.current);
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    sessionRef.current?.close();
-    outCtx.current?.close();
-    inCtx.current?.close();
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    if (sessionRef.current) {
+      sessionRef.current.close();
+      sessionRef.current = null;
+    }
+    if (outCtx.current) {
+      outCtx.current.close();
+      outCtx.current = null;
+    }
+    if (inCtx.current) {
+      inCtx.current.close();
+      inCtx.current = null;
+    }
     sources.current.forEach(s => { try { s.stop(); } catch(e) {} });
     sources.current.clear();
   }, []);
@@ -127,6 +144,15 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const startSession = async () => {
     try {
+      // Robust check for injected API Key
+      if (!process.env.API_KEY || process.env.API_KEY === '') {
+        const linked = await checkKeyLink();
+        if (!linked) {
+          handleLinkKey();
+          return;
+        }
+      }
+
       setIsConnecting(true);
       setError(null);
 
@@ -136,6 +162,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
       streamRef.current = stream;
 
+      // Instantiate immediately before use to capture latest key
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       outCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       inCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -221,7 +248,16 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           },
           onclose: () => cleanup(),
           onerror: (e: any) => { 
-            setError("Assistant uplink failed."); 
+            const msg = e?.message || "";
+            if (msg.includes('Requested entity was not found')) {
+              setIsApiKeyLinked(false);
+              setError("API access expired. Please re-link account.");
+            } else if (msg.includes('API key must be set')) {
+              setIsApiKeyLinked(false);
+              handleLinkKey();
+            } else {
+              setError("Neural bridge interrupted.");
+            }
             cleanup(); 
           }
         },
@@ -230,12 +266,18 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           tools: [{ functionDeclarations: agentTools }],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
-          systemInstruction: "You are the Connect-Assistant. You are a professional workspace architect. Help the user manage projects and organize ideas. You have access to their camera and can see their workspace."
+          systemInstruction: "You are the Connect-Assistant. Help the user manage projects. You can see their workspace."
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
-      setError(err.message || "Uplink Error.");
+      const msg = err.message || "";
+      if (msg.includes('API key must be set')) {
+        setIsApiKeyLinked(false);
+        handleLinkKey();
+      } else {
+        setError(msg || "Neural uplink error.");
+      }
       setIsConnecting(false);
       cleanup();
     }
@@ -244,82 +286,82 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useEffect(() => () => cleanup(), [cleanup]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-xl p-8 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-md p-4 md:p-8 animate-in fade-in duration-300">
       <video ref={videoRef} className="hidden" muted />
       <canvas ref={canvasRef} width="640" height="480" className="hidden" />
 
-      <div className="bg-white w-full max-w-5xl h-[700px] rounded-[3rem] shadow-2xl flex overflow-hidden border border-white/20 ring-1 ring-slate-200">
-        <div className="flex-1 flex flex-col items-center justify-center gap-10 p-12 border-r border-slate-100 bg-slate-50/30">
-          <button onClick={onClose} className="absolute top-10 left-10 p-3 text-slate-300 hover:text-slate-900 transition-colors"><X size={28} /></button>
+      <div className="bg-white w-full max-w-5xl h-[600px] md:h-[700px] rounded-[2rem] md:rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-slate-200">
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 md:gap-10 p-8 md:p-12 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/20">
+          <button onClick={onClose} className="absolute top-6 left-6 md:top-10 md:left-10 p-2 text-slate-400 hover:text-slate-900 transition-colors"><X size={24} /></button>
           
           <div className="relative">
             {isActive && <div className="absolute inset-[-40px] bg-indigo-500/10 blur-[60px] rounded-full animate-pulse" />}
-            <div className={`w-48 h-48 rounded-[3rem] flex items-center justify-center transition-all duration-700 ${isActive ? 'bg-indigo-600 scale-105 shadow-2xl' : 'bg-white border-2 border-slate-100'}`}>
+            <div className={`w-32 h-32 md:w-48 md:h-48 rounded-[2rem] md:rounded-[3rem] flex items-center justify-center transition-all duration-700 ${isActive ? 'bg-indigo-600 scale-105 shadow-2xl' : 'bg-white border-2 border-slate-100'}`}>
               {isActive ? (
-                <div className="flex gap-2 h-14 items-center">
+                <div className="flex gap-2 h-10 md:h-14 items-center">
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-2 bg-white rounded-full animate-wave" style={{ animationDelay: `${i*0.1}s` }} />
+                    <div key={i} className="w-1.5 md:w-2 bg-white rounded-full animate-wave" style={{ animationDelay: `${i*0.1}s` }} />
                   ))}
                 </div>
-              ) : isConnecting ? <Loader2 className="animate-spin text-indigo-600" size={56} /> : <MicOff className="text-slate-200" size={56} />}
+              ) : isConnecting ? <Loader2 className="animate-spin text-indigo-600" size={48} /> : <MicOff className="text-slate-200" size={48} />}
             </div>
           </div>
 
-          <div className="text-center space-y-3">
-            <h2 className="text-2xl font-black text-slate-900 flex items-center justify-center gap-3 tracking-tight">
+          <div className="text-center space-y-2">
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 flex items-center justify-center gap-3 tracking-tight">
               <Zap size={20} className={isActive ? "text-indigo-600" : "text-slate-300"} />
-              {isActive ? "Connect-Engine Online" : isConnecting ? "Establishing Bridge..." : "Assistant Hub"}
+              {isActive ? "Engine Online" : isConnecting ? "Uplinking..." : "Assistant Hub"}
             </h2>
-            <p className="text-sm text-slate-400 font-bold uppercase tracking-[0.2em]">{error || "Neural Link Protocol v2.5"}</p>
+            <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">{error || "Bridge Ready"}</p>
           </div>
 
-          <div className="w-full max-w-sm">
+          <div className="w-full max-w-xs">
             {!isActive && !isConnecting && (
               <div className="space-y-4">
                 {!isApiKeyLinked ? (
-                  <button onClick={handleLinkKey} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3">
-                    <Link2 size={20} /> Authorize Account
+                  <button onClick={handleLinkKey} className="w-full bg-indigo-600 text-white py-4 md:py-5 rounded-2xl md:rounded-3xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3">
+                    <Link2 size={18} /> Authorize Account
                   </button>
                 ) : (
-                  <button onClick={startSession} className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl flex items-center justify-center gap-3">
-                    <Mic size={20} /> Engage Assistant
+                  <button onClick={startSession} className="w-full bg-slate-900 text-white py-4 md:py-5 rounded-2xl md:rounded-3xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl flex items-center justify-center gap-3">
+                    <Mic size={18} /> Engage Engine
                   </button>
                 )}
               </div>
             )}
             
             {isActive && (
-              <div className="flex justify-center gap-4">
-                 <div className="px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 flex items-center gap-2"><Eye size={14} /> Vision Active</div>
-                 <button onClick={cleanup} className="px-5 py-2.5 bg-rose-50 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100">Terminate</button>
+              <div className="flex justify-center gap-3">
+                 <div className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 flex items-center gap-2"><Eye size={14} /> Vision</div>
+                 <button onClick={cleanup} className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100">Stop</button>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex-[0.8] bg-white flex flex-col border-l border-slate-50">
+        <div className="hidden md:flex flex-[0.8] bg-white flex-col border-l border-slate-50">
           <div className="h-16 px-8 flex items-center justify-between border-b border-slate-100 bg-slate-25/50">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3"><Terminal size={16}/> Intelligence Log</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-3"><Terminal size={16}/> Neural Log</span>
             {isApiKeyLinked && <div className="text-emerald-500 text-[10px] font-black uppercase flex items-center gap-2"><ShieldCheck size={14} /> Bridge Secure</div>}
           </div>
           
           <div className="flex-1 overflow-auto p-10 space-y-6 custom-scrollbar">
             {transcriptions.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center opacity-30">
-                <History size={48} className="text-slate-100 mb-4"/>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Awaiting Interaction</span>
+                <History size={40} className="text-slate-100 mb-4"/>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">No Logs Found</span>
               </div>
             ) : transcriptions.map((t, i) => (
               <div key={i} className={`flex flex-col ${t.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2`}>
-                <div className={`max-w-[90%] p-5 rounded-3xl text-sm leading-relaxed ${t.role === 'user' ? 'bg-slate-100 text-slate-700' : 'bg-indigo-50 border border-indigo-100 text-indigo-900 font-semibold'}`}>
+                <div className={`max-w-[90%] p-4 rounded-2xl text-xs md:text-sm leading-relaxed ${t.role === 'user' ? 'bg-slate-100 text-slate-700' : 'bg-indigo-50 border border-indigo-100 text-indigo-900 font-semibold'}`}>
                   {t.text}
                 </div>
               </div>
             ))}
             {isThinking && (
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" />
-                <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Processing Intent...</div>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" />
+                <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Processing...</div>
               </div>
             )}
           </div>
@@ -327,8 +369,8 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       </div>
       <style>{`
         @keyframes wave {
-          0%, 100% { height: 12px; }
-          50% { height: 50px; }
+          0%, 100% { height: 10px; }
+          50% { height: 40px; }
         }
         .animate-wave { animation: wave 1.2s infinite ease-in-out; }
       `}</style>
