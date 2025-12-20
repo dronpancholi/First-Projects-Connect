@@ -10,7 +10,7 @@ interface StoreContextType {
   notes: Note[];
   assets: Asset[];
   whiteboards: Whiteboard[];
-  snippets: CodeSnippet[]; // Added snippets property
+  snippets: CodeSnippet[];
   isLoading: boolean;
   isSyncing: boolean;
   lastSyncTime: Date | null;
@@ -35,8 +35,7 @@ interface StoreContextType {
   updateWhiteboard: (id: string, elements: CanvasElement[]) => Promise<void>;
   deleteWhiteboard: (id: string) => Promise<void>;
 
-  // Added CodeStudio support methods
-  addSnippet: (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => Promise<void>;
+  addSnippet: (s: Omit<CodeSnippet, 'id'>) => Promise<void>;
   updateSnippet: (id: string, code: string) => Promise<void>;
   deleteSnippet: (id: string) => Promise<void>;
   
@@ -52,7 +51,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [notes, setNotes] = useState<Note[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [whiteboards, setWhiteboards] = useState<Whiteboard[]>([]);
-  const [snippets, setSnippets] = useState<CodeSnippet[]>([]); // Added snippets state
+  const [snippets, setSnippets] = useState<CodeSnippet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
@@ -121,14 +120,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // Added mapSnippet function
-  const mapSnippet = useCallback((s: any): CodeSnippet => ({
+  const mapSnippet = useCallback((s: any): CodeSnippet => ({ 
     id: s?.id || String(Math.random()),
-    title: s?.title || 'untitled.js',
+    title: s?.title || 'Untitled Script',
     language: s?.language || 'javascript',
     code: s?.code || '',
-    folder: s?.folder || undefined,
-    updatedAt: s?.updated_at ? new Date(s.updated_at) : new Date()
+    folder: s?.folder || undefined
   }), []);
 
   const logError = (context: string, error: any) => {
@@ -150,7 +147,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         supabase.from('notes').select('*').order('updated_at', { ascending: false }),
         supabase.from('assets').select('*'),
         supabase.from('whiteboards').select('*').order('updated_at', { ascending: false }),
-        supabase.from('snippets').select('*').order('updated_at', { ascending: false }), // Fetch snippets
+        supabase.from('snippets').select('*'),
       ]);
 
       if (p.error) logError("FetchProjects", p.error);
@@ -158,14 +155,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (n.error) logError("FetchNotes", n.error);
       if (a.error) logError("FetchAssets", a.error);
       if (w.error) logError("FetchWhiteboards", w.error);
-      if (s.error) logError("FetchSnippets", s.error); // Log snippet fetch errors
+      if (s.error) logError("FetchSnippets", s.error);
 
       if (p.data) setProjects(p.data.map(mapProject));
       if (t.data) setTasks(t.data.map(mapTask));
       if (n.data) setNotes(n.data.map(mapNote));
       if (a.data) setAssets(a.data.map(mapAsset));
       if (w.data) setWhiteboards(w.data.map(mapWhiteboard));
-      if (s.data) setSnippets(s.data.map(mapSnippet)); // Set snippets data
+      if (s.data) setSnippets(s.data.map(mapSnippet));
       setLastSyncTime(new Date());
     } catch (e) {
       logError("DataSync", e);
@@ -241,16 +238,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (error) throw error;
       setWhiteboards(prev => prev.filter(w => w.id !== id));
     }, "DeleteWhiteboard");
-  };
-
-  // Added deleteSnippet method
-  const deleteSnippet = async (id: string) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('snippets').delete().eq('id', id).eq('user_id', user.id);
-      if (error) throw error;
-      setSnippets(prev => prev.filter(s => s.id !== id));
-    }, "DeleteSnippet");
   };
 
   const addProject = async (p: Omit<Project, 'id' | 'createdAt' | 'progress'>) => {
@@ -347,26 +334,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, "UpdateWhiteboard");
   };
 
-  // Added addSnippet method
-  const addSnippet = async (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => {
+  // Add methods to manage Code Snippets in StoreContext
+  const addSnippet = async (s: Omit<CodeSnippet, 'id'>) => {
     if (!user || !supabase) return;
     await syncWrapper(async () => {
       const { data, error } = await supabase.from('snippets').insert({
         user_id: user.id, ...s
       }).select().single();
       if (error) throw error;
-      if (data) setSnippets([mapSnippet(data), ...snippets]);
+      if (data) setSnippets([...snippets, mapSnippet(data)]);
     }, "AddSnippet");
   };
 
-  // Added updateSnippet method
   const updateSnippet = async (id: string, code: string) => {
     if (!supabase) return;
     await syncWrapper(async () => {
-      const { error } = await supabase.from('snippets').update({ code, updated_at: new Date() }).eq('id', id);
+      const { error } = await supabase.from('snippets').update({ code }).eq('id', id);
       if (error) throw error;
-      setSnippets(prev => prev.map(s => s.id === id ? { ...s, code, updatedAt: new Date() } : s));
+      setSnippets(prev => prev.map(s => s.id === id ? { ...s, code } : s));
     }, "UpdateSnippet");
+  };
+
+  const deleteSnippet = async (id: string) => {
+    if (!user || !supabase) return;
+    await syncWrapper(async () => {
+      const { error } = await supabase.from('snippets').delete().eq('id', id).eq('user_id', user.id);
+      if (error) throw error;
+      setSnippets(prev => prev.filter(s => s.id !== id));
+    }, "DeleteSnippet");
   };
 
   return (

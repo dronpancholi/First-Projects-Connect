@@ -131,20 +131,6 @@ export const generateImageForWhiteboard = async (prompt: string): Promise<string
   }
 };
 
-export const explainCode = async (code: string, language: string): Promise<string> => {
-  try {
-    const ai = getAi();
-    const prompt = `You are FP-Engine Code Assistant. Analyze this ${language} code and suggest optimizations:\n\n${code}`;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-    });
-    return response.text || "FP-Engine: No explanation available.";
-  } catch (error) {
-    return "FP-Engine: Analysis failed.";
-  }
-};
-
 export const suggestSubtasks = async (taskTitle: string): Promise<string[]> => {
   try {
     const ai = getAi();
@@ -156,5 +142,24 @@ export const suggestSubtasks = async (taskTitle: string): Promise<string[]> => {
     return JSON.parse(response.text || "[]");
   } catch (error) {
     return [];
+  }
+};
+
+// Add explainCode to provide AI insights for the Code Studio feature
+export const explainCode = async (code: string, language: string): Promise<string> => {
+  try {
+    const ai = getAi();
+    const prompt = `Analyze this ${language} code as the FP-Engine logic architect. Provide a concise technical explanation and suggest specific optimizations for performance and readability.
+    
+    Code:
+    ${code}`;
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+    });
+    return response.text || "FP-Engine: No analysis available for this code block.";
+  } catch (error) {
+    console.error("FP-Engine Code Analysis Error:", error);
+    return "FP-Engine: Error analyzing code.";
   }
 };

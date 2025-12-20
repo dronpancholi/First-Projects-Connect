@@ -24,16 +24,6 @@ export interface User {
   name: string;
 }
 
-// Added CodeSnippet interface to support CodeStudio
-export interface CodeSnippet {
-  id: string;
-  title: string;
-  language: string;
-  code: string;
-  folder?: string;
-  updatedAt: Date;
-}
-
 export interface Note {
   id: string;
   projectId?: string;
@@ -99,11 +89,19 @@ export interface Whiteboard {
   updatedAt: Date;
 }
 
+// Add CodeSnippet interface for the Code Studio feature
+export interface CodeSnippet {
+  id: string;
+  title: string;
+  language: string;
+  code: string;
+  folder?: string;
+}
+
 export type ViewState = 
   | { type: 'DASHBOARD' }
   | { type: 'PROJECTS' }
   | { type: 'PROJECT_DETAIL'; projectId: string }
   | { type: 'IDEAS' }
   | { type: 'WHITEBOARD' }
-  | { type: 'CODE_STUDIO' } // Added CODE_STUDIO view state
   | { type: 'SETTINGS' };

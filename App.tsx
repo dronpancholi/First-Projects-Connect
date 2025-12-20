@@ -8,7 +8,6 @@ import ProjectList from './components/ProjectList.tsx';
 import ProjectDetail from './components/ProjectDetail.tsx';
 import IdeasView from './components/IdeasView.tsx';
 import Whiteboard from './components/Whiteboard.tsx';
-import CodeStudio from './components/CodeStudio.tsx'; // Import CodeStudio component
 import Login from './components/Auth/Login.tsx';
 import Register from './components/Auth/Register.tsx';
 import Settings from './components/Settings.tsx';
@@ -31,8 +30,6 @@ const AuthenticatedApp: React.FC = () => {
         return <IdeasView />;
       case 'WHITEBOARD':
         return <Whiteboard />;
-      case 'CODE_STUDIO': // Add case for CODE_STUDIO
-        return <CodeStudio />;
       case 'SETTINGS':
         return <Settings />;
       default:
