@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from '@google/genai';
 import { 
   X, Mic, MicOff, Sparkles, Loader2, Globe, Eye, 
   Terminal, History, Activity, Zap
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext.tsx';
-import { ProjectStatus, TaskStatus, Priority } from '../types.ts';
+import { ProjectStatus } from '../types.ts';
 
 const encode = (bytes: Uint8Array) => {
   let b = '';
@@ -43,14 +43,9 @@ const agentTools: FunctionDeclaration[] = [
     }
   },
   {
-    name: 'getWorkspacePulse',
-    description: 'Get a comprehensive status report of all projects and tasks',
+    name: 'syncWorkspaceContext',
+    description: 'Retrieve all current project information to get context on what the user is working on',
     parameters: { type: Type.OBJECT, properties: {} }
-  },
-  {
-    name: 'searchWorkspace',
-    description: 'Search globally for a project or task keyword',
-    parameters: { type: Type.OBJECT, properties: { query: { type: Type.STRING } }, required: ['query'] }
   }
 ];
 
@@ -74,6 +69,18 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const streamRef = useRef<MediaStream | null>(null);
   const frameInterval = useRef<number | null>(null);
 
+  const cleanup = useCallback(() => {
+    setIsActive(false);
+    setIsConnecting(false);
+    if (frameInterval.current) clearInterval(frameInterval.current);
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    sessionRef.current?.close();
+    outCtx.current?.close();
+    inCtx.current?.close();
+    sources.current.forEach(s => { try { s.stop(); } catch(e) {} });
+    sources.current.clear();
+  }, []);
+
   const startVision = (stream: MediaStream) => {
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
@@ -81,6 +88,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     frameInterval.current = window.setInterval(() => {
+      // Only send if session exists and is established
       if (!sessionRef.current || !canvasRef.current || !videoRef.current) return;
       
       const canvas = canvasRef.current;
@@ -100,7 +108,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           }
         }, 'image/jpeg', 0.5);
       }
-    }, 2000);
+    }, 2500); // Optimized interval for vision
   };
 
   const startSession = async () => {
@@ -109,7 +117,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setError(null);
 
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { sampleRate: 16000 }, 
+        audio: { sampleRate: 16000, echoCancellation: true, noiseSuppression: true }, 
         video: { width: 640, height: 480 } 
       });
       streamRef.current = stream;
@@ -152,7 +160,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 ...prev, 
                 {role: 'user' as const, text: transcriptionRef.current.user},
                 {role: 'agent' as const, text: transcriptionRef.current.agent}
-              ].slice(-12));
+              ].slice(-15));
               transcriptionRef.current = { user: '', agent: '' };
             }
 
@@ -160,17 +168,21 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               setIsThinking(true);
               for (const fc of msg.toolCall.functionCalls) {
                 setActiveTool(fc.name);
-                // Cast args to any to prevent 'unknown' property access errors
                 const args = fc.args as any;
-                let result = "Success";
+                let result: any = "Success";
                 try {
                   if (fc.name === 'createProject') {
-                    await addProject({ title: args.title, description: args.description, status: ProjectStatus.IDEA, tags: ['voice'] });
-                    result = `Initialized project: ${args.title}`;
-                  } else if (fc.name === 'getWorkspacePulse') {
-                    result = `Pulse: ${projects.length} Projects, ${tasks.length} Tasks active. System status nominal.`;
+                    await addProject({ title: args.title, description: args.description, status: ProjectStatus.IDEA, tags: ['agent'] });
+                    result = { status: "Project Created", id: args.title };
+                  } else if (fc.name === 'syncWorkspaceContext') {
+                    result = {
+                      projectCount: projects.length,
+                      taskCount: tasks.length,
+                      projects: projects.map(p => ({ title: p.title, status: p.status }))
+                    };
                   }
-                } catch (e) { result = "Error executing tool."; }
+                } catch (e) { result = { error: "Tool execution failed" }; }
+                
                 sessionRef.current?.sendToolResponse({ 
                   functionResponses: { id: fc.id, name: fc.name, response: { result } } 
                 });
@@ -206,26 +218,18 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           tools: [{ functionDeclarations: agentTools }],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
-          systemInstruction: "You are FP-Agent. You have multimodal vision. Monitor the user's workspace, help manage projects, and be proactive."
+          systemInstruction: "You are FP-Agent, a sentient workspace architect. You can see the user and their workspace via camera. Help manage projects, create new ones when requested, and proactively suggest workspace optimizations. Introduce yourself as FP-Agent. Use your context-sync tool if you need to know about the user's current projects."
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
       setError(err.message || "Failed to start session.");
       setIsConnecting(false);
+      cleanup();
     }
   };
 
-  const cleanup = () => {
-    setIsActive(false);
-    if (frameInterval.current) clearInterval(frameInterval.current);
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    sessionRef.current?.close();
-    outCtx.current?.close();
-    inCtx.current?.close();
-  };
-
-  useEffect(() => () => cleanup(), []);
+  useEffect(() => () => cleanup(), [cleanup]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-2xl p-6">
@@ -242,7 +246,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               {isActive ? (
                 <div className="flex gap-1.5 h-12 items-center">
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-1.5 bg-blue-500 rounded-full animate-[bounce_1s_infinite]" style={{ height: '100%', animationDelay: `${i*0.1}s` }} />
+                    <div key={i} className="w-1.5 bg-blue-500 rounded-full animate-wave" style={{ animationDelay: `${i*0.1}s` }} />
                   ))}
                 </div>
               ) : isConnecting ? <Loader2 className="animate-spin text-blue-600" size={40} /> : <MicOff className="text-slate-200" size={40} />}
@@ -252,13 +256,13 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <div className="text-center space-y-2">
             <h2 className="text-xl font-bold text-slate-900 flex items-center justify-center gap-2">
               <Zap size={16} className={isActive ? "text-amber-500" : "text-slate-300"} />
-              {isActive ? "FP-Agent Online" : isConnecting ? "Connecting..." : "Agent Standby"}
+              {isActive ? "FP-Agent Online" : isConnecting ? "Establishing Uplink..." : "Agent Standby"}
             </h2>
-            <p className="text-xs text-slate-500 font-medium max-w-[240px]">{error || "Autonomous project oversight active."}</p>
+            <p className="text-xs text-slate-500 font-medium max-w-[240px]">{error || "Uplink ready. Grounding active."}</p>
           </div>
 
           {!isActive && !isConnecting && (
-            <button onClick={startSession} className="w-full max-w-xs bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all">
+            <button onClick={startSession} className="w-full max-w-xs bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
               <Mic size={18} /> Engage FP-Agent
             </button>
           )}
@@ -277,9 +281,9 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {activeTool && <div className="text-blue-600 text-[10px] font-black uppercase animate-pulse">Running: {activeTool}</div>}
           </div>
           
-          <div className="flex-1 overflow-auto p-6 space-y-4">
+          <div className="flex-1 overflow-auto p-6 space-y-4 custom-scrollbar">
             {transcriptions.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center opacity-20"><History size={32} className="mb-2"/><span className="text-[10px] font-bold uppercase tracking-widest">No Log Data</span></div>
+              <div className="h-full flex flex-col items-center justify-center opacity-20"><History size={32} className="mb-2"/><span className="text-[10px] font-bold uppercase tracking-widest">No Active Logs</span></div>
             ) : transcriptions.map((t, i) => (
               <div key={i} className={`flex flex-col ${t.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-1`}>
                 <div className={`max-w-[85%] p-3 rounded-2xl text-xs ${t.role === 'user' ? 'bg-slate-200 text-slate-700' : 'bg-white border border-slate-100 shadow-sm text-slate-900 font-medium'}`}>
@@ -287,10 +291,17 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </div>
               </div>
             ))}
-            {isThinking && <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest animate-pulse">Agent Reasoning...</div>}
+            {isThinking && <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest animate-pulse">Agent Thinking...</div>}
           </div>
         </div>
       </div>
+      <style>{`
+        @keyframes wave {
+          0%, 100% { height: 10px; }
+          50% { height: 40px; }
+        }
+        .animate-wave { animation: wave 1s infinite ease-in-out; }
+      `}</style>
     </div>
   );
 };
