@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { 
@@ -136,7 +135,8 @@ const CodeStudio: React.FC = () => {
         oneDark,
         languageConf.of(getLanguageExtension(activeSnippet.language)),
         keymap.of([...defaultKeymap, indentWithTab]),
-        search({ topPanel: true }),
+        // Fix: Use 'top' instead of 'topPanel' as per CodeMirror @codemirror/search SearchConfig
+        search({ top: true }),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) setHasUnsavedChanges(true);

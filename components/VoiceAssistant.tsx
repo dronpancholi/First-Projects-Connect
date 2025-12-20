@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from '@google/genai';
 import { 
@@ -81,15 +80,16 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     sources.current.clear();
   }, []);
 
-  const startVision = (stream: MediaStream) => {
+  // Updated to receive sessionPromise to avoid stale closures and ensure proper initialization
+  const startVision = (stream: MediaStream, sessionPromise: Promise<any>) => {
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(() => {});
     }
 
     frameInterval.current = window.setInterval(() => {
-      // Only send if session exists and is established
-      if (!sessionRef.current || !canvasRef.current || !videoRef.current) return;
+      // Fix: Follow guidelines by using the sessionPromise to send data and avoid race conditions
+      if (!canvasRef.current || !videoRef.current) return;
       
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
@@ -100,15 +100,18 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             const reader = new FileReader();
             reader.onloadend = () => {
               const base64 = (reader.result as string).split(',')[1];
-              sessionRef.current?.sendRealtimeInput({
-                media: { data: base64, mimeType: 'image/jpeg' }
+              // Fix: CRITICAL: Solely rely on sessionPromise resolves and then call `session.sendRealtimeInput`
+              sessionPromise.then((session) => {
+                session.sendRealtimeInput({
+                  media: { data: base64, mimeType: 'image/jpeg' }
+                });
               });
             };
             reader.readAsDataURL(blob);
           }
         }, 'image/jpeg', 0.5);
       }
-    }, 2500); // Optimized interval for vision
+    }, 2500); 
   };
 
   const startSession = async () => {
@@ -138,13 +141,16 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               const d = e.inputBuffer.getChannelData(0);
               const i16 = new Int16Array(d.length);
               for (let i = 0; i < d.length; i++) i16[i] = d[i] * 32768;
-              sessionRef.current?.sendRealtimeInput({ 
-                media: { data: encode(new Uint8Array(i16.buffer)), mimeType: 'audio/pcm;rate=16000' } 
+              // Fix: CRITICAL: Solely rely on sessionPromise resolves and then call `session.sendRealtimeInput`
+              sessionPromise.then((session) => {
+                session.sendRealtimeInput({ 
+                  media: { data: encode(new Uint8Array(i16.buffer)), mimeType: 'audio/pcm;rate=16000' } 
+                });
               });
             };
             src.connect(proc);
             proc.connect(inCtx.current!.destination);
-            startVision(stream);
+            startVision(stream, sessionPromise);
           },
           onmessage: async (msg: LiveServerMessage) => {
             if (msg.serverContent?.inputTranscription) {
@@ -183,8 +189,11 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   }
                 } catch (e) { result = { error: "Tool execution failed" }; }
                 
-                sessionRef.current?.sendToolResponse({ 
-                  functionResponses: { id: fc.id, name: fc.name, response: { result } } 
+                // Fix: Use sessionPromise to ensure reliable delivery of tool responses
+                sessionPromise.then((session) => {
+                  session.sendToolResponse({ 
+                    functionResponses: { id: fc.id, name: fc.name, response: { result } } 
+                  });
                 });
                 setActiveTool(null);
               }

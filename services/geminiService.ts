@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Project, Task, Note, CanvasElement } from '../types.ts';
 
@@ -72,7 +71,16 @@ export const suggestSubtasks = async (taskTitle: string): Promise<string[]> => {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Break down "${taskTitle}" into 5 steps. Return JSON array.`,
-      config: { responseMimeType: "application/json" }
+      config: { 
+        responseMimeType: "application/json",
+        // Fix: Recommended way is to configure a responseSchema for the expected JSON output.
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.STRING
+          }
+        }
+      }
     });
     return JSON.parse(response.text || "[]");
   } catch (error) {
