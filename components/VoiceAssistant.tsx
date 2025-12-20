@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from '@google/genai';
-import { X, Mic, MicOff, Sparkles, Loader2, Eye, Terminal, Zap, ShieldCheck, Link2, AlertCircle } from 'lucide-react';
+import { X, Mic, MicOff, Sparkles, Loader2, Zap, ShieldCheck, Link2, AlertCircle, Info } from 'lucide-react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ProjectStatus } from '../types.ts';
 
@@ -35,6 +35,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transcriptions, setTranscriptions] = useState<{role: 'user' | 'agent', text: string}[]>([]);
+  const [isAiLinked, setIsAiLinked] = useState(false);
 
   const outCtx = useRef<AudioContext | null>(null);
   const inCtx = useRef<AudioContext | null>(null);
@@ -42,15 +43,22 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const sessionRef = useRef<any>(null);
   const sources = useRef<Set<AudioBufferSourceNode>>(new Set());
   const transcriptionRef = useRef({ user: '', agent: '' });
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const frameInterval = useRef<number | null>(null);
+
+  // Check if a key is already available in the session
+  useEffect(() => {
+    const checkKey = async () => {
+      if ((window as any).aistudio?.hasSelectedApiKey) {
+        const linked = await (window as any).aistudio.hasSelectedApiKey();
+        setIsAiLinked(linked);
+      }
+    };
+    checkKey();
+  }, []);
 
   const cleanup = useCallback(() => {
     setIsActive(false);
     setIsConnecting(false);
-    if (frameInterval.current) clearInterval(frameInterval.current);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
@@ -71,26 +79,35 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     sources.current.clear();
   }, []);
 
-  const handleLinkKey = async () => {
-    if (typeof (window as any).aistudio?.openSelectKey === 'function') {
-      await (window as any).aistudio.openSelectKey();
-      startSession(); 
-    } else {
-      setError("Please set your API_KEY in the environment dashboard.");
+  const initiateAuthAndStart = async () => {
+    setIsConnecting(true);
+    setError(null);
+    
+    try {
+      // 1. Force the Key Selection Dialog (Google's native free-tier bridge)
+      if ((window as any).aistudio?.openSelectKey) {
+        await (window as any).aistudio.openSelectKey();
+        // Proceed immediately as the key is now injected into process.env.API_KEY
+        startSession();
+      } else {
+        // Fallback for direct browser visits without the AI Studio bridge
+        setError("Please host this inside AI Studio or set API_KEY in Vercel.");
+        setIsConnecting(false);
+      }
+    } catch (err: any) {
+      setError("Authorization cancelled or failed.");
+      setIsConnecting(false);
     }
   };
 
   const startSession = async () => {
     try {
-      setIsConnecting(true);
-      setError(null);
-
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { sampleRate: 16000, echoCancellation: true }, 
-        video: { width: 640, height: 480 } 
+        audio: { sampleRate: 16000, echoCancellation: true, noiseSuppression: true }
       });
       streamRef.current = stream;
 
+      // Use a new instance to pick up the freshly selected key
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       outCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       inCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -124,7 +141,6 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               transcriptionRef.current.agent += msg.serverContent.outputTranscription.text;
             }
             if (msg.serverContent?.turnComplete) {
-              // Explicitly cast roles to 'user' | 'agent' to satisfy TypeScript state update requirements
               setTranscriptions(prev => [
                 ...prev, 
                 {role: 'user' as const, text: transcriptionRef.current.user},
@@ -147,10 +163,11 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           },
           onclose: () => cleanup(),
           onerror: (e: any) => { 
-            if (e.message?.includes('API key')) {
-              setError("API Key Missing. Link your free Google account.");
+            if (e.message?.includes('API key') || e.message?.includes('entity was not found')) {
+              setError("Please select a valid project from the dialog.");
+              (window as any).aistudio?.openSelectKey(); 
             } else {
-              setError("Connection error. Try again.");
+              setError("Assistant link interrupted.");
             }
             cleanup(); 
           }
@@ -159,12 +176,12 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           responseModalities: [Modality.AUDIO],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
-          systemInstruction: "You are a helpful student assistant. Keep answers brief and encouraging."
+          systemInstruction: "You are the Connect AI Assistant. Be concise, professional, and helpful."
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
-      setError(err.message?.includes('API key') ? "Link your Google account to start." : "Failed to connect.");
+      setError("Hardware access denied or session failed.");
       setIsConnecting(false);
       cleanup();
     }
@@ -173,46 +190,66 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useEffect(() => () => cleanup(), [cleanup]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-xl p-4 animate-in fade-in">
-      <div className="bg-white w-full max-w-2xl h-[500px] rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-12 border border-slate-100 relative overflow-hidden">
-        <button onClick={onClose} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900"><X size={28} /></button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/70 backdrop-blur-2xl p-4 animate-in fade-in duration-300">
+      <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-12 border border-slate-100 relative overflow-hidden">
+        <button onClick={onClose} className="absolute top-10 right-10 p-3 text-slate-300 hover:text-slate-900 transition-colors"><X size={28} /></button>
         
-        <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-700 ${isActive ? 'bg-indigo-600 scale-110 shadow-xl' : 'bg-slate-50 border-2 border-slate-100'}`}>
-          {isActive ? <Sparkles className="text-white animate-pulse" size={48} /> : isConnecting ? <Loader2 className="animate-spin text-indigo-600" size={48} /> : <MicOff className="text-slate-200" size={48} />}
+        <div className={`w-36 h-36 rounded-[2.5rem] flex items-center justify-center transition-all duration-700 ${isActive ? 'bg-indigo-600 scale-105 shadow-2xl' : 'bg-slate-50 border-2 border-slate-100'}`}>
+          {isActive ? (
+             <div className="flex gap-1.5 h-10 items-center">
+               {[...Array(4)].map((_, i) => (
+                 <div key={i} className="w-1.5 bg-white rounded-full animate-pulse" style={{ height: `${20 + Math.random() * 30}px`, animationDelay: `${i*0.1}s` }} />
+               ))}
+             </div>
+          ) : isConnecting ? <Loader2 className="animate-spin text-indigo-600" size={56} /> : <MicOff className="text-slate-200" size={56} />}
         </div>
 
-        <div className="text-center mt-8 space-y-2">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            {isActive ? "Listening..." : isConnecting ? "Connecting..." : "Voice Assistant"}
+        <div className="text-center mt-10 space-y-3">
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+            {isActive ? "Voice Active" : isConnecting ? "Linking Account..." : "Connect Assistant"}
           </h2>
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Free Tier Optimized</p>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 flex items-center gap-1.5">
+              <Zap size={12} /> Free Gemini Tier
+            </span>
+          </div>
         </div>
 
         {error && (
-          <div className="mt-6 flex items-center gap-2 text-rose-500 bg-rose-50 px-4 py-2 rounded-2xl border border-rose-100">
-            <AlertCircle size={14} />
-            <p className="text-[10px] font-black uppercase tracking-widest">{error}</p>
+          <div className="mt-8 flex items-center gap-3 text-rose-500 bg-rose-50 px-5 py-3 rounded-2xl border border-rose-100 max-w-sm">
+            <AlertCircle size={18} className="shrink-0" />
+            <p className="text-xs font-bold leading-tight uppercase tracking-wider">{error}</p>
           </div>
         )}
 
-        <div className="mt-10 w-full max-w-xs">
+        <div className="mt-12 w-full max-w-xs space-y-4">
           {!isActive && !isConnecting && (
-            <button 
-              onClick={error?.includes('Link') ? handleLinkKey : startSession} 
-              className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3"
-            >
-              <Zap size={20} /> Start Assistant
-            </button>
+            <>
+              <button 
+                onClick={initiateAuthAndStart} 
+                className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 active:scale-95"
+              >
+                <Link2 size={20} /> Activate Free AI
+              </button>
+              <div className="flex items-center justify-center gap-2 px-6">
+                <Info size={12} className="text-slate-400" />
+                <p className="text-[9px] text-center text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                  No configuration required. Use your Google account for free access.
+                </p>
+              </div>
+            </>
           )}
           {isActive && (
-            <button onClick={cleanup} className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all">Stop</button>
+            <button onClick={cleanup} className="w-full bg-slate-900 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">Disengage</button>
           )}
         </div>
 
-        <div className="mt-8 space-y-2 w-full overflow-hidden">
-          {transcriptions.map((t, i) => (
-            <div key={i} className={`text-[10px] font-bold uppercase tracking-wider ${t.role === 'user' ? 'text-slate-400' : 'text-indigo-600'}`}>
-              {t.role}: {t.text.slice(0, 50)}...
+        <div className="mt-10 w-full max-h-32 overflow-y-auto space-y-3 px-6">
+          {transcriptions.slice(-3).map((t, i) => (
+            <div key={i} className={`flex flex-col ${t.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2`}>
+              <div className={`max-w-[90%] px-4 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-wide ${t.role === 'user' ? 'bg-slate-100 text-slate-500' : 'bg-indigo-50 text-indigo-600 border border-indigo-100'}`}>
+                {t.text}
+              </div>
             </div>
           ))}
         </div>

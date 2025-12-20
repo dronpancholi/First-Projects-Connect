@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, PenTool, Mic, Sparkles, RefreshCw, CheckCircle, Menu, Zap } from 'lucide-react';
+import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, PenTool, Mic, Sparkles, RefreshCw, CheckCircle, Menu, Zap, Link2, ShieldCheck } from 'lucide-react';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
 import VoiceAssistant from './VoiceAssistant.tsx';
@@ -40,6 +40,26 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isAiLinked, setIsAiLinked] = useState(false);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      if ((window as any).aistudio?.hasSelectedApiKey) {
+        const linked = await (window as any).aistudio.hasSelectedApiKey();
+        setIsAiLinked(linked);
+      }
+    };
+    checkKey();
+    const interval = setInterval(checkKey, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleManualLink = async () => {
+    if ((window as any).aistudio?.openSelectKey) {
+      await (window as any).aistudio.openSelectKey();
+      setIsAiLinked(true);
+    }
+  };
 
   return (
     <div className="flex h-screen w-full bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 overflow-hidden">
@@ -47,7 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
       {/* Sidebar */}
       <aside className={`transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'} flex-shrink-0 border-r border-slate-200 bg-white flex flex-col z-20`}>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100">
             <Sparkles className="text-white" size={16} />
           </div>
           <span className="font-bold text-lg tracking-tight text-slate-900">Connect AI</span>
@@ -81,9 +101,29 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
         </div>
 
         <div className="p-4 border-t border-slate-100 space-y-3 bg-slate-50/30">
+          {/* Connection Status Widget */}
+          <div className="px-3 py-3 rounded-2xl border border-slate-100 bg-white shadow-sm">
+             <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">AI Status</span>
+                <div className={`w-2 h-2 rounded-full ${isAiLinked ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+             </div>
+             {isAiLinked ? (
+               <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600">
+                  <ShieldCheck size={12} /> Account Linked
+               </div>
+             ) : (
+               <button 
+                 onClick={handleManualLink}
+                 className="w-full flex items-center justify-center gap-2 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
+               >
+                 <Link2 size={12} /> Link Google
+               </button>
+             )}
+          </div>
+
           <button 
             onClick={() => setIsVoiceActive(true)}
-            className="w-full flex items-center gap-3 px-4 py-4 text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all shadow-xl shadow-indigo-100 uppercase tracking-widest"
+            className="w-full flex items-center gap-3 px-4 py-4 text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all shadow-xl shadow-indigo-100 uppercase tracking-widest active:scale-95"
           >
             <Zap size={16} />
             Activate Assistant
