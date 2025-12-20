@@ -6,7 +6,7 @@ import {
   StickyNote, X, Wand2, Trash2, Image as ImageIcon, 
   Palette, Sparkles, Send, Layers, Copy, Trash, PenTool, 
   LayoutGrid, Loader2, Maximize, ZoomIn, ZoomOut, Move,
-  Hand, BoxSelect, Network, ArrowRightCircle, Info
+  Hand, BoxSelect, Network, ArrowRightCircle, Info, Link as LinkIcon
 } from 'lucide-react';
 import { CanvasElement } from '../types.ts';
 import * as GeminiService from '../services/geminiService.ts';
@@ -32,6 +32,8 @@ const Whiteboard: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [resizingId, setResizingId] = useState<string | null>(null);
+  const [linkingFromId, setLinkingFromId] = useState<string | null>(null);
+  const [linkingToPos, setLinkingToPos] = useState<{ x: number, y: number } | null>(null);
   const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   
@@ -156,8 +158,15 @@ const Whiteboard: React.FC = () => {
     setResizeHandle(handle);
   };
 
+  const handleLinkStart = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setLinkingFromId(id);
+    const { x, y } = screenToCanvas(e.clientX, e.clientY);
+    setLinkingToPos({ x, y });
+  };
+
   const deleteElement = (id: string) => {
-    const next = elements.filter(el => el.id !== id);
+    const next = elements.filter(el => el.id !== id).map(el => el.parentId === id ? { ...el, parentId: undefined } : el);
     setElements(next);
     setSelectedId(null);
     saveElements(next);
@@ -177,7 +186,9 @@ const Whiteboard: React.FC = () => {
 
     const { x, y } = screenToCanvas(e.clientX, e.clientY);
 
-    if (draggingId) {
+    if (linkingFromId) {
+      setLinkingToPos({ x, y });
+    } else if (draggingId) {
       const nextEls = elements.map(el => el.id === draggingId ? { 
         ...el, 
         x: x - dragOffset.x, 
@@ -215,17 +226,32 @@ const Whiteboard: React.FC = () => {
         return { ...el, x: ex, y: ey, width, height };
       }));
     }
-  }, [draggingId, resizingId, resizeHandle, dragOffset, elements, screenToCanvas, tool, isPanning]);
+  }, [draggingId, resizingId, resizeHandle, linkingFromId, dragOffset, elements, screenToCanvas, tool, isPanning]);
 
-  const handleMouseUp = useCallback(() => {
-    if (draggingId || resizingId) {
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    if (linkingFromId) {
+      const { x, y } = screenToCanvas(e.clientX, e.clientY);
+      const target = elements.find(el => 
+        el.id !== linkingFromId && 
+        x >= el.x && x <= el.x + (el.width || 200) &&
+        y >= el.y && y <= el.y + (el.height || 100)
+      );
+
+      if (target) {
+        const next = elements.map(el => el.id === target.id ? { ...el, parentId: linkingFromId } : el);
+        setElements(next);
+        saveElements(next);
+      }
+      setLinkingFromId(null);
+      setLinkingToPos(null);
+    } else if (draggingId || resizingId) {
       saveElements(elements);
     }
     setDraggingId(null);
     setResizingId(null);
     setResizeHandle(null);
     setIsPanning(false);
-  }, [draggingId, resizingId, elements, saveElements]);
+  }, [draggingId, resizingId, linkingFromId, elements, screenToCanvas, saveElements]);
 
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove);
@@ -265,39 +291,64 @@ const Whiteboard: React.FC = () => {
 
   const renderConnections = useMemo(() => {
     return (
-      <svg className="absolute inset-0 pointer-events-none w-full h-full z-0 overflow-visible opacity-30">
+      <svg className="absolute inset-0 pointer-events-none w-full h-full z-0 overflow-visible">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8" />
           </marker>
         </defs>
-        {elements.map(el => {
-          if (!el.parentId) return null;
-          const parent = elements.find(p => p.id === el.parentId);
-          if (!parent) return null;
-          
-          const sX = parent.x + (parent.width || 200) / 2;
-          const sY = parent.y + (parent.height || 100) / 2;
-          const eX = el.x + (el.width || 200) / 2;
-          const eY = el.y + (el.height || 100) / 2;
-          
-          const dx = eX - sX;
-          const dy = eY - sY;
-          
-          return (
-            <path 
-              key={`${el.id}-connection`}
-              d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`}
-              fill="none"
-              stroke="#94A3B8"
-              strokeWidth="2"
-              markerEnd="url(#arrow)"
-            />
-          );
-        })}
+        <g opacity="0.4">
+          {elements.map(el => {
+            if (!el.parentId) return null;
+            const parent = elements.find(p => p.id === el.parentId);
+            if (!parent) return null;
+            
+            const sX = parent.x + (parent.width || 200) / 2;
+            const sY = parent.y + (parent.height || 100) / 2;
+            const eX = el.x + (el.width || 200) / 2;
+            const eY = el.y + (el.height || 100) / 2;
+            
+            const dx = eX - sX;
+            const dy = eY - sY;
+            
+            return (
+              <path 
+                key={`${el.id}-connection`}
+                d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`}
+                fill="none"
+                stroke="#94A3B8"
+                strokeWidth="2"
+                markerEnd="url(#arrow)"
+              />
+            );
+          })}
+        </g>
+        {linkingFromId && linkingToPos && (
+          <g>
+            {(() => {
+              const fromEl = elements.find(it => it.id === linkingFromId);
+              if (!fromEl) return null;
+              const sX = fromEl.x + (fromEl.width || 200) / 2;
+              const sY = fromEl.y + (fromEl.height || 100) / 2;
+              const eX = linkingToPos.x;
+              const eY = linkingToPos.y;
+              const dx = eX - sX;
+              return (
+                <path 
+                  d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`}
+                  fill="none"
+                  stroke="#3B82F6"
+                  strokeWidth="3"
+                  strokeDasharray="5,5"
+                  markerEnd="url(#arrow)"
+                />
+              );
+            })()}
+          </g>
+        )}
       </svg>
     );
-  }, [elements]);
+  }, [elements, linkingFromId, linkingToPos]);
 
   return (
     <div className="h-full flex flex-col bg-[#F1F5F9] relative overflow-hidden select-none font-sans">
@@ -315,6 +366,8 @@ const Whiteboard: React.FC = () => {
         
         .diamond-shape { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
         .triangle-shape { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+        .link-handle { transition: all 0.2s ease; }
+        .link-handle:hover { transform: scale(1.3); background-color: #3B82F6; color: white; }
       `}</style>
 
       {/* Strategic HUD */}
@@ -396,9 +449,21 @@ const Whiteboard: React.FC = () => {
                ))}
              </div>
              <div className="w-px h-8 bg-slate-800" />
-             <button onClick={() => deleteElement(selectedId)} className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-widest hover:text-rose-300">
-               <Trash2 size={18} /> Remove
-             </button>
+             <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => {
+                    const n = elements.map(it => it.id === selectedId ? {...it, parentId: undefined} : it);
+                    setElements(n);
+                    saveElements(n);
+                  }}
+                  className="text-xs font-bold text-gray-400 hover:text-white transition-colors uppercase tracking-widest flex items-center gap-2"
+                >
+                  <LinkIcon size={14} className="rotate-45" /> Unlink
+                </button>
+                <button onClick={() => deleteElement(selectedId)} className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-widest hover:text-rose-300">
+                  <Trash2 size={18} /> Remove
+                </button>
+             </div>
           </div>
         </div>
       )}
@@ -450,6 +515,14 @@ const Whiteboard: React.FC = () => {
                   <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-right')} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-blue-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
                   <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-left')} className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-blue-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
                   <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-right')} className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-blue-600 rounded-full cursor-nwse-resize z-[60] shadow-md" />
+                  
+                  {/* Link Handle */}
+                  <div 
+                    onMouseDown={(e) => handleLinkStart(e, el.id)} 
+                    className="absolute top-1/2 -right-3 -translate-y-1/2 w-6 h-6 bg-white border-2 border-blue-600 rounded-full cursor-crosshair z-[60] shadow-lg flex items-center justify-center text-blue-600 link-handle"
+                  >
+                    <Plus size={12} strokeWidth={3} />
+                  </div>
                 </>
               )}
 
