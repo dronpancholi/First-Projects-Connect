@@ -2,7 +2,7 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ProjectStatus, TaskStatus, ViewState } from '../types.ts';
-import { Activity, CheckCircle, Folder, ExternalLink, Plus, Zap, ArrowUpRight, ArrowRight, TrendingUp, ShieldCheck, PenTool, Settings } from 'lucide-react';
+import { Activity, CheckCircle, Folder, ExternalLink, Plus, Zap, ArrowUpRight, ArrowRight, TrendingUp, ShieldCheck, PenTool, Settings, Sparkles } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const StatCard: React.FC<{ 
@@ -52,8 +52,13 @@ const Dashboard: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }
           <h1 className="text-4xl font-extrabold text-slate-900 tracking-tighter">Command Center</h1>
           <div className="flex items-center gap-4 mt-2">
             <p className="text-slate-500 text-sm font-medium">Global workspace health and mission status.</p>
-            <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-black bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 uppercase tracking-widest">
-               <ShieldCheck size={14} /> Systems Online
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-black bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 uppercase tracking-widest">
+                <ShieldCheck size={14} /> Systems Online
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-indigo-600 font-black bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 uppercase tracking-widest">
+                <Sparkles size={14} /> Free Tier Active
+              </div>
             </div>
           </div>
         </div>

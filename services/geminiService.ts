@@ -8,6 +8,7 @@ export interface WhiteboardGenerationResponse {
   elements: CanvasElement[];
 }
 
+// Creating instance inside functions to ensure it gets the latest linked API key
 const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateProjectPlan = async (projectTitle: string, description: string): Promise<string> => {
@@ -20,7 +21,8 @@ export const generateProjectPlan = async (projectTitle: string, description: str
     });
     return response.text || "FP-Engine: No plan generated.";
   } catch (error) {
-    return "FP-Engine: Plan generation error.";
+    console.error("Plan Gen Error:", error);
+    return "FP-Engine: Plan generation error. Please check your AI Link.";
   }
 };
 
