@@ -79,7 +79,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handleLinkKey = async () => {
     if (typeof (window as any).aistudio?.openSelectKey === 'function') {
       await (window as any).aistudio.openSelectKey();
-      setIsApiKeyLinked(true); // Assume success after interaction
+      setIsApiKeyLinked(true); 
       setError(null);
     }
   };
@@ -143,7 +143,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setIsConnecting(true);
       setError(null);
 
-      // Verify key link one last time
+      // Verify key link
       if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
         const linked = await (window as any).aistudio.hasSelectedApiKey();
         if (!linked) {
@@ -159,7 +159,6 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
       streamRef.current = stream;
 
-      // Force create fresh instance to catch process.env.API_KEY injected by AI Studio
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       outCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       inCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -248,9 +247,9 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             const msg = e?.message || "";
             if (msg.includes('API key must be set') || msg.includes('Requested entity was not found')) {
                setIsApiKeyLinked(false);
-               setError("AI Link required. Please connect your free Google account.");
+               setError("Authorization required. Please link your free Google project.");
             } else {
-               setError("Assistant bridge interrupted.");
+               setError("Assistant link interrupted.");
             }
             cleanup(); 
           }
@@ -260,7 +259,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           tools: [{ functionDeclarations: agentTools }],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
-          systemInstruction: "You are the Connect-Assistant, a professional AI architect. You help students and researchers organize their projects. You can see their workspace via camera. Use a friendly, encouraging tone. Remind the user that you are running on the free Flash-tier for efficiency."
+          systemInstruction: "You are the Connect-Assistant, optimized for the Free Gemini Tier. Help the user organize projects with vision and voice. Be professional and supportive."
         }
       });
       sessionRef.current = await sessionPromise;
@@ -270,7 +269,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         setIsApiKeyLinked(false);
         setError("AI Link Required.");
       } else {
-        setError("Uplink failed. Retrying...");
+        setError("Uplink failed. Please retry.");
       }
       setIsConnecting(false);
       cleanup();
@@ -280,21 +279,21 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useEffect(() => () => cleanup(), [cleanup]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-xl p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/70 backdrop-blur-xl p-4 animate-in fade-in duration-300">
       <video ref={videoRef} className="hidden" muted />
       <canvas ref={canvasRef} width="640" height="480" className="hidden" />
 
-      <div className="bg-white w-full max-w-5xl h-[650px] rounded-[3rem] shadow-2xl flex overflow-hidden border border-slate-200 ring-1 ring-slate-100">
-        <div className="flex-1 flex flex-col items-center justify-center gap-10 p-12 border-r border-slate-100 bg-slate-50/20">
+      <div className="bg-white w-full max-w-5xl h-[600px] md:h-[700px] rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-slate-200">
+        <div className="flex-1 flex flex-col items-center justify-center gap-10 p-12 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/20">
           <button onClick={onClose} className="absolute top-10 left-10 p-3 text-slate-300 hover:text-slate-900 transition-colors"><X size={28} /></button>
           
           <div className="relative">
             {isActive && <div className="absolute inset-[-40px] bg-indigo-500/10 blur-[60px] rounded-full animate-pulse" />}
-            <div className={`w-44 h-44 rounded-[2.5rem] flex items-center justify-center transition-all duration-700 ${isActive ? 'bg-indigo-600 scale-105 shadow-xl' : 'bg-white border-2 border-slate-100'}`}>
+            <div className={`w-32 h-32 md:w-48 md:h-48 rounded-[2.5rem] md:rounded-[3rem] flex items-center justify-center transition-all duration-700 ${isActive ? 'bg-indigo-600 scale-105 shadow-xl' : 'bg-white border-2 border-slate-100'}`}>
               {isActive ? (
-                <div className="flex gap-2 h-12 items-center">
+                <div className="flex gap-2 h-10 md:h-14 items-center">
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-2 bg-white rounded-full animate-wave" style={{ animationDelay: `${i*0.1}s` }} />
+                    <div key={i} className="w-1.5 md:w-2 bg-white rounded-full animate-wave" style={{ animationDelay: `${i*0.1}s` }} />
                   ))}
                 </div>
               ) : isConnecting ? <Loader2 className="animate-spin text-indigo-600" size={56} /> : <MicOff className="text-slate-200" size={56} />}
@@ -303,11 +302,11 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
           <div className="text-center space-y-3">
             <h2 className="text-2xl font-black text-slate-900 flex items-center justify-center gap-3 tracking-tight">
-              {isActive ? "Assistant Active" : isConnecting ? "Uplinking..." : "Connect Hub"}
+              {isActive ? "Assistant Online" : isConnecting ? "Uplinking..." : "Assistant Hub"}
             </h2>
             <div className="flex flex-col items-center gap-2">
               <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 flex items-center gap-1.5">
-                <Zap size={12} /> Optimized for Free Tier
+                <Zap size={12} /> Student Optimized Mode
               </span>
               {error && <p className="text-xs text-rose-500 font-bold flex items-center gap-1.5 mt-2"><AlertCircle size={14} /> {error}</p>}
             </div>
@@ -317,33 +316,33 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {!isActive && !isConnecting && (
               <div className="space-y-4">
                 {!isApiKeyLinked ? (
-                  <button onClick={handleLinkKey} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3">
+                  <button onClick={handleLinkKey} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3">
                     <Link2 size={20} /> Link Free Account
                   </button>
                 ) : (
-                  <button onClick={startSession} className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl flex items-center justify-center gap-3">
+                  <button onClick={startSession} className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl flex items-center justify-center gap-3">
                     <Mic size={20} /> Engage Assistant
                   </button>
                 )}
                 <p className="text-[9px] text-center text-slate-400 font-bold uppercase tracking-widest px-4 leading-relaxed">
-                  Connect your Google AI Studio project to enable system logic.
+                  Connect your Google AI Studio project to enable free intelligence.
                 </p>
               </div>
             )}
             
             {isActive && (
               <div className="flex justify-center gap-4">
-                 <div className="px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 flex items-center gap-2"><Eye size={14} /> Neural Vision</div>
+                 <div className="px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 flex items-center gap-2"><Eye size={14} /> vision active</div>
                  <button onClick={cleanup} className="px-5 py-2.5 bg-rose-50 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100">Stop</button>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex-[0.8] bg-white flex flex-col border-l border-slate-50">
+        <div className="hidden md:flex flex-[0.8] bg-white flex-col border-l border-slate-50">
           <div className="h-16 px-8 flex items-center justify-between border-b border-slate-100 bg-slate-25/50">
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3"><Terminal size={16}/> Neural Log</span>
-            {isApiKeyLinked && <div className="text-emerald-500 text-[10px] font-black uppercase flex items-center gap-2 font-mono"><ShieldCheck size={14} /> SECURE_LINK</div>}
+            {isApiKeyLinked && <div className="text-emerald-500 text-[10px] font-black uppercase flex items-center gap-2 font-mono"><ShieldCheck size={14} /> SECURE_BRIDGE</div>}
           </div>
           
           <div className="flex-1 overflow-auto p-10 space-y-6 custom-scrollbar">

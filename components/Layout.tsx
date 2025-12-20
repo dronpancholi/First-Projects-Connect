@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, PenTool, Mic, Sparkles, RefreshCw, CheckCircle, ChevronRight, Menu } from 'lucide-react';
+import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, PenTool, Mic, Sparkles, RefreshCw, CheckCircle, ChevronRight, Menu, Link2, ShieldCheck, AlertCircle } from 'lucide-react';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
 import VoiceAssistant from './VoiceAssistant.tsx';
@@ -41,6 +41,19 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isAiLinked, setIsAiLinked] = useState(false);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
+        const linked = await (window as any).aistudio.hasSelectedApiKey();
+        setIsAiLinked(linked);
+      }
+    };
+    checkKey();
+    const interval = setInterval(checkKey, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -52,6 +65,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const handleLinkKey = async () => {
+    if (typeof (window as any).aistudio?.openSelectKey === 'function') {
+      await (window as any).aistudio.openSelectKey();
+      setIsAiLinked(true);
+    }
+  };
 
   return (
     <div className="flex h-screen w-full bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100">
@@ -95,14 +115,38 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           />
         </div>
 
-        <div className="p-4 border-t border-slate-100 space-y-3">
+        <div className="p-4 border-t border-slate-100 space-y-3 bg-slate-25/30">
+          {/* Bridge Status Indicator */}
+          <div className="px-3 py-3 rounded-2xl border border-slate-100 bg-white shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Neural Bridge</span>
+              {isAiLinked ? (
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              ) : (
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+              )}
+            </div>
+            {isAiLinked ? (
+              <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600">
+                <ShieldCheck size={12} /> Account Linked
+              </div>
+            ) : (
+              <button 
+                onClick={handleLinkKey}
+                className="w-full flex items-center justify-center gap-2 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
+              >
+                <Link2 size={12} /> Link Free Account
+              </button>
+            )}
+          </div>
+
           <button 
             onClick={() => setIsVoiceActive(true)}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-2xl transition-all shadow-sm group border border-indigo-100"
           >
             <Mic size={18} className="group-hover:scale-110 transition-transform" />
             <span className="flex-1 text-left">Assistant HUD</span>
-            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+            {isAiLinked && <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />}
           </button>
 
           <button 
@@ -127,19 +171,19 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
             </button>
           </div>
           
-          <div className="pt-2 flex items-center justify-between">
-            <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg border border-slate-100">
+          <div className="pt-2 flex items-center justify-between border-t border-slate-50 mt-2">
+            <div className="flex items-center gap-2 px-2 py-1 bg-slate-50 rounded-lg border border-slate-100">
               {isSyncing || isLoading ? (
-                <RefreshCw size={10} className="text-indigo-600 animate-spin" />
+                <RefreshCw size={8} className="text-indigo-600 animate-spin" />
               ) : (
-                <CheckCircle size={10} className="text-emerald-500" />
+                <CheckCircle size={8} className="text-emerald-500" />
               )}
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">
                 {isSyncing ? 'Syncing' : 'Secure'}
               </span>
             </div>
             <button onClick={() => setView({ type: 'SETTINGS' })} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors">
-              <Settings size={14} />
+              <Settings size={12} />
             </button>
           </div>
         </div>
