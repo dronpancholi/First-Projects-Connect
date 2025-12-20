@@ -24,11 +24,11 @@
         const root = document.getElementById('root');
         if (root && (root.innerHTML === '' || root.children.length === 0)) {
           root.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background: #f5f5f7;">
-              <div style="background: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); text-align: center;">
-                <h1 style="font-size: 24px; margin-bottom: 12px;">System Boot Failure</h1>
-                <p style="color: #666; margin-bottom: 24px;">Dependency conflict resolved. Please refresh.</p>
-                <button onclick="location.reload()" style="background: #0071e3; color: white; border: none; padding: 12px 24px; border-radius: 980px; font-weight: 600; cursor: pointer;">Refresh System</button>
+            <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background: #09090b; color: white;">
+              <div style="background: #18181b; padding: 40px; border-radius: 12px; border: 1px solid #27272a; text-align: center; max-width: 400px;">
+                <h1 style="font-size: 20px; font-weight: 600; margin-bottom: 12px; color: #f4f4f5;">System Integrity Compromised</h1>
+                <p style="color: #a1a1aa; margin-bottom: 24px; font-size: 14px; line-height: 1.5;">A module resolution error occurred during boot. This usually indicates a dependency mismatch.</p>
+                <button onclick="location.reload()" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">Reinitialize Uplink</button>
               </div>
             </div>
           `;
@@ -36,21 +36,63 @@
       }, true);
     </script>
     <script src="https://cdn.tailwindcss.com?plugins=typography,forms"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
-            fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
-            colors: { apple: { gray: '#F5F5F7', blue: '#0071E3', text: '#1D1D1F', border: '#D2D2D7' } }
+            fontFamily: { 
+              sans: ['"Plus Jakarta Sans"', 'sans-serif'], 
+              mono: ['"JetBrains Mono"', 'monospace'] 
+            },
+            colors: { 
+              brand: {
+                primary: '#3b82f6',
+                secondary: '#6366f1',
+                accent: '#8b5cf6',
+              },
+              zinc: {
+                950: '#09090b',
+              }
+            },
+            borderRadius: {
+              '2xl': '1rem',
+              '3xl': '1.5rem',
+            }
           }
         }
       }
     </script>
     <style>
-      ::-webkit-scrollbar { width: 8px; height: 8px; }
-      ::-webkit-scrollbar-thumb { background: #d1d1d6; border-radius: 10px; }
-      body { -webkit-font-smoothing: antialiased; margin: 0; background: #F5F5F7; overflow: hidden; }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+      body { 
+        -webkit-font-smoothing: antialiased; 
+        -moz-osx-font-smoothing: grayscale;
+        margin: 0; 
+        background: #09090b; 
+        color: #f4f4f5;
+        overflow: hidden; 
+      }
+      .glass {
+        background: rgba(24, 24, 27, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      .pro-border {
+        border: 1px solid rgba(63, 63, 70, 0.4);
+      }
+      .shimmer {
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite;
+      }
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
     </style>
     <script type="importmap">
 {
@@ -77,10 +119,10 @@
     "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.8.0",
     "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.1",
     "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.3.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "vite": "https://esm.sh/vite@^7.3.0"
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
