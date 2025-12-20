@@ -24,6 +24,16 @@ export interface User {
   name: string;
 }
 
+// Added CodeSnippet interface to support CodeStudio
+export interface CodeSnippet {
+  id: string;
+  title: string;
+  language: string;
+  code: string;
+  folder?: string;
+  updatedAt: Date;
+}
+
 export interface Note {
   id: string;
   projectId?: string;
@@ -70,15 +80,6 @@ export interface Project {
   createdAt: Date;
 }
 
-export interface CodeSnippet {
-  id: string;
-  title: string;
-  language: 'javascript' | 'typescript' | 'python' | 'html' | 'css' | 'sql' | 'json' | 'markdown' | 'rust' | 'go' | 'shell';
-  code: string;
-  folder?: string;
-  updatedAt: Date;
-}
-
 export interface CanvasElement {
   id: string;
   parentId?: string;
@@ -103,6 +104,6 @@ export type ViewState =
   | { type: 'PROJECTS' }
   | { type: 'PROJECT_DETAIL'; projectId: string }
   | { type: 'IDEAS' }
-  | { type: 'CODE_STUDIO' }
   | { type: 'WHITEBOARD' }
+  | { type: 'CODE_STUDIO' } // Added CODE_STUDIO view state
   | { type: 'SETTINGS' };

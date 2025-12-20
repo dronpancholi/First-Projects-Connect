@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, Code2, PenTool, Mic, Sparkles, Cloud, CloudOff, RefreshCw, CheckCircle } from 'lucide-react';
+import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, PenTool, Mic, Sparkles, CloudOff, RefreshCw, CheckCircle, Code } from 'lucide-react';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
 import VoiceAssistant from './VoiceAssistant.tsx';
@@ -103,16 +103,16 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           
           <div className="px-3 text-xs font-semibold text-gray-400 mb-2 mt-6 uppercase tracking-wider">Studio</div>
           <NavItem 
-            icon={<Code2 size={18} />} 
-            label="Code Studio" 
-            isActive={currentView.type === 'CODE_STUDIO'} 
-            onClick={() => setView({ type: 'CODE_STUDIO' })} 
-          />
-          <NavItem 
             icon={<PenTool size={18} />} 
             label="Whiteboard" 
             isActive={currentView.type === 'WHITEBOARD'} 
             onClick={() => setView({ type: 'WHITEBOARD' })} 
+          />
+          <NavItem 
+            icon={<Code size={18} />} 
+            label="Code Studio" 
+            isActive={currentView.type === 'CODE_STUDIO'} 
+            onClick={() => setView({ type: 'CODE_STUDIO' })} 
           />
         </div>
 

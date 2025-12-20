@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Project, Task, Note, Asset, CodeSnippet, Whiteboard, CanvasElement, TaskStatus, ProjectStatus, Priority } from '../types.ts';
+import { Project, Task, Note, Asset, Whiteboard, CanvasElement, TaskStatus, ProjectStatus, Priority, CodeSnippet } from '../types.ts';
 import { useAuth } from './AuthContext.tsx';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient.ts';
 
@@ -9,8 +9,8 @@ interface StoreContextType {
   tasks: Task[];
   notes: Note[];
   assets: Asset[];
-  snippets: CodeSnippet[];
   whiteboards: Whiteboard[];
+  snippets: CodeSnippet[]; // Added snippets property
   isLoading: boolean;
   isSyncing: boolean;
   lastSyncTime: Date | null;
@@ -31,13 +31,14 @@ interface StoreContextType {
   addAsset: (a: Omit<Asset, 'id'>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
 
-  addSnippet: (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => Promise<void>;
-  updateSnippet: (id: string, code: string) => Promise<void>;
-  deleteSnippet: (id: string) => Promise<void>;
-
   addWhiteboard: (w: Omit<Whiteboard, 'id' | 'updatedAt'>) => Promise<void>;
   updateWhiteboard: (id: string, elements: CanvasElement[]) => Promise<void>;
   deleteWhiteboard: (id: string) => Promise<void>;
+
+  // Added CodeStudio support methods
+  addSnippet: (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => Promise<void>;
+  updateSnippet: (id: string, code: string) => Promise<void>;
+  deleteSnippet: (id: string) => Promise<void>;
   
   getProjectProgress: (projectId: string) => number;
 }
@@ -50,8 +51,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [tasks, setTasks] = useState<Task[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [snippets, setSnippets] = useState<CodeSnippet[]>([]);
   const [whiteboards, setWhiteboards] = useState<Whiteboard[]>([]);
+  const [snippets, setSnippets] = useState<CodeSnippet[]>([]); // Added snippets state
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
@@ -102,15 +103,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     description: a?.description || ''
   }), []);
 
-  const mapSnippet = useCallback((s: any): CodeSnippet => ({ 
-    id: s?.id || String(Math.random()),
-    title: s?.title || 'Untitled Script',
-    language: s?.language || 'javascript',
-    code: s?.code || '',
-    folder: s?.folder || undefined,
-    updatedAt: s?.updated_at ? new Date(s.updated_at) : new Date() 
-  }), []);
-  
   const mapWhiteboard = useCallback((w: any): Whiteboard => {
     let elements: CanvasElement[] = [];
     try {
@@ -129,6 +121,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
+  // Added mapSnippet function
+  const mapSnippet = useCallback((s: any): CodeSnippet => ({
+    id: s?.id || String(Math.random()),
+    title: s?.title || 'untitled.js',
+    language: s?.language || 'javascript',
+    code: s?.code || '',
+    folder: s?.folder || undefined,
+    updatedAt: s?.updated_at ? new Date(s.updated_at) : new Date()
+  }), []);
+
   const logError = (context: string, error: any) => {
     const message = error?.message || "Unknown communication error";
     if (message.includes('relation') || message.includes('does not exist') || message.includes('404')) {
@@ -142,35 +144,35 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!user || !isSupabaseConfigured() || !supabase) return;
     setIsLoading(true);
     try {
-      const [p, t, n, a, s, w] = await Promise.all([
+      const [p, t, n, a, w, s] = await Promise.all([
         supabase.from('projects').select('*').order('created_at', { ascending: false }),
         supabase.from('tasks').select('*'),
         supabase.from('notes').select('*').order('updated_at', { ascending: false }),
         supabase.from('assets').select('*'),
-        supabase.from('snippets').select('*').order('updated_at', { ascending: false }),
         supabase.from('whiteboards').select('*').order('updated_at', { ascending: false }),
+        supabase.from('snippets').select('*').order('updated_at', { ascending: false }), // Fetch snippets
       ]);
 
       if (p.error) logError("FetchProjects", p.error);
       if (t.error) logError("FetchTasks", t.error);
       if (n.error) logError("FetchNotes", n.error);
       if (a.error) logError("FetchAssets", a.error);
-      if (s.error) logError("FetchSnippets", s.error);
       if (w.error) logError("FetchWhiteboards", w.error);
+      if (s.error) logError("FetchSnippets", s.error); // Log snippet fetch errors
 
       if (p.data) setProjects(p.data.map(mapProject));
       if (t.data) setTasks(t.data.map(mapTask));
       if (n.data) setNotes(n.data.map(mapNote));
       if (a.data) setAssets(a.data.map(mapAsset));
-      if (s.data) setSnippets(s.data.map(mapSnippet));
       if (w.data) setWhiteboards(w.data.map(mapWhiteboard));
+      if (s.data) setSnippets(s.data.map(mapSnippet)); // Set snippets data
       setLastSyncTime(new Date());
     } catch (e) {
       logError("DataSync", e);
     } finally {
       setIsLoading(false);
     }
-  }, [user, mapProject, mapTask, mapNote, mapAsset, mapSnippet, mapWhiteboard]);
+  }, [user, mapProject, mapTask, mapNote, mapAsset, mapWhiteboard, mapSnippet]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -232,15 +234,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, "DeleteAsset");
   };
 
-  const deleteSnippet = async (id: string) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('snippets').delete().eq('id', id).eq('user_id', user.id);
-      if (error) throw error;
-      setSnippets(prev => prev.filter(s => s.id !== id));
-    }, "DeleteSnippet");
-  };
-
   const deleteWhiteboard = async (id: string) => {
     if (!user || !supabase) return;
     await syncWrapper(async () => {
@@ -248,6 +241,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (error) throw error;
       setWhiteboards(prev => prev.filter(w => w.id !== id));
     }, "DeleteWhiteboard");
+  };
+
+  // Added deleteSnippet method
+  const deleteSnippet = async (id: string) => {
+    if (!user || !supabase) return;
+    await syncWrapper(async () => {
+      const { error } = await supabase.from('snippets').delete().eq('id', id).eq('user_id', user.id);
+      if (error) throw error;
+      setSnippets(prev => prev.filter(s => s.id !== id));
+    }, "DeleteSnippet");
   };
 
   const addProject = async (p: Omit<Project, 'id' | 'createdAt' | 'progress'>) => {
@@ -321,26 +324,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, "AddAsset");
   };
 
-  const addSnippet = async (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => {
-    if (!user || !supabase) return;
-    await syncWrapper(async () => {
-      const { data, error } = await supabase.from('snippets').insert({
-        user_id: user.id, ...s
-      }).select().single();
-      if (error) throw error;
-      if (data) setSnippets([mapSnippet(data), ...snippets]);
-    }, "AddSnippet");
-  };
-
-  const updateSnippet = async (id: string, code: string) => {
-    if (!supabase) return;
-    await syncWrapper(async () => {
-      const { error } = await supabase.from('snippets').update({ code, updated_at: new Date() }).eq('id', id);
-      if (error) throw error;
-      setSnippets(prev => prev.map(s => s.id === id ? { ...s, code, updatedAt: new Date() } : s));
-    }, "UpdateSnippet");
-  };
-
   const addWhiteboard = async (w: Omit<Whiteboard, 'id' | 'updatedAt'>) => {
     if (!user || !supabase) return;
     await syncWrapper(async () => {
@@ -364,15 +347,37 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, "UpdateWhiteboard");
   };
 
+  // Added addSnippet method
+  const addSnippet = async (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => {
+    if (!user || !supabase) return;
+    await syncWrapper(async () => {
+      const { data, error } = await supabase.from('snippets').insert({
+        user_id: user.id, ...s
+      }).select().single();
+      if (error) throw error;
+      if (data) setSnippets([mapSnippet(data), ...snippets]);
+    }, "AddSnippet");
+  };
+
+  // Added updateSnippet method
+  const updateSnippet = async (id: string, code: string) => {
+    if (!supabase) return;
+    await syncWrapper(async () => {
+      const { error } = await supabase.from('snippets').update({ code, updated_at: new Date() }).eq('id', id);
+      if (error) throw error;
+      setSnippets(prev => prev.map(s => s.id === id ? { ...s, code, updatedAt: new Date() } : s));
+    }, "UpdateSnippet");
+  };
+
   return (
     <StoreContext.Provider value={{
-      projects, tasks, notes, assets, snippets, whiteboards, isLoading, isSyncing, lastSyncTime, needsInitialization,
+      projects, tasks, notes, assets, whiteboards, snippets, isLoading, isSyncing, lastSyncTime, needsInitialization,
       addProject, updateProject, deleteProject,
       addTask, updateTask, deleteTask,
       addNote, updateNote, deleteNote,
       addAsset, deleteAsset,
-      addSnippet, updateSnippet, deleteSnippet,
       addWhiteboard, updateWhiteboard, deleteWhiteboard,
+      addSnippet, updateSnippet, deleteSnippet,
       getProjectProgress
     }}>
       {children}
