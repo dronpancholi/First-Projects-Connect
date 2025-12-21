@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Connect AI | Agentic Workspace</title>
+    <title>Connect AI | iOS Edition</title>
     <!-- Essential environment shims -->
     <script>
       window.global = window;
@@ -31,36 +31,66 @@
               mono: ['"JetBrains Mono"', 'monospace'] 
             },
             colors: { 
-              brand: {
-                primary: '#4f46e5',
-                secondary: '#6366f1',
-                accent: '#818cf8',
+              ios: {
+                blue: '#007AFF',
+                indigo: '#5856D6',
+                gray: '#F2F2F7',
+                'gray-dark': '#8E8E93',
+                surface: '#FFFFFF',
+                label: '#000000',
               }
+            },
+            borderRadius: {
+              'ios': '2rem',
+              'ios-lg': '2.5rem',
             }
           }
         }
       }
     </script>
     <style>
-      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-      ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+      ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+      
       body { 
         -webkit-font-smoothing: antialiased; 
-        background: #f8fafc; 
-        color: #0f172a;
+        background-color: #F2F2F7;
+        color: #000000;
+        overflow: hidden;
       }
-      .executive-glass {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+
+      .ios-glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
       }
-      .pro-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+      .ios-card {
+        background: #FFFFFF;
+        border-radius: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
+      }
+      .ios-card:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+      }
+
+      .btn-tactile {
+        transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1);
+      }
+      .btn-tactile:active {
+        transform: scale(0.94);
+      }
+
+      @keyframes orb-float {
+        0%, 100% { transform: translateY(0) scale(1); filter: blur(40px); }
+        50% { transform: translateY(-20px) scale(1.1); filter: blur(60px); }
+      }
+      .assistant-orb {
+        animation: orb-float 4s infinite ease-in-out;
       }
     </style>
     <script type="importmap">
@@ -88,10 +118,10 @@
     "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.8.0",
     "@codemirror/lang-rust": "https://esm.sh/@codemirror/lang-rust@6.0.1",
     "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.3.1",
-    "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite": "https://esm.sh/vite@^7.3.0"
   }
 }
 </script>

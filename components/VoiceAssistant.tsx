@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { X, MicOff, Sparkles, Loader2, Zap, AlertCircle, Info, Link2 } from 'lucide-react';
+import { X, MicOff, Sparkles, Loader2, Zap, AlertCircle, Info, Link2, Mic } from 'lucide-react';
 
 const encode = (bytes: Uint8Array) => {
   let b = '';
@@ -69,7 +69,6 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setError(null);
     
     try {
-      // Check for AI Studio Bridge first if outside environment
       if (!process.env.API_KEY && (window as any).aistudio?.openSelectKey) {
         await (window as any).aistudio.openSelectKey();
       }
@@ -116,7 +115,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 ...prev, 
                 {role: 'user' as const, text: transcriptionRef.current.user},
                 {role: 'agent' as const, text: transcriptionRef.current.agent}
-              ].slice(-5));
+              ].slice(-3));
               transcriptionRef.current = { user: '', agent: '' };
             }
             if (msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data) {
@@ -135,7 +134,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           onclose: () => cleanup(),
           onerror: (e: any) => { 
             console.error(e);
-            setError(e.message?.includes('API key') ? "Invalid API Key. Check Vercel Env Vars." : "Connection failed.");
+            setError("Link unstable.");
             cleanup(); 
           }
         },
@@ -143,13 +142,13 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           responseModalities: [Modality.AUDIO],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
-          systemInstruction: "You are the Connect AI Assistant. Be concise, professional, and helpful."
+          systemInstruction: "You are Connect, a professional AI assistant. Be concise, direct, and human."
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
       console.error(err);
-      setError("Mic access denied or API configuration error.");
+      setError("Authorization required.");
       setIsConnecting(false);
       cleanup();
     }
@@ -158,69 +157,71 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useEffect(() => () => cleanup(), [cleanup]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xl p-4 animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-12 border border-white/20 relative overflow-hidden">
-        <button onClick={onClose} className="absolute top-10 right-10 p-3 text-slate-300 hover:text-slate-900 transition-colors"><X size={28} /></button>
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-ios-gray/40 backdrop-blur-[40px] animate-in fade-in duration-500">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-ios-blue/40 rounded-full assistant-orb" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-ios-indigo/30 rounded-full assistant-orb" style={{ animationDelay: '-2s' }} />
+
+      <button onClick={onClose} className="absolute top-12 right-12 p-3 text-ios-label/20 hover:text-ios-label transition-colors btn-tactile">
+        <X size={32} />
+      </button>
+
+      <div className="relative z-10 w-full max-w-2xl flex flex-col items-center text-center">
         
-        <div className={`w-36 h-36 rounded-[2.5rem] flex items-center justify-center transition-all duration-700 ${isActive ? 'bg-indigo-600 scale-105 shadow-2xl ring-8 ring-indigo-50' : 'bg-slate-50 border-2 border-slate-100'}`}>
-          {isActive ? (
-             <div className="flex gap-1.5 h-10 items-center">
-               {[...Array(4)].map((_, i) => (
-                 <div key={i} className="w-1.5 bg-white rounded-full animate-pulse" style={{ height: `${20 + Math.random() * 30}px`, animationDelay: `${i*0.1}s` }} />
-               ))}
-             </div>
-          ) : isConnecting ? <Loader2 className="animate-spin text-indigo-600" size={56} /> : <MicOff className="text-slate-200" size={56} />}
+        {/* Visualizer Orb */}
+        <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-1000 ${isActive ? 'scale-110' : 'scale-100'}`}>
+          <div className={`w-full h-full rounded-full bg-gradient-to-br from-ios-blue to-ios-indigo shadow-[0_0_50px_rgba(0,122,255,0.4)] flex items-center justify-center transition-all ${isActive ? 'animate-pulse' : ''}`}>
+             {isConnecting ? <Loader2 className="animate-spin text-white" size={40} /> : <Zap className="text-white fill-white" size={40} />}
+          </div>
         </div>
 
-        <div className="text-center mt-10 space-y-3">
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-            {isActive ? "Connected" : isConnecting ? "Initializing..." : "AI Assistant"}
+        <div className="mt-12 space-y-4">
+          <h2 className="text-4xl font-bold tracking-tight text-ios-label">
+            {isActive ? "I'm Listening" : isConnecting ? "Linking AI..." : "Connect Assistant"}
           </h2>
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
-              Free Gemini 2.5 Native
-            </span>
-          </div>
+          <p className="text-[17px] font-medium text-ios-label/40 max-w-sm mx-auto">
+            Native audio reasoning enabled. Speak freely to manage your ecosystem.
+          </p>
         </div>
 
         {error && (
-          <div className="mt-8 flex items-center gap-3 text-rose-500 bg-rose-50 px-5 py-3 rounded-2xl border border-rose-100 max-w-sm">
-            <AlertCircle size={18} className="shrink-0" />
-            <p className="text-xs font-bold leading-tight uppercase tracking-wider">{error}</p>
+          <div className="mt-8 flex items-center gap-3 text-rose-600 bg-rose-50 px-6 py-3 rounded-full border border-rose-100">
+            <AlertCircle size={18} />
+            <p className="text-[13px] font-bold uppercase tracking-widest">{error}</p>
           </div>
         )}
 
-        <div className="mt-12 w-full max-w-xs space-y-4">
+        <div className="mt-16 w-full max-w-xs">
           {!isActive && !isConnecting && (
-            <>
-              <button 
-                onClick={startSession} 
-                className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 active:scale-95"
-              >
-                <Zap size={20} /> Engage Assistant
-              </button>
-              <div className="flex items-center justify-center gap-2 px-6">
-                <Info size={12} className="text-slate-400" />
-                <p className="text-[9px] text-center text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                  Optimized for Vercel. Ensure your API_KEY is set in project settings.
-                </p>
-              </div>
-            </>
+            <button 
+              onClick={startSession} 
+              className="w-full bg-ios-blue text-white py-4 rounded-full font-bold text-[17px] shadow-2xl shadow-ios-blue/30 transition-all btn-tactile flex items-center justify-center gap-3"
+            >
+              <Mic size={20} /> Activate Now
+            </button>
           )}
           {isActive && (
-            <button onClick={cleanup} className="w-full bg-slate-900 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">End Session</button>
+            <button onClick={cleanup} className="w-full bg-ios-label text-white py-4 rounded-full font-bold text-[17px] transition-all btn-tactile">
+              Dismiss
+            </button>
           )}
         </div>
 
-        <div className="mt-10 w-full max-h-32 overflow-y-auto space-y-3 px-6 scrollbar-hide">
-          {transcriptions.slice(-2).map((t, i) => (
-            <div key={i} className={`flex flex-col ${t.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2`}>
-              <div className={`max-w-[90%] px-4 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-wide ${t.role === 'user' ? 'bg-slate-100 text-slate-500' : 'bg-indigo-50 text-indigo-600 border border-indigo-100'}`}>
+        {/* Live Transcription Overlay */}
+        <div className="mt-16 w-full space-y-4">
+          {transcriptions.map((t, i) => (
+            <div key={i} className={`flex flex-col ${t.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-4 duration-500`}>
+              <div className={`max-w-[80%] px-6 py-3 rounded-[1.5rem] text-[15px] font-medium leading-relaxed ${t.role === 'user' ? 'bg-white text-ios-label shadow-sm' : 'text-ios-blue'}`}>
                 {t.text}
               </div>
             </div>
           ))}
         </div>
+      </div>
+      
+      <div className="absolute bottom-12 flex items-center gap-2 text-ios-label/20 text-[11px] font-bold uppercase tracking-[0.2em]">
+        <Link2 size={12} /> Encrypted Uplink Active
       </div>
     </div>
   );

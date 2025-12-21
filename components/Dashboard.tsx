@@ -2,33 +2,34 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ProjectStatus, TaskStatus, ViewState } from '../types.ts';
-import { Activity, CheckCircle, Folder, ExternalLink, Plus, Zap, ArrowUpRight, ArrowRight, TrendingUp, ShieldCheck, PenTool, Settings, Sparkles } from 'lucide-react';
+import { Activity, CheckCircle, Folder, ExternalLink, Plus, Zap, ArrowUpRight, ArrowRight, TrendingUp, ShieldCheck, PenTool, Sparkles, Clock, Layout as LayoutIcon } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
-const StatCard: React.FC<{ 
+const MetricCard: React.FC<{ 
   title: string; 
   value: string | number; 
   icon: React.ReactNode; 
   trend?: string;
+  trendPositive?: boolean;
   onClick?: () => void;
-}> = ({ title, value, icon, trend, onClick }) => (
+}> = ({ title, value, icon, trend, trendPositive = true, onClick }) => (
   <div 
     onClick={onClick}
-    className={`pro-card p-6 rounded-2xl group ${onClick ? 'cursor-pointer hover:border-indigo-200 active:scale-[0.98]' : ''}`}
+    className={`ios-card p-6 flex flex-col justify-between group ${onClick ? 'cursor-pointer' : ''}`}
   >
-    <div className="flex justify-between items-start mb-4">
-      <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors border border-slate-100">
+    <div className="flex justify-between items-start">
+      <div className="w-12 h-12 rounded-2xl bg-[#F2F2F7] flex items-center justify-center text-ios-blue">
         {icon}
       </div>
       {trend && (
-        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100">
+        <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${trendPositive ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
           {trend}
         </span>
       )}
     </div>
-    <div>
-      <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-none mb-1">{value}</h3>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{title}</p>
+    <div className="mt-6">
+      <h3 className="text-3xl font-bold text-ios-label tracking-tight mb-1">{value}</h3>
+      <p className="text-[12px] font-bold text-ios-label/40 uppercase tracking-widest">{title}</p>
     </div>
   </div>
 );
@@ -41,171 +42,144 @@ const Dashboard: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }
   const completedTasks = tasks.filter(t => t.status === TaskStatus.DONE).length;
   
   const taskData = [
-    { name: 'Complete', value: completedTasks, color: '#10b981' },
-    { name: 'Active', value: pendingTasks, color: '#4f46e5' },
+    { name: 'Completed', value: completedTasks, color: '#007AFF' },
+    { name: 'In Progress', value: pendingTasks, color: '#F2F2F7' },
   ];
 
   return (
-    <div className="p-10 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-10">
+    <div className="p-8 lg:p-12 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div>
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tighter">Command Center</h1>
-          <div className="flex items-center gap-4 mt-2">
-            <p className="text-slate-500 text-sm font-medium">Global workspace health and mission status.</p>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-black bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 uppercase tracking-widest">
-                <ShieldCheck size={14} /> Systems Online
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] text-indigo-600 font-black bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 uppercase tracking-widest">
-                <Sparkles size={14} /> Free Tier Active
-              </div>
-            </div>
+          <h1 className="text-4xl font-bold text-ios-label tracking-tight leading-none mb-3">Good Day.</h1>
+          <div className="flex items-center gap-4">
+             <div className="flex items-center gap-2 text-[12px] text-ios-blue font-bold bg-ios-blue/10 px-4 py-1.5 rounded-full tracking-tight">
+                <ShieldCheck size={14} /> System Verified
+             </div>
+             <div className="text-[12px] font-semibold text-ios-label/30">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+             </div>
           </div>
         </div>
         
-        <div className="flex gap-3">
-           <button 
-            onClick={() => setView({ type: 'IDEAS' })}
-            className="bg-white text-slate-700 border border-slate-200 px-6 py-3 rounded-2xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-          >
-             Index Note
-           </button>
-           <button 
-            onClick={() => setView({ type: 'PROJECTS' })}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
-          >
-             <Plus size={18} /> New Workspace
-           </button>
-        </div>
+        <button 
+          onClick={() => setView({ type: 'PROJECTS' })}
+          className="px-8 py-3.5 bg-ios-blue text-white rounded-full font-bold text-[15px] shadow-lg shadow-ios-blue/30 transition-all btn-tactile flex items-center gap-2"
+        >
+           <Plus size={20} /> New Project
+        </button>
       </header>
 
-      {/* Key Metrics */}
+      {/* iOS Widget Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Active Projects" value={activeProjects} icon={<Folder size={22}/>} trend="+12%" onClick={() => setView({ type: 'PROJECTS' })} />
-        <StatCard title="Open Tasks" value={pendingTasks} icon={<Activity size={22}/>} />
-        <StatCard title="Throughput" value={completedTasks} icon={<CheckCircle size={22}/>} trend="Efficient" />
-        <StatCard title="Knowledge Base" value={notes.length} icon={<TrendingUp size={22}/>} onClick={() => setView({ type: 'IDEAS' })} />
+        <MetricCard title="Active" value={activeProjects} icon={<LayoutIcon size={24}/>} trend="+2" onClick={() => setView({ type: 'PROJECTS' })} />
+        <MetricCard title="Tasks" value={pendingTasks} icon={<Activity size={24}/>} trend="In view" />
+        <MetricCard title="Success" value={`${Math.round((completedTasks / (tasks.length || 1)) * 100)}%`} icon={<CheckCircle size={24}/>} />
+        <MetricCard title="Insights" value={notes.length} icon={<TrendingUp size={24}/>} onClick={() => setView({ type: 'IDEAS' })} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Main Operational Feed */}
+        {/* Project Ledger */}
         <div className="lg:col-span-2 space-y-8">
-          <section className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Project Registry</h2>
-              <button onClick={() => setView({ type: 'PROJECTS' })} className="text-[10px] font-black text-indigo-600 uppercase hover:underline flex items-center gap-1">
-                View All <ArrowRight size={12} />
+          <section className="bg-white rounded-[2rem] p-8 border border-ios-gray">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-[14px] font-bold uppercase tracking-widest text-ios-label/40">Projects In Rotation</h2>
+              <button onClick={() => setView({ type: 'PROJECTS' })} className="text-[13px] font-bold text-ios-blue flex items-center gap-1 hover:underline btn-tactile">
+                View All <ArrowRight size={16} />
               </button>
             </div>
-            <div className="divide-y divide-slate-100 p-2">
+            <div className="space-y-4">
               {projects.length === 0 ? (
-                <div className="py-24 text-center">
-                   <Folder className="mx-auto text-slate-100 mb-4" size={48} />
-                   <p className="text-slate-400 text-sm font-semibold italic">No active nodes registered.</p>
+                <div className="py-20 text-center">
+                   <p className="text-ios-label/20 font-bold uppercase tracking-widest">No Active Nodes</p>
                 </div>
-              ) : projects.slice(0, 5).map(project => (
+              ) : projects.slice(0, 4).map(project => (
                 <div 
                   key={project.id} 
                   onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: project.id })}
-                  className="flex items-center gap-6 p-6 hover:bg-slate-50/80 transition-all cursor-pointer group rounded-2xl"
+                  className="flex items-center gap-6 p-6 bg-ios-gray/30 rounded-3xl hover:bg-ios-gray/50 transition-all cursor-pointer group"
                 >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xs font-black border border-slate-200 ${project.progress === 100 ? 'bg-emerald-50 text-emerald-600' : 'bg-white text-slate-400'}`}>
-                    {project.progress}%
+                  <div className="relative">
+                    <svg className="w-12 h-12 transform -rotate-90">
+                      <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="3" fill="transparent" className="text-ios-gray" />
+                      <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={125.6} strokeDashoffset={125.6 - (125.6 * project.progress) / 100} className="text-ios-blue transition-all duration-1000" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-[10px] font-bold">{project.progress}%</span>
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{project.title}</h4>
-                    <p className="text-xs text-slate-500 truncate mt-1 leading-relaxed">{project.description}</p>
+                    <h4 className="text-[17px] font-bold text-ios-label group-hover:text-ios-blue transition-colors tracking-tight leading-tight mb-1">{project.title}</h4>
+                    <p className="text-[13px] text-ios-label/40 truncate font-medium">{project.description}</p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`text-[9px] font-black px-3 py-1 rounded-full border border-slate-200 uppercase tracking-widest ${project.status === ProjectStatus.ACTIVE ? 'text-indigo-600' : 'text-slate-400'}`}>
-                      {project.status}
-                    </span>
-                    <ArrowUpRight size={16} className="text-slate-300 group-hover:text-slate-900 transition-colors" />
-                  </div>
+                  <ArrowUpRight size={20} className="text-ios-label/10 group-hover:text-ios-blue transition-all" />
                 </div>
               ))}
             </div>
           </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <section className="bg-white border border-slate-200 rounded-3xl p-8">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                  <ExternalLink size={14} className="text-slate-300" /> Linked Resources
-                </h3>
-                <div className="space-y-3">
-                  {assets.slice(0, 4).map(asset => (
-                    <a key={asset.id} href={asset.url} target="_blank" className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-100 hover:bg-white transition-all group">
-                       <div className="text-slate-300 group-hover:text-indigo-600"><ExternalLink size={14} /></div>
-                       <span className="text-xs font-bold text-slate-600 group-hover:text-slate-900 truncate flex-1">{asset.name}</span>
-                       <span className="text-[9px] font-black text-slate-300 uppercase">{asset.type}</span>
-                    </a>
-                  ))}
-                  {assets.length === 0 && <p className="text-center py-10 text-slate-300 text-[10px] font-black uppercase italic">No Linked Assets</p>}
-                </div>
-             </section>
-             <section className="bg-white border border-slate-200 rounded-3xl p-8">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                  <Zap size={14} className="text-amber-500" /> Quick Actions
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                   <button onClick={() => setView({ type: 'WHITEBOARD' })} className="flex flex-col items-center gap-4 p-5 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 transition-all group">
-                      <PenTool size={20} className="text-slate-400 group-hover:text-indigo-600" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-900">Visualizer</span>
-                   </button>
-                   <button onClick={() => setView({ type: 'SETTINGS' })} className="flex flex-col items-center gap-4 p-5 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:border-indigo-100 transition-all group">
-                      <Settings size={20} className="text-slate-400 group-hover:text-slate-900" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-900">Config</span>
-                   </button>
-                </div>
-             </section>
-          </div>
+          <section className="bg-ios-label rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-125 transition-transform duration-1000">
+              <Zap size={140} />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4 text-ios-blue">
+                <Sparkles size={18} />
+                <span className="text-[12px] font-bold uppercase tracking-[0.2em]">Synthesis Engine</span>
+              </div>
+              <h4 className="text-2xl font-bold mb-3 tracking-tight">Need a Strategy?</h4>
+              <p className="text-[14px] text-white/50 leading-relaxed mb-8 max-w-sm">Use the AI Architect to generate complex mission plans and architectural blueprints for your projects.</p>
+              <button onClick={() => setView({ type: 'PROJECTS' })} className="bg-white text-ios-label px-10 py-3 rounded-full text-[14px] font-bold transition-all hover:bg-ios-gray btn-tactile">
+                Launch Assistant
+              </button>
+            </div>
+          </section>
         </div>
 
         {/* Intelligence Rail */}
         <div className="space-y-8">
-           <section className="bg-white border border-slate-200 rounded-3xl p-8">
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 mb-2">Throughput Distribution</h3>
-              <p className="text-xs text-slate-400 font-medium mb-8">Overall efficiency of project threads.</p>
+           <section className="bg-white rounded-[2rem] p-8 border border-ios-gray">
+              <h3 className="text-[14px] font-bold uppercase tracking-widest text-ios-label/40 mb-8">Throughput</h3>
               
-              <div className="h-64 relative mb-10">
+              <div className="h-48 relative mb-8">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={taskData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={6} dataKey="value" stroke="none">
+                    <Pie data={taskData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
                       {taskData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '10px', fontWeight: 'bold' }}
-                    />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-4xl font-black text-slate-900 tracking-tighter">{pendingTasks + completedTasks}</span>
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Ops</span>
+                  <span className="text-3xl font-bold tracking-tight">{pendingTasks + completedTasks}</span>
+                  <span className="text-[10px] font-bold text-ios-label/30 uppercase tracking-widest">Active</span>
                 </div>
               </div>
 
               <div className="space-y-3">
                  {taskData.map(item => (
-                    <div key={item.name} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                    <div key={item.name} className="flex items-center justify-between p-4 bg-ios-gray/20 rounded-2xl">
                        <div className="flex items-center gap-3">
                           <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">{item.name}</span>
+                          <span className="text-[13px] font-bold text-ios-label/70">{item.name}</span>
                        </div>
-                       <span className="text-sm font-black text-slate-900">{item.value}</span>
+                       <span className="text-[14px] font-bold text-ios-label">{item.value}</span>
                     </div>
                  ))}
               </div>
            </section>
 
-           <section className="bg-indigo-600 p-8 rounded-3xl text-white shadow-2xl shadow-indigo-100 relative overflow-hidden group">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
-              <h4 className="text-xl font-extrabold mb-2 tracking-tight">AI Assistant</h4>
-              <p className="text-sm text-indigo-100 leading-relaxed mb-8 font-medium">Connect-Engine is ready to optimize your workflow through voice and vision.</p>
-              <button onClick={() => setView({ type: 'PROJECTS' })} className="w-full bg-white text-indigo-700 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all hover:bg-indigo-50 active:scale-95 shadow-lg">
-                Activate Assistant
-              </button>
-           </section>
+           <div className="ios-card p-8 flex items-center justify-between group cursor-pointer" onClick={() => setView({ type: 'WHITEBOARD' })}>
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-2xl bg-ios-blue/10 flex items-center justify-center text-ios-blue group-hover:bg-ios-blue group-hover:text-white transition-all">
+                   <PenTool size={22} />
+                 </div>
+                 <div>
+                   <h4 className="text-[15px] font-bold text-ios-label">Interactive Canvas</h4>
+                   <p className="text-[12px] text-ios-label/30 font-bold uppercase tracking-widest">Spatial Mode</p>
+                 </div>
+              </div>
+              <ArrowRight size={20} className="text-ios-label/10 group-hover:text-ios-blue transition-all" />
+           </div>
         </div>
 
       </div>

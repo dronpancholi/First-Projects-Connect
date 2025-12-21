@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, PenTool, Mic, Sparkles, RefreshCw, CheckCircle, Menu, Zap, Link2, ShieldCheck } from 'lucide-react';
+import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, PenTool, Sparkles, RefreshCw, Menu, Zap, Link2, ShieldCheck, ChevronRight, Code, MoreHorizontal } from 'lucide-react';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
 import VoiceAssistant from './VoiceAssistant.tsx';
@@ -18,25 +18,31 @@ const NavItem: React.FC<{
   label: string; 
   isActive: boolean; 
   onClick: () => void;
-}> = ({ icon, label, isActive, onClick }) => (
+  badge?: string;
+}> = ({ icon, label, isActive, onClick, badge }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all group ${
+    className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[15px] font-semibold transition-all group ${
       isActive 
-        ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100/50' 
-        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+        ? 'bg-ios-blue text-white shadow-lg shadow-ios-blue/20' 
+        : 'text-ios-label/60 hover:bg-ios-label/5'
     }`}
   >
-    <span className={`${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
+    <span className={`${isActive ? 'text-white' : 'text-ios-blue'}`}>
       {icon}
     </span>
-    <span className="flex-1 text-left">{label}</span>
+    <span className="flex-1 text-left tracking-tight">{label}</span>
+    {badge && (
+      <span className={`text-[12px] px-2 py-0.5 rounded-full font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-ios-blue/10 text-ios-blue'}`}>
+        {badge}
+      </span>
+    )}
   </button>
 );
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   const { user, logout } = useAuth();
-  const { isSyncing } = useStore();
+  const { isSyncing, projects } = useStore();
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -62,100 +68,132 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 overflow-hidden">
+    <div className="flex h-screen w-full bg-[#F2F2F7] text-ios-label font-sans selection:bg-ios-blue/20 overflow-hidden">
       
-      {/* Sidebar */}
-      <aside className={`transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'} flex-shrink-0 border-r border-slate-200 bg-white flex flex-col z-20`}>
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100">
-            <Sparkles className="text-white" size={16} />
+      {/* Sidebar - iPadOS Style */}
+      <aside className={`transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isSidebarOpen ? 'w-80' : 'w-0 overflow-hidden'} flex-shrink-0 bg-transparent flex flex-col z-20`}>
+        <div className="p-8 pb-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ios-blue to-ios-indigo flex items-center justify-center shadow-xl shadow-ios-blue/20">
+            <Sparkles className="text-white" size={20} />
           </div>
-          <span className="font-bold text-lg tracking-tight text-slate-900">Connect AI</span>
+          <div>
+            <h1 className="font-bold text-xl tracking-tight leading-none">Connect</h1>
+            <p className="text-[11px] font-bold text-ios-blue uppercase tracking-widest mt-1">iOS Ecosystem</p>
+          </div>
         </div>
 
-        <div className="px-4 py-4 flex-1 space-y-2 overflow-y-auto">
+        <div className="px-4 py-4 flex-1 space-y-1 overflow-y-auto no-scrollbar">
+          <p className="px-4 text-[12px] font-bold text-ios-label/30 uppercase tracking-[0.1em] mb-4 mt-2">Library</p>
           <NavItem 
-            icon={<LayoutGrid size={18} />} 
-            label="Dashboard" 
+            icon={<LayoutGrid size={20} />} 
+            label="Overview" 
             isActive={currentView.type === 'DASHBOARD'} 
             onClick={() => setView({ type: 'DASHBOARD' })} 
           />
           <NavItem 
-            icon={<Folder size={18} />} 
+            icon={<Folder size={20} />} 
             label="Projects" 
             isActive={currentView.type === 'PROJECTS' || currentView.type === 'PROJECT_DETAIL'} 
             onClick={() => setView({ type: 'PROJECTS' })} 
+            badge={projects.length.toString()}
           />
+          
+          <p className="px-4 text-[12px] font-bold text-ios-label/30 uppercase tracking-[0.1em] mb-4 mt-8">Intelligence</p>
           <NavItem 
-            icon={<Lightbulb size={18} />} 
-            label="Ideation" 
+            icon={<Lightbulb size={20} />} 
+            label="Notes" 
             isActive={currentView.type === 'IDEAS'} 
+            /* Fixed typo: setType to setView */
             onClick={() => setView({ type: 'IDEAS' })} 
           />
           <NavItem 
-            icon={<PenTool size={18} />} 
-            label="Visualizer" 
+            icon={<PenTool size={20} />} 
+            label="Canvas" 
             isActive={currentView.type === 'WHITEBOARD'} 
             onClick={() => setView({ type: 'WHITEBOARD' })} 
           />
+          
+          <NavItem 
+            icon={<Settings size={20} />} 
+            label="Preferences" 
+            isActive={currentView.type === 'SETTINGS'} 
+            onClick={() => setView({ type: 'SETTINGS' })} 
+          />
         </div>
 
-        <div className="p-4 border-t border-slate-100 space-y-3 bg-slate-50/30">
-          {/* Connection Status Widget */}
-          <div className="px-3 py-3 rounded-2xl border border-slate-100 bg-white shadow-sm">
-             <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">AI Status</span>
-                <div className={`w-2 h-2 rounded-full ${isAiLinked ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+        <div className="p-6 space-y-4">
+          {/* AI Uplink Status Widget */}
+          <div className="p-4 rounded-[1.5rem] ios-glass border-none shadow-sm space-y-3">
+             <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-ios-label/40 uppercase tracking-widest">AI Status</span>
+                <div className={`w-2 h-2 rounded-full ${isAiLinked ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-400'}`} />
              </div>
              {isAiLinked ? (
-               <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600">
-                  <ShieldCheck size={12} /> Account Linked
+               <div className="flex items-center gap-2 text-[12px] font-bold text-ios-label/70">
+                  <ShieldCheck size={16} className="text-ios-blue" /> Uplink Active
                </div>
              ) : (
                <button 
                  onClick={handleManualLink}
-                 className="w-full flex items-center justify-center gap-2 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
+                 className="w-full flex items-center justify-center gap-2 py-2 bg-ios-blue/10 text-ios-blue rounded-xl text-[12px] font-bold tracking-tight hover:bg-ios-blue/20 transition-all btn-tactile"
                >
-                 <Link2 size={12} /> Link Google
+                 <Link2 size={14} /> Link Google
                </button>
              )}
           </div>
 
           <button 
             onClick={() => setIsVoiceActive(true)}
-            className="w-full flex items-center gap-3 px-4 py-4 text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all shadow-xl shadow-indigo-100 uppercase tracking-widest active:scale-95"
+            className="w-full flex items-center justify-center gap-3 py-4 text-[15px] font-bold text-white bg-ios-label rounded-[1.5rem] transition-all shadow-xl active:scale-95 group"
           >
-            <Zap size={16} />
-            Activate Assistant
+            <Zap size={18} className="text-ios-blue fill-ios-blue group-hover:scale-125 transition-transform" />
+            Engage AI
           </button>
 
-          <div className="pt-4 flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 font-bold text-[10px]">
-              {user?.name?.slice(0, 1).toUpperCase() || 'U'}
+          <div className="flex items-center gap-3 px-2 pt-2">
+            <div className="w-10 h-10 rounded-full bg-ios-blue/10 flex items-center justify-center text-ios-blue font-bold text-sm border border-ios-blue/20">
+              {user?.name?.slice(0, 1).toUpperCase() || 'A'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold text-slate-900 truncate uppercase tracking-wider">{user?.name || 'User'}</p>
+              <p className="text-sm font-bold text-ios-label truncate tracking-tight">{user?.name || 'User'}</p>
+              <p className="text-[11px] font-medium text-ios-label/40 truncate tracking-tight">Active Session</p>
             </div>
-            <button onClick={logout} className="p-2 text-slate-300 hover:text-rose-500 transition-colors">
-              <LogOut size={16} />
+            <button onClick={logout} className="p-2 text-ios-label/20 hover:text-rose-500 transition-colors btn-tactile">
+              <LogOut size={20} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
-        <header className="h-14 border-b border-slate-200 flex items-center px-6 bg-white/80 backdrop-blur-md shrink-0 z-10">
-           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="mr-4 text-slate-400 hover:text-slate-900 transition-colors">
-             <Menu size={20} />
-           </button>
-           <div className="flex-1 flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-             <span className="text-indigo-600">{currentView.type.replace('_', ' ')}</span>
+      {/* Main App Surface */}
+      <main className="flex-1 flex flex-col relative overflow-hidden bg-white m-2 rounded-[2.5rem] shadow-2xl shadow-black/5 border border-white">
+        <header className="h-16 flex items-center px-10 shrink-0 z-10 justify-between">
+           <div className="flex items-center gap-6">
+             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-ios-label/40 hover:text-ios-label transition-colors btn-tactile">
+               <Menu size={22} />
+             </button>
+             <div className="flex items-center gap-3">
+               <span className="text-[13px] font-bold text-ios-label/30 uppercase tracking-[0.2em]">{currentView.type.replace('_', ' ')}</span>
+             </div>
            </div>
-           {isSyncing && <RefreshCw size={14} className="text-indigo-500 animate-spin" />}
+
+           <div className="flex items-center gap-4">
+             {isSyncing && (
+               <div className="flex items-center gap-2 px-3 py-1.5 bg-ios-gray rounded-full">
+                 <RefreshCw size={12} className="text-ios-blue animate-spin" />
+                 <span className="text-[11px] font-bold text-ios-label/50">Syncing</span>
+               </div>
+             )}
+             <button 
+                onClick={() => setIsSpotlightOpen(true)}
+                className="p-3 text-ios-label/40 hover:text-ios-blue transition-all btn-tactile"
+              >
+               <Search size={22} />
+             </button>
+           </div>
         </header>
         
-        <div className="flex-1 overflow-auto relative">
+        <div className="flex-1 overflow-auto relative custom-scrollbar">
           {children}
         </div>
       </main>

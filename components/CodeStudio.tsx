@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { 
@@ -99,7 +100,8 @@ const CodeStudio: React.FC = () => {
     const q = searchQuery.toLowerCase();
     const result: Record<string, CodeSnippet[]> = {};
     Object.entries(folderTree).forEach(([folder, items]) => {
-      const matched = items.filter(s => s.title.toLowerCase().includes(q));
+      /* Fixed: Explicitly cast items to CodeSnippet[] to resolve 'Property filter does not exist on type unknown' */
+      const matched = (items as CodeSnippet[]).filter(s => s.title.toLowerCase().includes(q));
       if (matched.length > 0) result[folder] = matched;
     });
     return result;
@@ -223,7 +225,7 @@ const CodeStudio: React.FC = () => {
                   <span className="truncate flex-1">{folder}</span>
                 </div>
               )}
-              {(folder === 'root' || expandedFolders.has(folder)) && items.map(s => (
+              {(folder === 'root' || expandedFolders.has(folder)) && (items as CodeSnippet[]).map(s => (
                 <div
                   key={s.id}
                   onClick={() => setActiveSnippetId(s.id)}
