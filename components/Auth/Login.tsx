@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
-import { Loader2, ArrowRight, Settings, Database, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRight, Settings, Sparkles } from 'lucide-react';
 
 interface LoginProps {
   onRegisterClick: () => void;
@@ -19,48 +19,48 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
   };
 
   return (
-    <div className="w-full max-w-md p-8 bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-xl border border-gray-100 relative">
+    <div className="w-full max-w-sm p-10 bg-white rounded-2xl shadow-2xl border border-gray-100 relative">
       <button 
         onClick={onSettingsClick}
-        className="absolute top-6 right-6 p-2 text-gray-400 hover:text-black transition-colors"
+        className="absolute top-8 right-8 p-2 text-gray-300 hover:text-black transition-colors"
         title="Settings"
       >
         <Settings size={20} />
       </button>
 
-      <div className="text-center mb-8">
-        <div className="w-14 h-14 bg-gradient-to-br from-brand-blue to-brand-indigo rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-brand-blue/20">
-           <Sparkles className="text-white" size={24} />
+      <div className="text-center mb-10">
+        <div className="w-16 h-16 system-gradient rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-indigo-100 text-white font-display font-bold text-3xl">
+           FP
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">First Projects Connect</h2>
-        <p className="text-sm text-gray-500 mt-2">Sign in to your professional workspace.</p>
+        <h2 className="text-2xl font-display font-bold text-gray-900 tracking-tight">Ecosystem Login</h2>
+        <p className="text-sm text-gray-400 mt-2 font-medium">Access your professional workspace.</p>
       </div>
 
       {error && (
-        <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 flex items-center justify-center font-medium">
+        <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-center justify-center font-bold">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Identity</label>
+          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Professional Identity</label>
           <input 
             type="email" 
             required
-            className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/5 outline-none transition-all text-sm font-medium"
-            placeholder="Email Address"
+            className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-100 focus:border-indigo-600 focus:bg-white outline-none transition-all text-sm font-medium"
+            placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Access Key</label>
+          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Access Credentials</label>
           <input 
             type="password" 
             required
-            className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/5 outline-none transition-all text-sm font-medium"
-            placeholder="Password"
+            className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-100 focus:border-indigo-600 focus:bg-white outline-none transition-all text-sm font-medium"
+            placeholder="Security password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -69,19 +69,19 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
         <button 
           type="submit" 
           disabled={isLoading}
-          className="w-full bg-brand-label text-white font-bold py-4 rounded-2xl mt-4 hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-xl shadow-black/5"
+          className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl mt-4 hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-70 shadow-xl"
         >
-          {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Enter Workspace <ArrowRight size={18} /></>}
+          {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Continue to Workspace <ArrowRight size={18} /></>}
         </button>
       </form>
 
-      <div className="mt-8 text-center">
+      <div className="mt-10 text-center">
         <p className="text-sm text-gray-400">
-          New to the ecosystem?{' '}
-          <button onClick={onRegisterClick} className="text-brand-blue hover:underline font-bold">Initialize Identity</button>
+          New to First Projects?{' '}
+          <button onClick={onRegisterClick} className="text-indigo-600 hover:underline font-bold">Initialize Identity</button>
         </p>
-        <div className="mt-10 pt-6 border-t border-gray-50">
-          <p className="text-[10px] font-black uppercase text-gray-300 tracking-widest">Developed by Dron Pancholi</p>
+        <div className="mt-12 pt-6 border-t border-gray-50">
+          <p className="text-[10px] font-bold uppercase text-gray-300 tracking-widest">First Projects Connect • Dron Pancholi</p>
         </div>
       </div>
     </div>

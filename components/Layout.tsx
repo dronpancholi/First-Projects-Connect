@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, 
-  PenTool, Sparkles, RefreshCw, Menu, Zap, Link2, ShieldCheck, 
-  Command, Box, Layers, User, Lock, Info 
+  LayoutDashboard, Briefcase, FileText, Settings, Search, LogOut, 
+  Palette, Sparkles, RefreshCw, Menu, Zap, Link2, ShieldCheck, 
+  User, Lock, ChevronRight, Bell, Globe
 } from 'lucide-react';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
@@ -17,7 +17,7 @@ interface LayoutProps {
   setView: (view: ViewState) => void;
 }
 
-const SidebarItem: React.FC<{ 
+const NavItem: React.FC<{ 
   icon: React.ReactNode; 
   label: string; 
   isActive: boolean; 
@@ -27,25 +27,26 @@ const SidebarItem: React.FC<{
 }> = ({ icon, label, isActive, onClick, badge, isLocked }) => (
   <button
     onClick={isLocked ? undefined : onClick}
-    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative ${
+    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all group relative ${
       isActive 
-        ? 'bg-white/10 text-white' 
+        ? 'bg-gray-100 text-black' 
         : isLocked 
-          ? 'text-white/20 cursor-not-allowed' 
-          : 'text-white/50 hover:text-white hover:bg-white/5'
+          ? 'text-gray-300 cursor-not-allowed' 
+          : 'text-gray-500 hover:text-black hover:bg-gray-50'
     }`}
   >
-    <span className={`${isActive ? 'text-indigo-400' : ''}`}>
+    <span className={`${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-black'}`}>
       {icon}
     </span>
-    <span className="flex-1 text-left tracking-tight">{label}</span>
-    {isLocked && (
-      <Lock size={12} className="text-white/20" />
-    )}
-    {badge && !isLocked && (
-      <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 font-bold">
+    <span className="flex-1 text-left">{label}</span>
+    {isLocked ? (
+      <Lock size={12} className="text-gray-300" />
+    ) : badge ? (
+      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-bold">
         {badge}
       </span>
+    ) : (
+      <ChevronRight size={14} className={`opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'opacity-0' : ''}`} />
     )}
   </button>
 );
@@ -56,41 +57,35 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [showComingSoon, setShowComingSoon] = useState(false);
-
-  const handleAiTrigger = () => {
-    setShowComingSoon(true);
-    setTimeout(() => setShowComingSoon(false), 3000);
-    // Note: Internal logic setIsVoiceActive(true) preserved but locked via UI
-  };
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 text-slate-900 font-sans overflow-hidden">
+    <div className="flex h-screen w-full bg-white text-gray-900 font-sans overflow-hidden">
       
-      {/* High-Performance Sidebar */}
-      <aside className={`transition-all duration-300 system-sidebar flex flex-col z-30 ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'}`}>
+      {/* Sidebar - Professional Workspace Style */}
+      <aside className={`transition-all duration-300 sidebar-border bg-workspace-sidebar flex flex-col z-30 ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'}`}>
         <div className="p-6 pb-2">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white shrink-0">
-              <Box size={18} strokeWidth={2.5} />
+          {/* Professional Monogram Logo */}
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-9 h-9 system-gradient rounded-lg flex items-center justify-center text-white font-display font-bold text-lg shadow-sm">
+              FP
             </div>
             <div className="min-w-0">
-              <h1 className="font-bold text-[14px] text-white tracking-tight uppercase">First Projects</h1>
-              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-0.5">Connect System</p>
+              <h1 className="font-display font-bold text-[14px] text-gray-900 tracking-tight leading-none">First Projects</h1>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-1">Connect</p>
             </div>
           </div>
 
           <div className="space-y-1">
-            <p className="px-3 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">Core Registry</p>
-            <SidebarItem 
-              icon={<LayoutGrid size={16} />} 
-              label="Mission Control" 
+            <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Main</p>
+            <NavItem 
+              icon={<LayoutDashboard size={16} />} 
+              label="Overview" 
               isActive={currentView.type === 'DASHBOARD'} 
               onClick={() => setView({ type: 'DASHBOARD' })} 
             />
-            <SidebarItem 
-              icon={<Folder size={16} />} 
-              label="Project Nodes" 
+            <NavItem 
+              icon={<Briefcase size={16} />} 
+              label="Workspaces" 
               isActive={currentView.type === 'PROJECTS' || currentView.type === 'PROJECT_DETAIL'} 
               onClick={() => setView({ type: 'PROJECTS' })} 
               badge={projects.length.toString()}
@@ -98,16 +93,16 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           </div>
 
           <div className="space-y-1 mt-8">
-            <p className="px-3 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">Infrastructure</p>
-            <SidebarItem 
-              icon={<Lightbulb size={16} />} 
-              label="Intelligence" 
+            <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Resources</p>
+            <NavItem 
+              icon={<FileText size={16} />} 
+              label="Documentation" 
               isActive={currentView.type === 'IDEAS'} 
               onClick={() => setView({ type: 'IDEAS' })} 
             />
-            <SidebarItem 
-              icon={<PenTool size={16} />} 
-              label="Architect Canvas" 
+            <NavItem 
+              icon={<Palette size={16} />} 
+              label="Visual Board" 
               isActive={currentView.type === 'WHITEBOARD'} 
               onClick={() => setView({ type: 'WHITEBOARD' })} 
             />
@@ -115,74 +110,67 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
         </div>
 
         <div className="mt-auto p-4 space-y-4">
-          <div className="relative group">
+          <div className="coming-soon-lock p-1">
             <button 
-              onClick={handleAiTrigger}
-              className="w-full flex items-center justify-center gap-3 py-3 text-[12px] font-bold text-white bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all active:scale-[0.98]"
+              disabled
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-[12px] font-bold text-gray-500 bg-white border border-gray-200 rounded-lg cursor-not-allowed opacity-50"
             >
-              <Zap size={14} className="text-indigo-400" />
-              Engage Assistant
-              <Lock size={12} className="ml-auto opacity-30" />
+              <Zap size={14} className="text-gray-400" />
+              AI Assistant
             </button>
-            
-            {showComingSoon && (
-              <div className="absolute inset-0 bg-indigo-600 rounded-lg flex items-center justify-center animate-in fade-in zoom-in duration-200">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white">Module Locked: Coming Soon</span>
-              </div>
-            )}
           </div>
 
-          <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg border border-white/5">
-            <div className="w-8 h-8 rounded-md bg-white/10 flex items-center justify-center text-white font-bold text-xs">
+          <div className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs border border-gray-200">
               <User size={14} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-white truncate">{user?.name || 'System Authorized'}</p>
-              <p className="text-[9px] font-black text-indigo-400 uppercase tracking-tighter truncate mt-0.5">Dron Pancholi Dev</p>
+              <p className="text-xs font-bold text-gray-900 truncate">{user?.name || 'Authorized User'}</p>
+              <p className="text-[9px] font-medium text-indigo-600 truncate uppercase tracking-tighter">Developed by Dron Pancholi</p>
             </div>
-            <button onClick={logout} className="text-white/20 hover:text-rose-500 transition-colors">
+            <button onClick={logout} className="text-gray-300 hover:text-red-500 transition-colors">
               <LogOut size={16} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Workspace Surface */}
-      <main className="flex-1 flex flex-col relative overflow-hidden">
-        <header className="h-14 flex items-center px-6 shrink-0 bg-white border-b border-slate-200 justify-between">
-           <div className="flex items-center gap-4">
-             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 text-slate-400 hover:text-slate-900 transition-colors">
-               <Menu size={18} />
+      {/* Main Container */}
+      <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
+        <header className="h-14 flex items-center px-8 shrink-0 border-b border-gray-100 justify-between">
+           <div className="flex items-center gap-6">
+             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 text-gray-400 hover:text-black transition-colors">
+               <Menu size={20} />
              </button>
-             <div className="flex items-center gap-2">
-               <Layers size={14} className="text-slate-300" />
-               <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{currentView.type.replace('_', ' ')} Registry</span>
-             </div>
+             <div className="h-4 w-px bg-gray-200"></div>
+             <nav className="flex items-center gap-2">
+               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{currentView.type.replace('_', ' ')}</span>
+             </nav>
            </div>
 
-           <div className="flex items-center gap-4">
+           <div className="flex items-center gap-6">
              {isSyncing && (
-               <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-100 rounded border border-slate-200">
-                 <RefreshCw size={10} className="text-indigo-600 animate-spin" />
-                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Syncing</span>
+               <div className="flex items-center gap-2">
+                 <RefreshCw size={12} className="text-indigo-600 animate-spin" />
+                 <span className="text-[10px] font-bold text-gray-400 uppercase">Synchronizing</span>
                </div>
              )}
-             <button 
-                onClick={() => setIsSpotlightOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-400 border border-slate-200 rounded-md hover:border-slate-300 transition-all group"
-              >
-               <Search size={14} />
-               <span className="text-[11px] font-bold">Search Nodes...</span>
-               <div className="ml-4 flex items-center gap-1 opacity-50">
-                  <span className="text-[9px] font-black border border-slate-200 px-1 rounded">⌘</span>
-                  <span className="text-[9px] font-black border border-slate-200 px-1 rounded">K</span>
-               </div>
-             </button>
+             <div className="flex items-center gap-4">
+               <button onClick={() => setIsSpotlightOpen(true)} className="p-1 text-gray-400 hover:text-black transition-colors">
+                 <Search size={20} />
+               </button>
+               <button className="p-1 text-gray-400 hover:text-black transition-colors">
+                 <Bell size={20} />
+               </button>
+               <button onClick={() => setView({ type: 'SETTINGS' })} className="p-1 text-gray-400 hover:text-black transition-colors">
+                 <Settings size={20} />
+               </button>
+             </div>
            </div>
         </header>
         
-        <div className="flex-1 overflow-auto relative bg-[#F8FAFC] p-8">
-          <div className="max-w-[1600px] mx-auto">
+        <div className="flex-1 overflow-auto bg-white p-8 lg:p-12">
+          <div className="max-w-[1400px] mx-auto">
             {children}
           </div>
         </div>
@@ -195,7 +183,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           setView={setView}
         />
       )}
-      {/* Voice Assistant is preserved but only triggered by the UI if enabled (locked for now) */}
+      
+      {/* Logic preserved but only active if state is set (locked by UI above) */}
       {isVoiceActive && (
         <VoiceAssistant onClose={() => setIsVoiceActive(false)} />
       )}
