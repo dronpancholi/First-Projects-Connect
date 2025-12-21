@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ViewState, ProjectStatus } from '../types.ts';
-import { Plus, Calendar, X, Folder, Trash2, ArrowRight, LayoutGrid, MoreVertical, Search, Filter } from 'lucide-react';
+import { Plus, Calendar, X, Folder, Trash2, ArrowRight, LayoutGrid, Search, Filter, Layers, Database } from 'lucide-react';
 
 interface ProjectListProps {
   setView: (view: ViewState) => void;
@@ -18,7 +18,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
     if (!newTitle.trim()) return;
     await addProject({
       title: newTitle,
-      description: newDesc || 'Mission critical infrastructure',
+      description: newDesc || 'System-level operational node',
       status: ProjectStatus.IDEA,
       tags: []
     });
@@ -28,87 +28,78 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
   };
 
   return (
-    <div className="p-12 max-w-7xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-        <div className="space-y-4">
-           <div className="flex items-center gap-3">
-             <div className="h-px w-8 bg-indigo-600" />
-             <span className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.4em]">Infrastructure</span>
+    <div className="space-y-10 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-indigo-600">
+             <Database size={14} />
+             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Node Registry</span>
           </div>
-          <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">Project Registry</h1>
-          <p className="text-slate-500 font-medium text-sm">Strategic workspaces for mission execution and data synthesis.</p>
+          <h1 className="text-4xl font-bold text-slate-900 tracking-tighter leading-none">Project Infrastructure</h1>
+          <p className="text-slate-500 text-[13px] font-medium">Full-fidelity workspace management system.</p>
         </div>
         
-        <div className="flex gap-3">
-           <div className="hidden sm:flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
-              <button className="p-2.5 bg-white text-slate-900 rounded-xl shadow-sm"><LayoutGrid size={18}/></button>
-              <button className="p-2.5 text-slate-400 hover:text-slate-600 transition-colors"><Search size={18}/></button>
-              <button className="p-2.5 text-slate-400 hover:text-slate-600 transition-colors"><Filter size={18}/></button>
+        <div className="flex gap-2">
+           <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+              <button className="p-2 text-slate-400 hover:text-indigo-600"><LayoutGrid size={16}/></button>
+              <button className="p-2 text-slate-400 hover:text-indigo-600"><Search size={16}/></button>
+              <button className="p-2 text-slate-400 hover:text-indigo-600"><Filter size={16}/></button>
            </div>
            <button 
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-3xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-100 btn-tactile"
+            className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-200"
           >
-            <Plus size={20} />
-            Initialize Node
+            <Plus size={16} /> Deploy Node
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {projects.map(project => (
           <div 
             key={project.id}
             onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: project.id })}
-            className="pro-card p-10 rounded-[3rem] group flex flex-col h-[380px] cursor-pointer relative overflow-hidden"
+            className="card-system group flex flex-col h-[300px] cursor-pointer relative overflow-hidden"
           >
-            <div className="flex justify-between items-center mb-8">
-              <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${
-                project.status === ProjectStatus.ACTIVE ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                project.status === ProjectStatus.IDEA ? 'bg-amber-50 text-amber-700 border-amber-100' : 
-                'bg-slate-50 text-slate-500 border-slate-100'
+            <div className="p-6 pb-0 flex justify-between items-start">
+              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${
+                project.status === ProjectStatus.ACTIVE ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 
+                'bg-slate-50 text-slate-400 border-slate-200'
               }`}>
                 {project.status}
               </span>
               <button 
-                onClick={(e) => { e.stopPropagation(); if(confirm('Permanently delete node?')) deleteProject(project.id); }}
-                className="p-2.5 rounded-2xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100 btn-tactile"
+                onClick={(e) => { e.stopPropagation(); if(confirm('Purge node data?')) deleteProject(project.id); }}
+                className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded transition-all opacity-0 group-hover:opacity-100"
               >
-                <Trash2 size={18} />
+                <Trash2 size={14} />
               </button>
             </div>
             
-            <div className="flex-1 space-y-4">
-               <h3 className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors tracking-tighter leading-tight line-clamp-2">{project.title}</h3>
-               <p className="text-xs text-slate-500 leading-relaxed font-medium line-clamp-3">{project.description}</p>
+            <div className="p-6 pt-4 flex-1">
+               <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors tracking-tight line-clamp-2 leading-snug">{project.title}</h3>
+               <p className="text-[12px] text-slate-500 mt-2 font-medium line-clamp-3 leading-relaxed">{project.description}</p>
             </div>
             
-            <div className="mt-8 pt-8 border-t border-slate-100 space-y-6">
-               <div className="flex justify-between items-end">
+            <div className="p-6 pt-0 border-t border-slate-50 mt-auto">
+               <div className="flex justify-between items-end mb-4">
                  <div>
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Operational Throughput</span>
-                   <span className="text-xl font-black text-slate-900 tracking-tighter">{project.progress}%</span>
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Health</span>
+                   <div className="flex items-center gap-2">
+                      <span className="text-xl font-black text-slate-900 tracking-tighter">{project.progress}%</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                   </div>
                  </div>
-                 <div className="flex -space-x-3">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[8px] font-black text-slate-400 uppercase">AI</div>
-                    ))}
+                 <div className="text-[9px] font-mono font-bold text-slate-300">
+                    ID: {project.id.slice(0, 8)}
                  </div>
                </div>
                
-               <div className="w-full bg-slate-50 rounded-full h-3 overflow-hidden border border-slate-100 shadow-inner">
+               <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
                  <div 
-                   className={`h-full rounded-full transition-all duration-1000 ${project.progress === 100 ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]' : 'bg-indigo-600 shadow-[0_0_12px_rgba(79,70,229,0.3)]'}`} 
+                   className="h-full bg-indigo-600 transition-all duration-1000" 
                    style={{ width: `${project.progress}%` }}
                  ></div>
-               </div>
-               
-               <div className="flex items-center justify-between">
-                 <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-                   <Calendar size={14} />
-                   <span>Init {new Date(project.createdAt).toLocaleDateString()}</span>
-                 </div>
-                 <ArrowRight size={18} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-2 transition-all" />
                </div>
             </div>
           </div>
@@ -116,57 +107,56 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
 
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all h-[380px] gap-6 group btn-tactile"
+          className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-300 hover:border-indigo-300 hover:text-indigo-600 hover:bg-white transition-all h-[300px] gap-4 group"
         >
-          <div className="w-20 h-20 rounded-[2rem] bg-slate-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-2xl group-hover:shadow-indigo-100 transition-all border border-slate-100 shadow-inner">
-            <Plus size={36} />
+          <div className="w-12 h-12 rounded-lg bg-slate-50 flex items-center justify-center group-hover:scale-110 transition-all border border-slate-100">
+            <Plus size={24} />
           </div>
           <div className="text-center">
-            <span className="block font-black text-xs uppercase tracking-[0.3em] mb-1">Initialize Node</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">Deploy new workspace</span>
+            <span className="block font-black text-[10px] uppercase tracking-[0.2em]">Deploy Node</span>
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">New System Infrastructure</span>
           </div>
         </button>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xl flex items-center justify-center z-[200] p-6 animate-in fade-in zoom-in-95 duration-300">
-          <div className="bg-white rounded-[4rem] shadow-2xl w-full max-w-xl overflow-hidden border border-white/20">
-            <div className="px-12 py-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
-              <div>
-                <h3 className="font-black text-2xl text-slate-900 tracking-tighter leading-none mb-1">Workspace Deployment</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Initialize a new mission critical node</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-3 text-slate-300 hover:text-slate-900 transition-colors btn-tactile">
-                <X size={28} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[200] p-6 animate-in fade-in duration-300">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-slate-200">
+            <div className="px-8 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-sm text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                <Layers size={14} className="text-indigo-600" /> Initialize Node
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-900 transition-colors">
+                <X size={20} />
               </button>
             </div>
             
-            <div className="p-12 space-y-10">
-              <div className="space-y-4">
-                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest">Workspace Title</label>
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Workspace Designation</label>
                 <input 
                   autoFocus
-                  className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-indigo-600 focus:ring-8 focus:ring-indigo-50 outline-none transition-all text-lg font-black tracking-tight placeholder:text-slate-300"
-                  placeholder="Universal Neural Interface"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 outline-none transition-all text-sm font-bold tracking-tight"
+                  placeholder="System Interface Name"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                 />
               </div>
               
-              <div className="space-y-4">
-                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest">Core Objectives</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operational Parameters</label>
                 <textarea 
-                  className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-indigo-600 focus:ring-8 focus:ring-indigo-50 outline-none transition-all h-40 resize-none text-base font-medium leading-relaxed placeholder:text-slate-300"
-                  placeholder="Define mission objectives and strategic parameters..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 outline-none transition-all h-32 resize-none text-sm font-medium leading-relaxed"
+                  placeholder="Define strategic objectives..."
                   value={newDesc}
                   onChange={e => setNewDesc(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="px-12 py-8 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-6">
-              <button onClick={() => setIsModalOpen(false)} className="px-8 py-4 text-slate-400 font-black hover:text-slate-900 transition-colors text-xs uppercase tracking-widest btn-tactile">Cancel</button>
-              <button onClick={handleCreate} disabled={!newTitle.trim()} className="px-12 py-4 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-700 transition-all text-xs uppercase tracking-widest shadow-2xl shadow-indigo-200 disabled:opacity-50 btn-tactile">Initialize</button>
+            <div className="px-8 py-5 bg-slate-50 border-t border-slate-200 flex justify-end gap-4">
+              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">Abort</button>
+              <button onClick={handleCreate} disabled={!newTitle.trim()} className="px-8 py-2.5 bg-indigo-600 text-white font-black rounded-lg text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100 disabled:opacity-50">Deploy</button>
             </div>
           </div>
         </div>

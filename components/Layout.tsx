@@ -1,6 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, PenTool, Sparkles, RefreshCw, Menu, Zap, Link2, ShieldCheck, ChevronRight, Code, MoreHorizontal } from 'lucide-react';
+import { 
+  LayoutGrid, Folder, Lightbulb, Settings, Search, LogOut, 
+  PenTool, Sparkles, RefreshCw, Menu, Zap, Link2, ShieldCheck, 
+  Command, Box, Layers, User, Lock, Info 
+} from 'lucide-react';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
 import VoiceAssistant from './VoiceAssistant.tsx';
@@ -13,27 +17,33 @@ interface LayoutProps {
   setView: (view: ViewState) => void;
 }
 
-const NavItem: React.FC<{ 
+const SidebarItem: React.FC<{ 
   icon: React.ReactNode; 
   label: string; 
   isActive: boolean; 
   onClick: () => void;
   badge?: string;
-}> = ({ icon, label, isActive, onClick, badge }) => (
+  isLocked?: boolean;
+}> = ({ icon, label, isActive, onClick, badge, isLocked }) => (
   <button
-    onClick={onClick}
-    className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[15px] font-semibold transition-all group ${
+    onClick={isLocked ? undefined : onClick}
+    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative ${
       isActive 
-        ? 'bg-ios-blue text-white shadow-lg shadow-ios-blue/20' 
-        : 'text-ios-label/60 hover:bg-ios-label/5'
+        ? 'bg-white/10 text-white' 
+        : isLocked 
+          ? 'text-white/20 cursor-not-allowed' 
+          : 'text-white/50 hover:text-white hover:bg-white/5'
     }`}
   >
-    <span className={`${isActive ? 'text-white' : 'text-ios-blue'}`}>
+    <span className={`${isActive ? 'text-indigo-400' : ''}`}>
       {icon}
     </span>
     <span className="flex-1 text-left tracking-tight">{label}</span>
-    {badge && (
-      <span className={`text-[12px] px-2 py-0.5 rounded-full font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-ios-blue/10 text-ios-blue'}`}>
+    {isLocked && (
+      <Lock size={12} className="text-white/20" />
+    )}
+    {badge && !isLocked && (
+      <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 font-bold">
         {badge}
       </span>
     )}
@@ -46,155 +56,135 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isAiLinked, setIsAiLinked] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
-  useEffect(() => {
-    const checkKey = async () => {
-      if ((window as any).aistudio?.hasSelectedApiKey) {
-        const linked = await (window as any).aistudio.hasSelectedApiKey();
-        setIsAiLinked(linked);
-      }
-    };
-    checkKey();
-    const interval = setInterval(checkKey, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleManualLink = async () => {
-    if ((window as any).aistudio?.openSelectKey) {
-      await (window as any).aistudio.openSelectKey();
-      setIsAiLinked(true);
-    }
+  const handleAiTrigger = () => {
+    setShowComingSoon(true);
+    setTimeout(() => setShowComingSoon(false), 3000);
+    // Note: Internal logic setIsVoiceActive(true) preserved but locked via UI
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#F2F2F7] text-ios-label font-sans selection:bg-ios-blue/20 overflow-hidden">
+    <div className="flex h-screen w-full bg-slate-50 text-slate-900 font-sans overflow-hidden">
       
-      {/* Sidebar - iPadOS Style */}
-      <aside className={`transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isSidebarOpen ? 'w-80' : 'w-0 overflow-hidden'} flex-shrink-0 bg-transparent flex flex-col z-20`}>
-        <div className="p-8 pb-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ios-blue to-ios-indigo flex items-center justify-center shadow-xl shadow-ios-blue/20">
-            <Sparkles className="text-white" size={20} />
+      {/* High-Performance Sidebar */}
+      <aside className={`transition-all duration-300 system-sidebar flex flex-col z-30 ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'}`}>
+        <div className="p-6 pb-2">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white shrink-0">
+              <Box size={18} strokeWidth={2.5} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-bold text-[14px] text-white tracking-tight uppercase">First Projects</h1>
+              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-0.5">Connect System</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-xl tracking-tight leading-none">Connect</h1>
-            <p className="text-[11px] font-bold text-ios-blue uppercase tracking-widest mt-1">iOS Ecosystem</p>
+
+          <div className="space-y-1">
+            <p className="px-3 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">Core Registry</p>
+            <SidebarItem 
+              icon={<LayoutGrid size={16} />} 
+              label="Mission Control" 
+              isActive={currentView.type === 'DASHBOARD'} 
+              onClick={() => setView({ type: 'DASHBOARD' })} 
+            />
+            <SidebarItem 
+              icon={<Folder size={16} />} 
+              label="Project Nodes" 
+              isActive={currentView.type === 'PROJECTS' || currentView.type === 'PROJECT_DETAIL'} 
+              onClick={() => setView({ type: 'PROJECTS' })} 
+              badge={projects.length.toString()}
+            />
+          </div>
+
+          <div className="space-y-1 mt-8">
+            <p className="px-3 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">Infrastructure</p>
+            <SidebarItem 
+              icon={<Lightbulb size={16} />} 
+              label="Intelligence" 
+              isActive={currentView.type === 'IDEAS'} 
+              onClick={() => setView({ type: 'IDEAS' })} 
+            />
+            <SidebarItem 
+              icon={<PenTool size={16} />} 
+              label="Architect Canvas" 
+              isActive={currentView.type === 'WHITEBOARD'} 
+              onClick={() => setView({ type: 'WHITEBOARD' })} 
+            />
           </div>
         </div>
 
-        <div className="px-4 py-4 flex-1 space-y-1 overflow-y-auto no-scrollbar">
-          <p className="px-4 text-[12px] font-bold text-ios-label/30 uppercase tracking-[0.1em] mb-4 mt-2">Library</p>
-          <NavItem 
-            icon={<LayoutGrid size={20} />} 
-            label="Overview" 
-            isActive={currentView.type === 'DASHBOARD'} 
-            onClick={() => setView({ type: 'DASHBOARD' })} 
-          />
-          <NavItem 
-            icon={<Folder size={20} />} 
-            label="Projects" 
-            isActive={currentView.type === 'PROJECTS' || currentView.type === 'PROJECT_DETAIL'} 
-            onClick={() => setView({ type: 'PROJECTS' })} 
-            badge={projects.length.toString()}
-          />
-          
-          <p className="px-4 text-[12px] font-bold text-ios-label/30 uppercase tracking-[0.1em] mb-4 mt-8">Intelligence</p>
-          <NavItem 
-            icon={<Lightbulb size={20} />} 
-            label="Notes" 
-            isActive={currentView.type === 'IDEAS'} 
-            /* Fixed typo: setType to setView */
-            onClick={() => setView({ type: 'IDEAS' })} 
-          />
-          <NavItem 
-            icon={<PenTool size={20} />} 
-            label="Canvas" 
-            isActive={currentView.type === 'WHITEBOARD'} 
-            onClick={() => setView({ type: 'WHITEBOARD' })} 
-          />
-          
-          <NavItem 
-            icon={<Settings size={20} />} 
-            label="Preferences" 
-            isActive={currentView.type === 'SETTINGS'} 
-            onClick={() => setView({ type: 'SETTINGS' })} 
-          />
-        </div>
-
-        <div className="p-6 space-y-4">
-          {/* AI Uplink Status Widget */}
-          <div className="p-4 rounded-[1.5rem] ios-glass border-none shadow-sm space-y-3">
-             <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-ios-label/40 uppercase tracking-widest">AI Status</span>
-                <div className={`w-2 h-2 rounded-full ${isAiLinked ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-400'}`} />
-             </div>
-             {isAiLinked ? (
-               <div className="flex items-center gap-2 text-[12px] font-bold text-ios-label/70">
-                  <ShieldCheck size={16} className="text-ios-blue" /> Uplink Active
-               </div>
-             ) : (
-               <button 
-                 onClick={handleManualLink}
-                 className="w-full flex items-center justify-center gap-2 py-2 bg-ios-blue/10 text-ios-blue rounded-xl text-[12px] font-bold tracking-tight hover:bg-ios-blue/20 transition-all btn-tactile"
-               >
-                 <Link2 size={14} /> Link Google
-               </button>
-             )}
+        <div className="mt-auto p-4 space-y-4">
+          <div className="relative group">
+            <button 
+              onClick={handleAiTrigger}
+              className="w-full flex items-center justify-center gap-3 py-3 text-[12px] font-bold text-white bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all active:scale-[0.98]"
+            >
+              <Zap size={14} className="text-indigo-400" />
+              Engage Assistant
+              <Lock size={12} className="ml-auto opacity-30" />
+            </button>
+            
+            {showComingSoon && (
+              <div className="absolute inset-0 bg-indigo-600 rounded-lg flex items-center justify-center animate-in fade-in zoom-in duration-200">
+                <span className="text-[10px] font-black uppercase tracking-widest text-white">Module Locked: Coming Soon</span>
+              </div>
+            )}
           </div>
 
-          <button 
-            onClick={() => setIsVoiceActive(true)}
-            className="w-full flex items-center justify-center gap-3 py-4 text-[15px] font-bold text-white bg-ios-label rounded-[1.5rem] transition-all shadow-xl active:scale-95 group"
-          >
-            <Zap size={18} className="text-ios-blue fill-ios-blue group-hover:scale-125 transition-transform" />
-            Engage AI
-          </button>
-
-          <div className="flex items-center gap-3 px-2 pt-2">
-            <div className="w-10 h-10 rounded-full bg-ios-blue/10 flex items-center justify-center text-ios-blue font-bold text-sm border border-ios-blue/20">
-              {user?.name?.slice(0, 1).toUpperCase() || 'A'}
+          <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg border border-white/5">
+            <div className="w-8 h-8 rounded-md bg-white/10 flex items-center justify-center text-white font-bold text-xs">
+              <User size={14} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-ios-label truncate tracking-tight">{user?.name || 'User'}</p>
-              <p className="text-[11px] font-medium text-ios-label/40 truncate tracking-tight">Active Session</p>
+              <p className="text-xs font-bold text-white truncate">{user?.name || 'System Authorized'}</p>
+              <p className="text-[9px] font-black text-indigo-400 uppercase tracking-tighter truncate mt-0.5">Dron Pancholi Dev</p>
             </div>
-            <button onClick={logout} className="p-2 text-ios-label/20 hover:text-rose-500 transition-colors btn-tactile">
-              <LogOut size={20} />
+            <button onClick={logout} className="text-white/20 hover:text-rose-500 transition-colors">
+              <LogOut size={16} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Main App Surface */}
-      <main className="flex-1 flex flex-col relative overflow-hidden bg-white m-2 rounded-[2.5rem] shadow-2xl shadow-black/5 border border-white">
-        <header className="h-16 flex items-center px-10 shrink-0 z-10 justify-between">
-           <div className="flex items-center gap-6">
-             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-ios-label/40 hover:text-ios-label transition-colors btn-tactile">
-               <Menu size={22} />
+      {/* Main Workspace Surface */}
+      <main className="flex-1 flex flex-col relative overflow-hidden">
+        <header className="h-14 flex items-center px-6 shrink-0 bg-white border-b border-slate-200 justify-between">
+           <div className="flex items-center gap-4">
+             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 text-slate-400 hover:text-slate-900 transition-colors">
+               <Menu size={18} />
              </button>
-             <div className="flex items-center gap-3">
-               <span className="text-[13px] font-bold text-ios-label/30 uppercase tracking-[0.2em]">{currentView.type.replace('_', ' ')}</span>
+             <div className="flex items-center gap-2">
+               <Layers size={14} className="text-slate-300" />
+               <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{currentView.type.replace('_', ' ')} Registry</span>
              </div>
            </div>
 
            <div className="flex items-center gap-4">
              {isSyncing && (
-               <div className="flex items-center gap-2 px-3 py-1.5 bg-ios-gray rounded-full">
-                 <RefreshCw size={12} className="text-ios-blue animate-spin" />
-                 <span className="text-[11px] font-bold text-ios-label/50">Syncing</span>
+               <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-100 rounded border border-slate-200">
+                 <RefreshCw size={10} className="text-indigo-600 animate-spin" />
+                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Syncing</span>
                </div>
              )}
              <button 
                 onClick={() => setIsSpotlightOpen(true)}
-                className="p-3 text-ios-label/40 hover:text-ios-blue transition-all btn-tactile"
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-400 border border-slate-200 rounded-md hover:border-slate-300 transition-all group"
               >
-               <Search size={22} />
+               <Search size={14} />
+               <span className="text-[11px] font-bold">Search Nodes...</span>
+               <div className="ml-4 flex items-center gap-1 opacity-50">
+                  <span className="text-[9px] font-black border border-slate-200 px-1 rounded">⌘</span>
+                  <span className="text-[9px] font-black border border-slate-200 px-1 rounded">K</span>
+               </div>
              </button>
            </div>
         </header>
         
-        <div className="flex-1 overflow-auto relative custom-scrollbar">
-          {children}
+        <div className="flex-1 overflow-auto relative bg-[#F8FAFC] p-8">
+          <div className="max-w-[1600px] mx-auto">
+            {children}
+          </div>
         </div>
       </main>
 
@@ -205,6 +195,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           setView={setView}
         />
       )}
+      {/* Voice Assistant is preserved but only triggered by the UI if enabled (locked for now) */}
       {isVoiceActive && (
         <VoiceAssistant onClose={() => setIsVoiceActive(false)} />
       )}

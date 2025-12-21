@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { X, MicOff, Sparkles, Loader2, Zap, AlertCircle, Info, Link2, Mic } from 'lucide-react';
+import { X, MicOff, Sparkles, Loader2, Zap, AlertCircle, Link2, Mic, Cpu } from 'lucide-react';
 
 const encode = (bytes: Uint8Array) => {
   let b = '';
@@ -67,21 +67,14 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const startSession = async () => {
     setIsConnecting(true);
     setError(null);
-    
     try {
-      if (!process.env.API_KEY && (window as any).aistudio?.openSelectKey) {
-        await (window as any).aistudio.openSelectKey();
-      }
-
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { sampleRate: 16000, echoCancellation: true, noiseSuppression: true }
       });
       streamRef.current = stream;
-
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       outCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       inCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks: {
@@ -111,11 +104,10 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               transcriptionRef.current.agent += msg.serverContent.outputTranscription.text;
             }
             if (msg.serverContent?.turnComplete) {
-              setTranscriptions(prev => [
-                ...prev, 
+              setTranscriptions(prev => [...prev, 
                 {role: 'user' as const, text: transcriptionRef.current.user},
                 {role: 'agent' as const, text: transcriptionRef.current.agent}
-              ].slice(-3));
+              ].slice(-4));
               transcriptionRef.current = { user: '', agent: '' };
             }
             if (msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data) {
@@ -134,7 +126,7 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           onclose: () => cleanup(),
           onerror: (e: any) => { 
             console.error(e);
-            setError("Link unstable.");
+            setError("Bridge connection failed.");
             cleanup(); 
           }
         },
@@ -142,13 +134,13 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           responseModalities: [Modality.AUDIO],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
-          systemInstruction: "You are Connect, a professional AI assistant. Be concise, direct, and human."
+          systemInstruction: "You are First Projects Connect System Assistant. Developed by Dron Pancholi. Be professional and efficient."
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
       console.error(err);
-      setError("Authorization required.");
+      setError("Uplink Authorization Required.");
       setIsConnecting(false);
       cleanup();
     }
@@ -157,71 +149,77 @@ const VoiceAssistant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useEffect(() => () => cleanup(), [cleanup]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-ios-gray/40 backdrop-blur-[40px] animate-in fade-in duration-500">
-      
-      {/* Background Orbs */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-ios-blue/40 rounded-full assistant-orb" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-ios-indigo/30 rounded-full assistant-orb" style={{ animationDelay: '-2s' }} />
-
-      <button onClick={onClose} className="absolute top-12 right-12 p-3 text-ios-label/20 hover:text-ios-label transition-colors btn-tactile">
-        <X size={32} />
-      </button>
-
-      <div className="relative z-10 w-full max-w-2xl flex flex-col items-center text-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="w-full max-w-xl bg-white rounded-xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] border border-slate-200 overflow-hidden flex flex-col relative">
+        <div className="absolute top-0 left-0 w-full h-1 bg-indigo-600" />
         
-        {/* Visualizer Orb */}
-        <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-1000 ${isActive ? 'scale-110' : 'scale-100'}`}>
-          <div className={`w-full h-full rounded-full bg-gradient-to-br from-ios-blue to-ios-indigo shadow-[0_0_50px_rgba(0,122,255,0.4)] flex items-center justify-center transition-all ${isActive ? 'animate-pulse' : ''}`}>
-             {isConnecting ? <Loader2 className="animate-spin text-white" size={40} /> : <Zap className="text-white fill-white" size={40} />}
+        <header className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+          <div className="flex items-center gap-3">
+            <Cpu size={18} className="text-indigo-600" />
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">System Interface Assistant</h2>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-900 transition-colors">
+            <X size={20} />
+          </button>
+        </header>
+
+        <div className="p-10 flex flex-col items-center text-center">
+          <div className={`w-24 h-24 rounded-2xl flex items-center justify-center transition-all duration-500 border ${isActive ? 'bg-indigo-600 text-white shadow-2xl shadow-indigo-200 border-indigo-600' : 'bg-slate-50 text-slate-300 border-slate-100'}`}>
+             {isConnecting ? <Loader2 className="animate-spin" size={32} /> : isActive ? <Sparkles size={32} className="animate-pulse" /> : <Zap size={32} />}
+          </div>
+
+          <div className="mt-8 space-y-2">
+            <h3 className="text-2xl font-bold tracking-tight text-slate-900">
+              {isActive ? "Telemetry Active" : isConnecting ? "Establishing Bridge..." : "Uplink Idle"}
+            </h3>
+            <p className="text-[13px] font-medium text-slate-400 max-w-xs mx-auto">
+              Natural Language Processing Module v1.0. Ready for architectural command sequence.
+            </p>
+          </div>
+
+          {error && (
+            <div className="mt-6 flex items-center gap-2 text-rose-600 bg-rose-50 px-4 py-2 rounded-lg border border-rose-100 text-[11px] font-bold uppercase tracking-widest">
+              <AlertCircle size={14} />
+              {error}
+            </div>
+          )}
+
+          <div className="mt-10 w-full flex gap-3">
+            {!isActive && !isConnecting && (
+              <button 
+                onClick={startSession} 
+                className="flex-1 bg-slate-900 text-white py-3.5 rounded-lg font-black text-[11px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg active:scale-[0.98]"
+              >
+                Initialize Session
+              </button>
+            )}
+            {isActive && (
+              <button onClick={cleanup} className="flex-1 bg-slate-100 text-slate-900 py-3.5 rounded-lg font-black text-[11px] uppercase tracking-[0.2em] border border-slate-200 hover:bg-slate-200 transition-all">
+                Terminate Link
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="mt-12 space-y-4">
-          <h2 className="text-4xl font-bold tracking-tight text-ios-label">
-            {isActive ? "I'm Listening" : isConnecting ? "Linking AI..." : "Connect Assistant"}
-          </h2>
-          <p className="text-[17px] font-medium text-ios-label/40 max-w-sm mx-auto">
-            Native audio reasoning enabled. Speak freely to manage your ecosystem.
-          </p>
-        </div>
-
-        {error && (
-          <div className="mt-8 flex items-center gap-3 text-rose-600 bg-rose-50 px-6 py-3 rounded-full border border-rose-100">
-            <AlertCircle size={18} />
-            <p className="text-[13px] font-bold uppercase tracking-widest">{error}</p>
+        {/* System Logs / Transcription */}
+        {transcriptions.length > 0 && (
+          <div className="bg-slate-50 border-t border-slate-100 p-6 space-y-4 max-h-48 overflow-y-auto">
+            {transcriptions.map((t, i) => (
+              <div key={i} className={`flex flex-col ${t.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${t.role === 'user' ? 'text-slate-300' : 'text-indigo-400'}`}>
+                  {t.role === 'user' ? 'Input Node' : 'System Agent'}
+                </div>
+                <div className={`max-w-[85%] px-4 py-2.5 rounded-lg text-[13px] font-medium leading-relaxed ${t.role === 'user' ? 'bg-white text-slate-600 border border-slate-200' : 'bg-indigo-600 text-white shadow-md'}`}>
+                  {t.text}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        <div className="mt-16 w-full max-w-xs">
-          {!isActive && !isConnecting && (
-            <button 
-              onClick={startSession} 
-              className="w-full bg-ios-blue text-white py-4 rounded-full font-bold text-[17px] shadow-2xl shadow-ios-blue/30 transition-all btn-tactile flex items-center justify-center gap-3"
-            >
-              <Mic size={20} /> Activate Now
-            </button>
-          )}
-          {isActive && (
-            <button onClick={cleanup} className="w-full bg-ios-label text-white py-4 rounded-full font-bold text-[17px] transition-all btn-tactile">
-              Dismiss
-            </button>
-          )}
-        </div>
-
-        {/* Live Transcription Overlay */}
-        <div className="mt-16 w-full space-y-4">
-          {transcriptions.map((t, i) => (
-            <div key={i} className={`flex flex-col ${t.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-4 duration-500`}>
-              <div className={`max-w-[80%] px-6 py-3 rounded-[1.5rem] text-[15px] font-medium leading-relaxed ${t.role === 'user' ? 'bg-white text-ios-label shadow-sm' : 'text-ios-blue'}`}>
-                {t.text}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      <div className="absolute bottom-12 flex items-center gap-2 text-ios-label/20 text-[11px] font-bold uppercase tracking-[0.2em]">
-        <Link2 size={12} /> Encrypted Uplink Active
+        <footer className="p-4 bg-slate-950 text-white/20 text-[8px] font-black uppercase tracking-[0.4em] text-center border-t border-white/5">
+           FP-Connect Utility Layer • Developed by Dron Pancholi
+        </footer>
       </div>
     </div>
   );
