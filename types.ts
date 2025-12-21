@@ -7,15 +7,18 @@ export enum ProjectStatus {
 }
 
 export enum TaskStatus {
-  PENDING = 'Pending',
+  BACKLOG = 'Backlog',
+  TODO = 'To Do',
   IN_PROGRESS = 'In Progress',
+  REVIEW = 'Review',
   DONE = 'Done'
 }
 
 export enum Priority {
   LOW = 'Low',
   MEDIUM = 'Medium',
-  HIGH = 'High'
+  HIGH = 'High',
+  CRITICAL = 'Critical'
 }
 
 export interface User {
@@ -29,7 +32,40 @@ export interface Note {
   projectId?: string;
   title: string;
   content: string;
+  category?: 'meeting' | 'research' | 'scratchpad';
   updatedAt: Date;
+}
+
+export interface FinancialEntry {
+  id: string;
+  projectId: string;
+  amount: number;
+  type: 'expense' | 'revenue';
+  description: string;
+  date: Date;
+}
+
+export interface Stakeholder {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  linkedProjectId?: string;
+}
+
+export interface AutomationRule {
+  id: string;
+  trigger: string;
+  action: string;
+  isActive: boolean;
+}
+
+export interface Resource {
+  id: string;
+  name: string;
+  type: 'hardware' | 'software' | 'subscription';
+  status: 'active' | 'expired' | 'maintenance';
+  expiryDate?: Date;
 }
 
 export interface CodeSnippet {
@@ -100,6 +136,11 @@ export type ViewState =
   | { type: 'DASHBOARD' }
   | { type: 'PROJECTS' }
   | { type: 'PROJECT_DETAIL'; projectId: string }
+  | { type: 'KANBAN' }
+  | { type: 'FINANCIALS' }
+  | { type: 'CRM' }
+  | { type: 'AUTOMATION' }
+  | { type: 'RESOURCES' }
   | { type: 'IDEAS' }
   | { type: 'WHITEBOARD' }
   | { type: 'SETTINGS' };

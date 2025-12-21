@@ -71,7 +71,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
 
   const handleTaskToggle = (task: Task) => {
     updateTask(task.id, {
-      status: task.status === TaskStatus.DONE ? TaskStatus.PENDING : TaskStatus.DONE
+      // Fix: Changed TaskStatus.PENDING to TaskStatus.TODO
+      status: task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE
     });
   };
 
@@ -95,7 +96,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
       await addTask({
         projectId,
         title: st,
-        status: TaskStatus.PENDING,
+        // Fix: Changed TaskStatus.PENDING to TaskStatus.TODO
+        status: TaskStatus.TODO,
         priority: task.priority
       });
     }
@@ -193,7 +195,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                 </div>
               </div>
               <button 
-                onClick={() => addTask({ projectId, title: 'New objective...', status: TaskStatus.PENDING, priority: Priority.MEDIUM })}
+                // Fix: Changed TaskStatus.PENDING to TaskStatus.TODO
+                onClick={() => addTask({ projectId, title: 'New objective...', status: TaskStatus.TODO, priority: Priority.MEDIUM })}
                 className="flex items-center gap-3 bg-slate-900 text-white px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all btn-tactile shadow-xl"
               >
                 <Plus size={16} /> New Objective

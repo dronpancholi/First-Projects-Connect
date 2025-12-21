@@ -71,7 +71,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     id: t?.id || String(Math.random()),
     projectId: t?.project_id || t?.projectId || '',
     title: t?.title || 'Untitled Task',
-    status: (t?.status as TaskStatus) || TaskStatus.PENDING,
+    // Fix: Changed TaskStatus.PENDING to TaskStatus.TODO as PENDING is not in the enum
+    status: (t?.status as TaskStatus) || TaskStatus.TODO,
     priority: (t?.priority as Priority) || Priority.MEDIUM,
     dueDate: t?.due_date ? new Date(t.due_date) : undefined
   }), []);

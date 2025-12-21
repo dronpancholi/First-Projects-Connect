@@ -8,6 +8,11 @@ import ProjectList from './components/ProjectList.tsx';
 import ProjectDetail from './components/ProjectDetail.tsx';
 import IdeasView from './components/IdeasView.tsx';
 import Whiteboard from './components/Whiteboard.tsx';
+import KanbanView from './components/KanbanView.tsx';
+import FinancialOps from './components/FinancialOps.tsx';
+import CRMView from './components/CRMView.tsx';
+import AutomationEngine from './components/AutomationEngine.tsx';
+import ResourcesView from './components/ResourcesView.tsx';
 import Login from './components/Auth/Login.tsx';
 import Register from './components/Auth/Register.tsx';
 import Settings from './components/Settings.tsx';
@@ -26,6 +31,16 @@ const AuthenticatedApp: React.FC = () => {
         return <ProjectList setView={setView} />;
       case 'PROJECT_DETAIL':
         return <ProjectDetail projectId={currentView.projectId} onBack={() => setView({ type: 'PROJECTS' })} />;
+      case 'KANBAN':
+        return <KanbanView setView={setView} />;
+      case 'FINANCIALS':
+        return <FinancialOps setView={setView} />;
+      case 'CRM':
+        return <CRMView setView={setView} />;
+      case 'AUTOMATION':
+        return <AutomationEngine setView={setView} />;
+      case 'RESOURCES':
+        return <ResourcesView setView={setView} />;
       case 'IDEAS':
         return <IdeasView />;
       case 'WHITEBOARD':
@@ -59,7 +74,6 @@ const AuthFlow: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  // If showing settings (triggered from Login)
   if (showSettings) {
     return (
       <div className="min-h-screen bg-apple-gray flex flex-col items-center justify-center p-4">

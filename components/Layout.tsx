@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { 
   LayoutDashboard, Briefcase, FileText, Settings, Search, LogOut, 
   Palette, Sparkles, RefreshCw, Menu, Zap, Link2, ShieldCheck, 
-  User, Lock, ChevronRight, Bell, Globe
+  User, Lock, ChevronRight, Bell, Globe, Trello, CreditCard, 
+  Users, Activity, Box, Terminal, Clock, HeartPulse
 } from 'lucide-react';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
@@ -27,7 +28,7 @@ const NavItem: React.FC<{
 }> = ({ icon, label, isActive, onClick, badge, isLocked }) => (
   <button
     onClick={isLocked ? undefined : onClick}
-    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all group relative ${
+    className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all group relative ${
       isActive 
         ? 'bg-gray-100 text-black' 
         : isLocked 
@@ -40,30 +41,30 @@ const NavItem: React.FC<{
     </span>
     <span className="flex-1 text-left">{label}</span>
     {isLocked ? (
-      <Lock size={12} className="text-gray-300" />
+      <Lock size={10} className="text-gray-300" />
     ) : badge ? (
-      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-bold">
+      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-bold">
         {badge}
       </span>
-    ) : (
-      <ChevronRight size={14} className={`opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'opacity-0' : ''}`} />
-    )}
+    ) : null}
   </button>
 );
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   const { user, logout } = useAuth();
-  const { isSyncing, projects } = useStore();
+  const { isSyncing, projects, tasks } = useStore();
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  const activeTaskCount = tasks.filter(t => t.status !== 'Done').length;
+
   return (
     <div className="flex h-screen w-full bg-white text-gray-900 font-sans overflow-hidden">
       
-      {/* Sidebar - Professional Workspace Style */}
+      {/* Professional Sidebar */}
       <aside className={`transition-all duration-300 sidebar-border bg-workspace-sidebar flex flex-col z-30 ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'}`}>
-        <div className="p-6 pb-2">
+        <div className="p-6 pb-2 overflow-y-auto custom-scrollbar flex-1">
           {/* Professional Monogram Logo */}
           <div className="flex items-center gap-3 mb-10">
             <div className="w-9 h-9 system-gradient rounded-lg flex items-center justify-center text-white font-display font-bold text-lg shadow-sm">
@@ -71,65 +72,102 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
             </div>
             <div className="min-w-0">
               <h1 className="font-display font-bold text-[14px] text-gray-900 tracking-tight leading-none">First Projects</h1>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-1">Connect</p>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-1">Connect OS</p>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Main</p>
-            <NavItem 
-              icon={<LayoutDashboard size={16} />} 
-              label="Overview" 
-              isActive={currentView.type === 'DASHBOARD'} 
-              onClick={() => setView({ type: 'DASHBOARD' })} 
-            />
-            <NavItem 
-              icon={<Briefcase size={16} />} 
-              label="Workspaces" 
-              isActive={currentView.type === 'PROJECTS' || currentView.type === 'PROJECT_DETAIL'} 
-              onClick={() => setView({ type: 'PROJECTS' })} 
-              badge={projects.length.toString()}
-            />
-          </div>
+          <div className="space-y-6">
+            <section>
+              <p className="px-3 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Core Registry</p>
+              <NavItem 
+                icon={<LayoutDashboard size={14} />} 
+                label="Executive Summary" 
+                isActive={currentView.type === 'DASHBOARD'} 
+                onClick={() => setView({ type: 'DASHBOARD' })} 
+              />
+              <NavItem 
+                icon={<Briefcase size={14} />} 
+                label="Workspaces" 
+                isActive={currentView.type === 'PROJECTS'} 
+                onClick={() => setView({ type: 'PROJECTS' })} 
+                badge={projects.length.toString()}
+              />
+              <NavItem 
+                icon={<Trello size={14} />} 
+                label="Kanban Boards" 
+                isActive={currentView.type === 'KANBAN'} 
+                onClick={() => setView({ type: 'KANBAN' })} 
+                badge={activeTaskCount.toString()}
+              />
+            </section>
 
-          <div className="space-y-1 mt-8">
-            <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Resources</p>
-            <NavItem 
-              icon={<FileText size={16} />} 
-              label="Documentation" 
-              isActive={currentView.type === 'IDEAS'} 
-              onClick={() => setView({ type: 'IDEAS' })} 
-            />
-            <NavItem 
-              icon={<Palette size={16} />} 
-              label="Visual Board" 
-              isActive={currentView.type === 'WHITEBOARD'} 
-              onClick={() => setView({ type: 'WHITEBOARD' })} 
-            />
+            <section>
+              <p className="px-3 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Operations</p>
+              <NavItem 
+                icon={<CreditCard size={14} />} 
+                label="Financial Ledger" 
+                isActive={currentView.type === 'FINANCIALS'} 
+                onClick={() => setView({ type: 'FINANCIALS' })} 
+              />
+              <NavItem 
+                icon={<Users size={14} />} 
+                label="Stakeholder CRM" 
+                isActive={currentView.type === 'CRM'} 
+                onClick={() => setView({ type: 'CRM' })} 
+              />
+              <NavItem 
+                icon={<Activity size={14} />} 
+                label="Automations" 
+                isActive={currentView.type === 'AUTOMATION'} 
+                onClick={() => setView({ type: 'AUTOMATION' })} 
+              />
+              <NavItem 
+                icon={<Box size={14} />} 
+                label="Resources Matrix" 
+                isActive={currentView.type === 'RESOURCES'} 
+                onClick={() => setView({ type: 'RESOURCES' })} 
+              />
+            </section>
+
+            <section>
+              <p className="px-3 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Knowledge</p>
+              <NavItem 
+                icon={<FileText size={14} />} 
+                label="Documentation" 
+                isActive={currentView.type === 'IDEAS'} 
+                onClick={() => setView({ type: 'IDEAS' })} 
+              />
+              <NavItem 
+                icon={<Palette size={14} />} 
+                label="Visual Whiteboard" 
+                isActive={currentView.type === 'WHITEBOARD'} 
+                onClick={() => setView({ type: 'WHITEBOARD' })} 
+              />
+            </section>
           </div>
         </div>
 
-        <div className="mt-auto p-4 space-y-4">
+        <div className="p-4 space-y-4 border-t border-gray-100">
           <div className="coming-soon-lock p-1">
             <button 
               disabled
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-[12px] font-bold text-gray-500 bg-white border border-gray-200 rounded-lg cursor-not-allowed opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-2 text-[11px] font-bold text-gray-500 bg-white border border-gray-200 rounded-lg cursor-not-allowed opacity-50"
             >
-              <Zap size={14} className="text-gray-400" />
-              AI Assistant
+              <Terminal size={12} className="text-gray-400" />
+              Agentic Shell
             </button>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs border border-gray-200">
+          <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-indigo-600 font-bold text-xs border border-gray-100 shadow-sm">
               <User size={14} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-gray-900 truncate">{user?.name || 'Authorized User'}</p>
-              <p className="text-[9px] font-medium text-indigo-600 truncate uppercase tracking-tighter">Developed by Dron Pancholi</p>
+              <p className="text-[11px] font-bold text-gray-900 truncate leading-none mb-1">{user?.name || 'System Authorized'}</p>
+              <p className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Dron Pancholi Dev</p>
             </div>
-            <button onClick={logout} className="text-gray-300 hover:text-red-500 transition-colors">
-              <LogOut size={16} />
+            <button onClick={logout} className="text-gray-300 hover:text-red-500 transition-colors p-1">
+              <LogOut size={14} />
             </button>
           </div>
         </div>
@@ -137,39 +175,34 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
 
       {/* Main Container */}
       <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
-        <header className="h-14 flex items-center px-8 shrink-0 border-b border-gray-100 justify-between">
-           <div className="flex items-center gap-6">
+        <header className="h-12 flex items-center px-8 shrink-0 border-b border-gray-100 justify-between">
+           <div className="flex items-center gap-4">
              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 text-gray-400 hover:text-black transition-colors">
-               <Menu size={20} />
+               <Menu size={18} />
              </button>
-             <div className="h-4 w-px bg-gray-200"></div>
-             <nav className="flex items-center gap-2">
-               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{currentView.type.replace('_', ' ')}</span>
-             </nav>
+             <div className="flex items-center gap-3">
+               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{currentView.type.replace('_', ' ')}</span>
+             </div>
            </div>
 
            <div className="flex items-center gap-6">
-             {isSyncing && (
-               <div className="flex items-center gap-2">
-                 <RefreshCw size={12} className="text-indigo-600 animate-spin" />
-                 <span className="text-[10px] font-bold text-gray-400 uppercase">Synchronizing</span>
+             <div className="flex items-center gap-4 text-gray-400">
+               <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded border border-gray-100">
+                  <HeartPulse size={12} className="text-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-bold uppercase tracking-tighter">System Nominal</span>
                </div>
-             )}
-             <div className="flex items-center gap-4">
-               <button onClick={() => setIsSpotlightOpen(true)} className="p-1 text-gray-400 hover:text-black transition-colors">
-                 <Search size={20} />
+               <button onClick={() => setIsSpotlightOpen(true)} className="p-1 hover:text-black">
+                 <Search size={18} />
                </button>
-               <button className="p-1 text-gray-400 hover:text-black transition-colors">
-                 <Bell size={20} />
-               </button>
-               <button onClick={() => setView({ type: 'SETTINGS' })} className="p-1 text-gray-400 hover:text-black transition-colors">
-                 <Settings size={20} />
+               <button className="p-1 hover:text-black relative">
+                 <Bell size={18} />
+                 <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
                </button>
              </div>
            </div>
         </header>
         
-        <div className="flex-1 overflow-auto bg-white p-8 lg:p-12">
+        <div className="flex-1 overflow-auto bg-[#FFFFFF] p-8 lg:p-12 scroll-smooth">
           <div className="max-w-[1400px] mx-auto">
             {children}
           </div>
@@ -184,7 +217,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
         />
       )}
       
-      {/* Logic preserved but only active if state is set (locked by UI above) */}
       {isVoiceActive && (
         <VoiceAssistant onClose={() => setIsVoiceActive(false)} />
       )}
