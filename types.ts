@@ -78,7 +78,9 @@ export interface Project {
 export interface CanvasElement {
   id: string;
   parentId?: string;
-  type: 'note' | 'text' | 'rect' | 'circle' | 'image' | 'diamond' | 'triangle';
+  fromId?: string;
+  toId?: string;
+  type: 'note' | 'text' | 'rect' | 'circle' | 'image' | 'diamond' | 'triangle' | 'connection';
   x: number;
   y: number;
   content?: string;

@@ -1,19 +1,20 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useStore } from '../context/StoreContext.tsx';
+import { useStore } from '../context/StoreContext';
 import { 
   Plus, MousePointer2, Type, Square, Circle as CircleIcon, 
   StickyNote, X, Wand2, Trash2, Image as ImageIcon, 
   Palette, Sparkles, Send, Layers, Copy, Trash, PenTool, 
   LayoutGrid, Loader2, Maximize, ZoomIn, ZoomOut, Move,
-  Hand, BoxSelect, Network, ArrowRightCircle, Info, Link as LinkIcon
+  Hand, BoxSelect, Network, ArrowRightCircle, Info, Link as LinkIcon,
+  MoveRight
 } from 'lucide-react';
-import { CanvasElement } from '../types.ts';
-import * as GeminiService from '../services/geminiService.ts';
+import { CanvasElement } from '../types';
+import * as GeminiService from '../services/geminiService';
 
 const COLORS = [
   '#FFFFFF', '#F8FAFC', '#EFF6FF', '#ECFDF5', '#FFFBEB', 
-  '#FEF2F2', '#F5F3FF', '#FDF2F8', '#FFF7ED', '#0F172A'
+  '#FEF2F2', '#F5F3FF', '#FDF2F8', '#FFF7ED', '#0F172A', '#4f46e5'
 ];
 
 type ResizeHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -26,7 +27,7 @@ const Whiteboard: React.FC = () => {
   // High-Performance Spatial State
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
-  const [tool, setTool] = useState<'select' | 'pan' | 'note' | 'text' | 'rect' | 'circle' | 'image'>('select');
+  const [tool, setTool] = useState<'select' | 'pan' | 'note' | 'text' | 'rect' | 'circle' | 'image' | 'connection'>('select');
   
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -98,7 +99,7 @@ const Whiteboard: React.FC = () => {
   };
 
   const addElement = async (e: React.MouseEvent) => {
-    if (e.target !== containerRef.current || tool === 'select' || tool === 'pan') return;
+    if (e.target !== containerRef.current || tool === 'select' || tool === 'pan' || tool === 'connection') return;
     if (!activeBoardId) return;
     const { x, y } = screenToCanvas(e.clientX, e.clientY);
     const newEl: CanvasElement = {
@@ -116,14 +117,25 @@ const Whiteboard: React.FC = () => {
   };
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
-    if (tool === 'pan') return;
     e.stopPropagation();
+    
+    if (tool === 'connection') {
+      setLinkingFromId(id);
+      const { x, y } = screenToCanvas(e.clientX, e.clientY);
+      setLinkingToPos({ x, y });
+      return;
+    }
+
+    if (tool === 'pan') return;
+    
     setSelectedId(id);
     const el = elements.find(it => it.id === id);
     if (el) { 
       const { x, y } = screenToCanvas(e.clientX, e.clientY);
-      setDraggingId(id); 
-      setDragOffset({ x: x - el.x, y: y - el.y }); 
+      if (el.type !== 'connection') {
+        setDraggingId(id); 
+        setDragOffset({ x: x - el.x, y: y - el.y }); 
+      }
     }
   };
 
@@ -141,7 +153,11 @@ const Whiteboard: React.FC = () => {
   };
 
   const deleteElement = (id: string) => {
-    const next = elements.filter(el => el.id !== id).map(el => el.parentId === id ? { ...el, parentId: undefined } : el);
+    const next = elements.filter(el => 
+      el.id !== id && 
+      el.fromId !== id && 
+      el.toId !== id
+    ).map(el => el.parentId === id ? { ...el, parentId: undefined } : el);
     setElements(next);
     setSelectedId(null);
     saveElements(next);
@@ -181,11 +197,20 @@ const Whiteboard: React.FC = () => {
       const { x, y } = screenToCanvas(e.clientX, e.clientY);
       const target = elements.find(el => 
         el.id !== linkingFromId && 
+        el.type !== 'connection' &&
         x >= el.x && x <= el.x + (el.width || 200) &&
         y >= el.y && y <= el.y + (el.height || 100)
       );
       if (target) {
-        const next = elements.map(el => el.id === target.id ? { ...el, parentId: linkingFromId } : el);
+        const newConnection: CanvasElement = {
+          id: Math.random().toString(36).substr(2, 9),
+          type: 'connection',
+          fromId: linkingFromId,
+          toId: target.id,
+          x: 0, y: 0, // Not used for connections
+          color: '#4f46e5'
+        };
+        const next = [...elements, newConnection];
         setElements(next);
         saveElements(next);
       }
@@ -236,21 +261,55 @@ const Whiteboard: React.FC = () => {
       <svg className="absolute inset-0 pointer-events-none w-full h-full z-0 overflow-visible">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8" />
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
           </marker>
         </defs>
-        <g opacity="0.3">
+        <g>
           {elements.map(el => {
-            if (!el.parentId) return null;
-            const parent = elements.find(p => p.id === el.parentId);
-            if (!parent) return null;
-            const sX = parent.x + (parent.width || 200) / 2;
-            const sY = parent.y + (parent.height || 100) / 2;
-            const eX = el.x + (el.width || 200) / 2;
-            const eY = el.y + (el.height || 100) / 2;
+            // Support both old hierarchical parentId and new explicit connection elements
+            let from, to;
+            let color = '#94A3B8';
+            let opacity = '0.3';
+            let strokeWidth = '2';
+            let id = el.id;
+
+            if (el.type === 'connection' && el.fromId && el.toId) {
+              from = elements.find(it => it.id === el.fromId);
+              to = elements.find(it => it.id === el.toId);
+              color = el.color || '#4f46e5';
+              opacity = '0.6';
+              strokeWidth = '3';
+            } else if (el.parentId) {
+              from = elements.find(p => p.id === el.parentId);
+              to = el;
+            } else {
+              return null;
+            }
+
+            if (!from || !to) return null;
+
+            const sX = from.x + (from.width || 200) / 2;
+            const sY = from.y + (from.height || 100) / 2;
+            const eX = to.x + (to.width || 200) / 2;
+            const eY = to.y + (to.height || 100) / 2;
             const dx = eX - sX;
+            const isSelected = selectedId === el.id;
+
             return (
-              <path key={`${el.id}-connection`} d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`} fill="none" stroke="#94A3B8" strokeWidth="2" markerEnd="url(#arrow)" />
+              <g key={`${el.id}-connection`} className="pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedId(el.id); }}>
+                {/* Hit test path (wider) */}
+                <path d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`} fill="none" stroke="transparent" strokeWidth="20" />
+                {/* Visual path */}
+                <path 
+                  d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`} 
+                  fill="none" 
+                  stroke={isSelected ? '#4f46e5' : color} 
+                  strokeWidth={isSelected ? '4' : strokeWidth} 
+                  strokeOpacity={isSelected ? '1' : opacity}
+                  markerEnd="url(#arrow)" 
+                  style={{ color: isSelected ? '#4f46e5' : color }}
+                />
+              </g>
             );
           })}
         </g>
@@ -264,13 +323,13 @@ const Whiteboard: React.FC = () => {
               const eX = linkingToPos.x;
               const eY = linkingToPos.y;
               const dx = eX - sX;
-              return <path d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`} fill="none" stroke="#4f46e5" strokeWidth="3" strokeDasharray="5,5" markerEnd="url(#arrow)" />;
+              return <path d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`} fill="none" stroke="#4f46e5" strokeWidth="3" strokeDasharray="5,5" markerEnd="url(#arrow)" style={{ color: '#4f46e5' }} />;
             })()}
           </g>
         )}
       </svg>
     );
-  }, [elements, linkingFromId, linkingToPos]);
+  }, [elements, linkingFromId, linkingToPos, selectedId]);
 
   return (
     <div className="h-full flex flex-col bg-[#f8fafc] relative overflow-hidden select-none font-sans">
@@ -285,7 +344,7 @@ const Whiteboard: React.FC = () => {
 
       {/* Floating Tactical HUD */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-4 pointer-events-none">
-        <div className="pointer-events-auto glass-hud border border-slate-200/50 shadow-2xl rounded-[2.5rem] p-2 flex items-center gap-1">
+        <div className="pointer-events-auto glass-hud border border-slate-200/50 shadow-2xl rounded-[2.5rem] p-2 flex items-center gap-1 bg-white/80 backdrop-blur-xl">
           <div className="flex items-center gap-3 px-6 border-r border-slate-200 mr-2">
              <Network size={16} className="text-indigo-600" />
              <select className="bg-transparent border-none text-[11px] font-black uppercase tracking-widest text-slate-700 focus:ring-0 cursor-pointer min-w-[160px]" value={activeBoardId || ''} onChange={(e) => setActiveBoardId(e.target.value)}>
@@ -296,6 +355,7 @@ const Whiteboard: React.FC = () => {
           {[
             { id: 'select', icon: <MousePointer2 size={18} /> },
             { id: 'pan', icon: <Hand size={18} /> },
+            { id: 'connection', icon: <MoveRight size={18} /> },
             { id: 'note', icon: <StickyNote size={18} /> },
             { id: 'text', icon: <Type size={18} /> },
             { id: 'rect', icon: <Square size={18} /> },
@@ -317,17 +377,17 @@ const Whiteboard: React.FC = () => {
 
       {/* View Controls */}
       <div className="absolute bottom-10 right-10 z-[100] flex flex-col gap-4">
-        <div className="glass-hud border border-slate-200 p-2 rounded-3xl shadow-2xl flex flex-col">
+        <div className="glass-hud border border-slate-200 p-2 rounded-3xl shadow-2xl flex flex-col bg-white/80 backdrop-blur-xl">
           <button onClick={() => setTransform(p => ({ ...p, scale: Math.min(p.scale + 0.1, 5) }))} className="p-3 text-slate-400 hover:text-indigo-600 transition-colors btn-tactile"><ZoomIn size={20}/></button>
           <div className="text-[10px] font-black text-slate-400 text-center py-2">{Math.round(transform.scale * 100)}%</div>
           <button onClick={() => setTransform(p => ({ ...p, scale: Math.max(p.scale - 0.1, 0.1) }))} className="p-3 text-slate-400 hover:text-indigo-600 transition-colors btn-tactile"><ZoomOut size={20}/></button>
         </div>
-        <button onClick={() => setTransform({ x: 0, y: 0, scale: 1 })} className="glass-hud border border-slate-200 p-4 rounded-[1.5rem] shadow-2xl text-slate-400 hover:text-indigo-600 transition-colors btn-tactile"><Maximize size={20}/></button>
+        <button onClick={() => setTransform({ x: 0, y: 0, scale: 1 })} className="glass-hud border border-slate-200 p-4 rounded-[1.5rem] shadow-2xl text-slate-400 hover:text-indigo-600 transition-colors btn-tactile bg-white/80 backdrop-blur-xl"><Maximize size={20}/></button>
       </div>
 
       <div className="absolute top-8 left-8 z-[100] flex gap-3">
-         <button onClick={() => { if(activeBoardId && confirm('Purge workspace?')) deleteWhiteboard(activeBoardId) }} className="glass-hud border border-slate-200 p-4 rounded-2xl shadow-xl text-slate-300 hover:text-rose-500 transition-all btn-tactile"><Trash size={20}/></button>
-         <button onClick={() => addWhiteboard({ title: 'New Visualizer', elements: [] })} className="glass-hud border border-slate-200 p-4 rounded-2xl shadow-xl text-slate-300 hover:text-indigo-600 transition-all btn-tactile"><Plus size={20}/></button>
+         <button onClick={() => { if(activeBoardId && confirm('Purge workspace?')) deleteWhiteboard(activeBoardId) }} className="glass-hud border border-slate-200 p-4 rounded-2xl shadow-xl text-slate-300 hover:text-rose-500 transition-all btn-tactile bg-white/80 backdrop-blur-xl"><Trash size={20}/></button>
+         <button onClick={() => addWhiteboard({ title: 'New Visualizer', elements: [] })} className="glass-hud border border-slate-200 p-4 rounded-2xl shadow-xl text-slate-300 hover:text-indigo-600 transition-all btn-tactile bg-white/80 backdrop-blur-xl"><Plus size={20}/></button>
       </div>
 
       {/* Node Context Bar */}
@@ -341,11 +401,8 @@ const Whiteboard: React.FC = () => {
              </div>
              <div className="w-px h-8 bg-slate-800" />
              <div className="flex items-center gap-6">
-                <button onClick={() => { const n = elements.map(it => it.id === selectedId ? {...it, parentId: undefined} : it); setElements(n); saveElements(n); }} className="text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest flex items-center gap-2 btn-tactile">
-                  <LinkIcon size={14} className="rotate-45" /> Unlink Node
-                </button>
                 <button onClick={() => deleteElement(selectedId)} className="flex items-center gap-2 text-rose-400 font-black text-[10px] uppercase tracking-widest hover:text-rose-300 btn-tactile">
-                  <Trash2 size={18} /> Remove
+                  <Trash2 size={18} /> {elements.find(e => e.id === selectedId)?.type === 'connection' ? 'Delete Arrow' : 'Remove Node'}
                 </button>
              </div>
           </div>
@@ -353,25 +410,28 @@ const Whiteboard: React.FC = () => {
       )}
 
       {/* Infinite Drawing Engine */}
-      <div ref={containerRef} onWheel={onWheel} onMouseDown={(e) => { if (tool === 'pan' || (e.button === 0 && e.target === containerRef.current)) setIsPanning(true); addElement(e); }} className={`flex-1 overflow-hidden relative spatial-grid bg-slate-50 transition-all cursor-${tool === 'pan' || isPanning ? 'grabbing' : tool === 'select' ? 'default' : 'crosshair'}`}>
+      <div ref={containerRef} onWheel={onWheel} onMouseDown={(e) => { if (tool === 'pan' || (e.button === 0 && e.target === containerRef.current)) setIsPanning(true); addElement(e); }} className={`flex-1 overflow-hidden relative spatial-grid bg-slate-50 transition-all cursor-${tool === 'pan' || isPanning ? 'grabbing' : tool === 'select' ? 'default' : tool === 'connection' ? 'crosshair' : 'crosshair'}`}>
         <div style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: '0 0', transition: isPanning ? 'none' : 'transform 0.1s ease-out' }} className="absolute inset-0 pointer-events-none">
           {renderConnections}
-          {elements.map(el => (
-            <div key={el.id} onMouseDown={(e) => handleMouseDown(e, el.id)} className={`absolute group pro-node pointer-events-auto overflow-visible shadow-lg bg-white ${el.type === 'circle' ? 'rounded-full' : 'rounded-3xl'} ${selectedId === el.id ? 'ring-4 ring-indigo-500 shadow-[0_20px_50px_rgba(79,70,229,0.2)] z-50' : 'border border-slate-200'} ${el.type === 'diamond' ? 'diamond-shape' : ''} ${el.type === 'triangle' ? 'triangle-shape' : ''}`} style={{ left: el.x, top: el.y, width: el.width || 200, height: el.height || 100, backgroundColor: el.color || '#FFFFFF' }}>
-              {selectedId === el.id && (
-                <>
-                  <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-left')} className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nwse-resize z-[60] shadow-md" />
-                  <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-right')} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
-                  <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-left')} className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
-                  <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-right')} className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nwse-resize z-[60] shadow-md" />
-                  <div onMouseDown={(e) => handleLinkStart(e, el.id)} className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 bg-white border-2 border-indigo-600 rounded-full cursor-crosshair z-[60] shadow-xl flex items-center justify-center text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all"><Plus size={14} strokeWidth={3} /></div>
-                </>
-              )}
-              <div className={`w-full h-full flex flex-col p-6 relative ${el.type === 'circle' ? 'rounded-full text-center items-center justify-center' : ''} ${el.type === 'diamond' ? 'items-center justify-center p-8' : ''}`}>
-                <textarea className={`w-full h-full bg-transparent outline-none resize-none text-base font-black tracking-tight scrollbar-hide text-slate-900 placeholder:text-slate-300 ${ (el.type === 'circle' || el.type === 'diamond' || el.type === 'triangle' ) ? 'text-center' : '' }`} value={el.content} placeholder="Enter insight..." onChange={(e) => { const n = elements.map(it => it.id === el.id ? { ...it, content: e.target.value } : it); setElements(n); saveElements(n); }} onMouseDown={e => e.stopPropagation()} />
+          {elements.map(el => {
+            if (el.type === 'connection') return null;
+            return (
+              <div key={el.id} onMouseDown={(e) => handleMouseDown(e, el.id)} className={`absolute group pro-node pointer-events-auto overflow-visible shadow-lg bg-white ${el.type === 'circle' ? 'rounded-full' : 'rounded-3xl'} ${selectedId === el.id ? 'ring-4 ring-indigo-500 shadow-[0_20px_50px_rgba(79,70,229,0.2)] z-50' : 'border border-slate-200'} ${el.type === 'diamond' ? 'diamond-shape' : ''} ${el.type === 'triangle' ? 'triangle-shape' : ''}`} style={{ left: el.x, top: el.y, width: el.width || 200, height: el.height || 100, backgroundColor: el.color || '#FFFFFF' }}>
+                {selectedId === el.id && (
+                  <>
+                    <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-left')} className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nwse-resize z-[60] shadow-md" />
+                    <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-right')} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
+                    <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-left')} className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
+                    <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-right')} className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nwse-resize z-[60] shadow-md" />
+                    <div onMouseDown={(e) => handleLinkStart(e, el.id)} className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 bg-white border-2 border-indigo-600 rounded-full cursor-crosshair z-[60] shadow-xl flex items-center justify-center text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all"><Plus size={14} strokeWidth={3} /></div>
+                  </>
+                )}
+                <div className={`w-full h-full flex flex-col p-6 relative ${el.type === 'circle' ? 'rounded-full text-center items-center justify-center' : ''} ${el.type === 'diamond' ? 'items-center justify-center p-8' : ''}`}>
+                  <textarea className={`w-full h-full bg-transparent outline-none resize-none text-base font-black tracking-tight scrollbar-hide text-slate-900 placeholder:text-slate-300 ${ (el.type === 'circle' || el.type === 'diamond' || el.type === 'triangle' ) ? 'text-center' : '' }`} value={el.content} placeholder="Enter insight..." onChange={(e) => { const n = elements.map(it => it.id === el.id ? { ...it, content: e.target.value } : it); setElements(n); saveElements(n); }} onMouseDown={e => e.stopPropagation()} />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {elements.length === 0 && !isGenerating && (
