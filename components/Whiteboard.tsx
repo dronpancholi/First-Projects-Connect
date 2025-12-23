@@ -7,7 +7,7 @@ import {
   Palette, Sparkles, Send, Layers, Copy, Trash, PenTool, 
   LayoutGrid, Loader2, Maximize, ZoomIn, ZoomOut, Move,
   Hand, BoxSelect, Network, ArrowRightCircle, Info, Link as LinkIcon,
-  MoveRight
+  MoveRight, Scissors, Share2, MoveUpRight
 } from 'lucide-react';
 import { CanvasElement } from '../types';
 import * as GeminiService from '../services/geminiService';
@@ -30,8 +30,8 @@ const Whiteboard: React.FC = () => {
   const [tool, setTool] = useState<'select' | 'pan' | 'note' | 'text' | 'rect' | 'circle' | 'image' | 'connection'>('select');
   
   const [elements, setElements] = useState<CanvasElement[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [draggingIds, setDraggingIds] = useState<string[]>([]);
   const [resizingId, setResizingId] = useState<string | null>(null);
   const [linkingFromId, setLinkingFromId] = useState<string | null>(null);
   const [linkingToPos, setLinkingToPos] = useState<{ x: number, y: number } | null>(null);
@@ -60,7 +60,7 @@ const Whiteboard: React.FC = () => {
     } else {
       setElements([]);
     }
-    setSelectedId(null);
+    setSelectedIds([]);
   }, [activeBoardId, whiteboards]);
 
   const saveElements = useCallback((newElements: CanvasElement[]) => {
@@ -111,7 +111,7 @@ const Whiteboard: React.FC = () => {
     };
     const next = [...elements, newEl];
     setElements(next);
-    setSelectedId(newEl.id);
+    setSelectedIds([newEl.id]);
     setTool('select');
     saveElements(next);
   };
@@ -128,14 +128,20 @@ const Whiteboard: React.FC = () => {
 
     if (tool === 'pan') return;
     
-    setSelectedId(id);
-    const el = elements.find(it => it.id === id);
-    if (el) { 
-      const { x, y } = screenToCanvas(e.clientX, e.clientY);
-      if (el.type !== 'connection') {
-        setDraggingId(id); 
-        setDragOffset({ x: x - el.x, y: y - el.y }); 
+    const isShiftPressed = e.shiftKey;
+    if (isShiftPressed) {
+      setSelectedIds(prev => prev.includes(id) ? prev.filter(it => it !== id) : [...prev, id]);
+    } else {
+      if (!selectedIds.includes(id)) {
+        setSelectedIds([id]);
       }
+    }
+
+    const el = elements.find(it => it.id === id);
+    if (el && el.type !== 'connection') { 
+      const { x, y } = screenToCanvas(e.clientX, e.clientY);
+      setDraggingIds(isShiftPressed ? [...selectedIds, id] : (selectedIds.includes(id) ? selectedIds : [id]));
+      setDragOffset({ x: x - el.x, y: y - el.y }); 
     }
   };
 
@@ -152,14 +158,32 @@ const Whiteboard: React.FC = () => {
     setLinkingToPos({ x, y });
   };
 
-  const deleteElement = (id: string) => {
+  const deleteElements = (ids: string[]) => {
     const next = elements.filter(el => 
-      el.id !== id && 
-      el.fromId !== id && 
-      el.toId !== id
-    ).map(el => el.parentId === id ? { ...el, parentId: undefined } : el);
+      !ids.includes(el.id) && 
+      !ids.includes(el.fromId || '') && 
+      !ids.includes(el.toId || '')
+    ).map(el => ids.includes(el.parentId || '') ? { ...el, parentId: undefined } : el);
     setElements(next);
-    setSelectedId(null);
+    setSelectedIds([]);
+    saveElements(next);
+  };
+
+  const handleConnectSelected = () => {
+    if (selectedIds.length < 2) return;
+    const newConnections: CanvasElement[] = [];
+    for (let i = 0; i < selectedIds.length - 1; i++) {
+      newConnections.push({
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'connection',
+        fromId: selectedIds[i],
+        toId: selectedIds[i+1],
+        x: 0, y: 0,
+        color: '#4f46e5'
+      });
+    }
+    const next = [...elements, ...newConnections];
+    setElements(next);
     saveElements(next);
   };
 
@@ -173,9 +197,20 @@ const Whiteboard: React.FC = () => {
     const { x, y } = screenToCanvas(e.clientX, e.clientY);
     if (linkingFromId) {
       setLinkingToPos({ x, y });
-    } else if (draggingId) {
-      const nextEls = elements.map(el => el.id === draggingId ? { ...el, x: x - dragOffset.x, y: y - dragOffset.y } : el);
-      setElements(nextEls);
+    } else if (draggingIds.length > 0) {
+      const deltaX = x - dragOffset.x;
+      const deltaY = y - dragOffset.y;
+      
+      // If single dragging, use absolute delta. If multi-dragging, we need to handle original positions.
+      // For simplicity in this implementation, we'll shift all by the relative mouse movement
+      setElements(prev => prev.map(el => {
+        if (draggingIds.includes(el.id)) {
+          // Calculate movement based on first element or relative mouse change
+          // For multi-drag we use e.movementX/Y adjusted for scale
+          return { ...el, x: el.x + e.movementX / transform.scale, y: el.y + e.movementY / transform.scale };
+        }
+        return el;
+      }));
     } else if (resizingId && resizeHandle) {
       setElements(prev => prev.map(el => {
         if (el.id !== resizingId) return el;
@@ -190,7 +225,7 @@ const Whiteboard: React.FC = () => {
         return { ...el, x: ex, y: ey, width, height };
       }));
     }
-  }, [draggingId, resizingId, resizeHandle, linkingFromId, dragOffset, elements, screenToCanvas, tool, isPanning]);
+  }, [draggingIds, resizingId, resizeHandle, linkingFromId, dragOffset, elements, screenToCanvas, tool, isPanning, transform.scale]);
 
   const handleMouseUp = useCallback((e: MouseEvent) => {
     if (linkingFromId) {
@@ -207,7 +242,7 @@ const Whiteboard: React.FC = () => {
           type: 'connection',
           fromId: linkingFromId,
           toId: target.id,
-          x: 0, y: 0, // Not used for connections
+          x: 0, y: 0,
           color: '#4f46e5'
         };
         const next = [...elements, newConnection];
@@ -216,14 +251,14 @@ const Whiteboard: React.FC = () => {
       }
       setLinkingFromId(null);
       setLinkingToPos(null);
-    } else if (draggingId || resizingId) {
+    } else if (draggingIds.length > 0 || resizingId) {
       saveElements(elements);
     }
-    setDraggingId(null);
+    setDraggingIds([]);
     setResizingId(null);
     setResizeHandle(null);
     setIsPanning(false);
-  }, [linkingFromId, draggingId, resizingId, elements, screenToCanvas, saveElements]);
+  }, [linkingFromId, draggingIds, resizingId, elements, screenToCanvas, saveElements]);
 
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove);
@@ -266,18 +301,16 @@ const Whiteboard: React.FC = () => {
         </defs>
         <g>
           {elements.map(el => {
-            // Support both old hierarchical parentId and new explicit connection elements
             let from, to;
             let color = '#94A3B8';
-            let opacity = '0.3';
-            let strokeWidth = '2';
-            let id = el.id;
+            let opacity = '0.4';
+            let strokeWidth = '2.5';
 
             if (el.type === 'connection' && el.fromId && el.toId) {
               from = elements.find(it => it.id === el.fromId);
               to = elements.find(it => it.id === el.toId);
               color = el.color || '#4f46e5';
-              opacity = '0.6';
+              opacity = '0.7';
               strokeWidth = '3';
             } else if (el.parentId) {
               from = elements.find(p => p.id === el.parentId);
@@ -293,15 +326,16 @@ const Whiteboard: React.FC = () => {
             const eX = to.x + (to.width || 200) / 2;
             const eY = to.y + (to.height || 100) / 2;
             const dx = eX - sX;
-            const isSelected = selectedId === el.id;
+            const isSelected = selectedIds.includes(el.id);
+
+            // Use straight line for standard "connection" type unless it's explicitly a "curved" one (or if we want all curves)
+            const pathData = `M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`;
 
             return (
-              <g key={`${el.id}-connection`} className="pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedId(el.id); }}>
-                {/* Hit test path (wider) */}
-                <path d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`} fill="none" stroke="transparent" strokeWidth="20" />
-                {/* Visual path */}
+              <g key={`${el.id}-connection`} className="pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedIds([el.id]); }}>
+                <path d={pathData} fill="none" stroke="transparent" strokeWidth="20" />
                 <path 
-                  d={`M ${sX} ${sY} C ${sX + dx/2} ${sY}, ${sX + dx/2} ${eY}, ${eX} ${eY}`} 
+                  d={pathData} 
                   fill="none" 
                   stroke={isSelected ? '#4f46e5' : color} 
                   strokeWidth={isSelected ? '4' : strokeWidth} 
@@ -329,7 +363,7 @@ const Whiteboard: React.FC = () => {
         )}
       </svg>
     );
-  }, [elements, linkingFromId, linkingToPos, selectedId]);
+  }, [elements, linkingFromId, linkingToPos, selectedIds]);
 
   return (
     <div className="h-full flex flex-col bg-[#f8fafc] relative overflow-hidden select-none font-sans">
@@ -355,13 +389,13 @@ const Whiteboard: React.FC = () => {
           {[
             { id: 'select', icon: <MousePointer2 size={18} /> },
             { id: 'pan', icon: <Hand size={18} /> },
-            { id: 'connection', icon: <MoveRight size={18} /> },
+            { id: 'connection', icon: <MoveUpRight size={18} /> },
             { id: 'note', icon: <StickyNote size={18} /> },
             { id: 'text', icon: <Type size={18} /> },
             { id: 'rect', icon: <Square size={18} /> },
             { id: 'circle', icon: <CircleIcon size={18} /> },
           ].map(t => (
-            <button key={t.id} onClick={() => { setTool(t.id as any); setSelectedId(null); }} className={`p-3.5 rounded-2xl transition-all btn-tactile ${tool === t.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200' : 'text-slate-400 hover:bg-white hover:text-slate-900'}`}>
+            <button key={t.id} title={t.id.toUpperCase()} onClick={() => { setTool(t.id as any); setSelectedIds([]); }} className={`p-3.5 rounded-2xl transition-all btn-tactile ${tool === t.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200' : 'text-slate-400 hover:bg-white hover:text-slate-900'}`}>
               {t.icon}
             </button>
           ))}
@@ -391,18 +425,23 @@ const Whiteboard: React.FC = () => {
       </div>
 
       {/* Node Context Bar */}
-      {selectedId && (
+      {selectedIds.length > 0 && (
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-6 duration-300 pointer-events-none">
-          <div className="pointer-events-auto bg-slate-900 text-white px-10 py-5 rounded-[3rem] shadow-2xl flex items-center gap-10 border border-white/10 ring-1 ring-slate-800">
-             <div className="flex gap-3">
+          <div className="pointer-events-auto bg-slate-900 text-white px-8 py-4 rounded-[3rem] shadow-2xl flex items-center gap-8 border border-white/10 ring-1 ring-slate-800">
+             <div className="flex gap-2">
                {COLORS.map(c => (
-                 <button key={c} onClick={() => { const n = elements.map(it => it.id === selectedId ? {...it, color: c} : it); setElements(n); saveElements(n); }} className={`w-8 h-8 rounded-full border border-white/10 transition-all hover:scale-125 ${elements.find(e => e.id === selectedId)?.color === c ? 'ring-2 ring-indigo-500 ring-offset-4 ring-offset-slate-900 scale-110' : ''}`} style={{ backgroundColor: c }} />
+                 <button key={c} onClick={() => { const n = elements.map(it => selectedIds.includes(it.id) ? {...it, color: c} : it); setElements(n); saveElements(n); }} className={`w-7 h-7 rounded-full border border-white/10 transition-all hover:scale-125 ${elements.find(e => selectedIds.includes(e.id))?.color === c ? 'ring-2 ring-indigo-500 ring-offset-4 ring-offset-slate-900 scale-110' : ''}`} style={{ backgroundColor: c }} />
                ))}
              </div>
-             <div className="w-px h-8 bg-slate-800" />
-             <div className="flex items-center gap-6">
-                <button onClick={() => deleteElement(selectedId)} className="flex items-center gap-2 text-rose-400 font-black text-[10px] uppercase tracking-widest hover:text-rose-300 btn-tactile">
-                  <Trash2 size={18} /> {elements.find(e => e.id === selectedId)?.type === 'connection' ? 'Delete Arrow' : 'Remove Node'}
+             <div className="w-px h-6 bg-slate-800" />
+             <div className="flex items-center gap-5">
+                {selectedIds.length >= 2 && (
+                  <button onClick={handleConnectSelected} className="flex items-center gap-2 text-indigo-400 font-black text-[10px] uppercase tracking-widest hover:text-indigo-300 btn-tactile">
+                    <MoveUpRight size={16} /> Link Selected
+                  </button>
+                )}
+                <button onClick={() => deleteElements(selectedIds)} className="flex items-center gap-2 text-rose-400 font-black text-[10px] uppercase tracking-widest hover:text-rose-300 btn-tactile">
+                  <Trash2 size={16} /> {selectedIds.length > 1 ? `Remove ${selectedIds.length}` : 'Remove'}
                 </button>
              </div>
           </div>
@@ -410,20 +449,21 @@ const Whiteboard: React.FC = () => {
       )}
 
       {/* Infinite Drawing Engine */}
-      <div ref={containerRef} onWheel={onWheel} onMouseDown={(e) => { if (tool === 'pan' || (e.button === 0 && e.target === containerRef.current)) setIsPanning(true); addElement(e); }} className={`flex-1 overflow-hidden relative spatial-grid bg-slate-50 transition-all cursor-${tool === 'pan' || isPanning ? 'grabbing' : tool === 'select' ? 'default' : tool === 'connection' ? 'crosshair' : 'crosshair'}`}>
+      <div ref={containerRef} onWheel={onWheel} onMouseDown={(e) => { if (tool === 'pan' || (e.button === 0 && e.target === containerRef.current)) setIsPanning(true); if (e.target === containerRef.current) setSelectedIds([]); addElement(e); }} className={`flex-1 overflow-hidden relative spatial-grid bg-slate-50 transition-all cursor-${tool === 'pan' || isPanning ? 'grabbing' : tool === 'select' ? 'default' : tool === 'connection' ? 'crosshair' : 'crosshair'}`}>
         <div style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: '0 0', transition: isPanning ? 'none' : 'transform 0.1s ease-out' }} className="absolute inset-0 pointer-events-none">
           {renderConnections}
           {elements.map(el => {
             if (el.type === 'connection') return null;
+            const isSelected = selectedIds.includes(el.id);
             return (
-              <div key={el.id} onMouseDown={(e) => handleMouseDown(e, el.id)} className={`absolute group pro-node pointer-events-auto overflow-visible shadow-lg bg-white ${el.type === 'circle' ? 'rounded-full' : 'rounded-3xl'} ${selectedId === el.id ? 'ring-4 ring-indigo-500 shadow-[0_20px_50px_rgba(79,70,229,0.2)] z-50' : 'border border-slate-200'} ${el.type === 'diamond' ? 'diamond-shape' : ''} ${el.type === 'triangle' ? 'triangle-shape' : ''}`} style={{ left: el.x, top: el.y, width: el.width || 200, height: el.height || 100, backgroundColor: el.color || '#FFFFFF' }}>
-                {selectedId === el.id && (
+              <div key={el.id} onMouseDown={(e) => handleMouseDown(e, el.id)} className={`absolute group pro-node pointer-events-auto overflow-visible shadow-lg bg-white ${el.type === 'circle' ? 'rounded-full' : 'rounded-3xl'} ${isSelected ? 'ring-4 ring-indigo-500 shadow-[0_20px_50px_rgba(79,70,229,0.2)] z-50' : 'border border-slate-200'} ${el.type === 'diamond' ? 'diamond-shape' : ''} ${el.type === 'triangle' ? 'triangle-shape' : ''}`} style={{ left: el.x, top: el.y, width: el.width || 200, height: el.height || 100, backgroundColor: el.color || '#FFFFFF' }}>
+                {isSelected && selectedIds.length === 1 && (
                   <>
                     <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-left')} className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nwse-resize z-[60] shadow-md" />
                     <div onMouseDown={(e) => handleResizeStart(e, el.id, 'top-right')} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
                     <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-left')} className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nesw-resize z-[60] shadow-md" />
                     <div onMouseDown={(e) => handleResizeStart(e, el.id, 'bottom-right')} className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-indigo-600 rounded-full cursor-nwse-resize z-[60] shadow-md" />
-                    <div onMouseDown={(e) => handleLinkStart(e, el.id)} className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 bg-white border-2 border-indigo-600 rounded-full cursor-crosshair z-[60] shadow-xl flex items-center justify-center text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all"><Plus size={14} strokeWidth={3} /></div>
+                    <div onMouseDown={(e) => handleLinkStart(e, el.id)} title="CONNECT" className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 bg-white border-2 border-indigo-600 rounded-full cursor-crosshair z-[60] shadow-xl flex items-center justify-center text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all"><MoveUpRight size={14} strokeWidth={3} /></div>
                   </>
                 )}
                 <div className={`w-full h-full flex flex-col p-6 relative ${el.type === 'circle' ? 'rounded-full text-center items-center justify-center' : ''} ${el.type === 'diamond' ? 'items-center justify-center p-8' : ''}`}>
