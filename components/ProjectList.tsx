@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ViewState, ProjectStatus } from '../types.ts';
-import { Plus, X, Briefcase, Trash2, ArrowRight, LayoutGrid, Search, Filter, Layers, Database, ChevronRight } from 'lucide-react';
+import { Plus, X, Briefcase, Trash2, ArrowRight, LayoutGrid, Search, Filter, Layers, Database, ChevronRight, Tag } from 'lucide-react';
 
 interface ProjectListProps {
   setView: (view: ViewState) => void;
@@ -13,17 +13,20 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [newTags, setNewTags] = useState('');
 
   const handleCreate = async () => {
     if (!newTitle.trim()) return;
+    const tagArray = newTags.split(',').map(t => t.trim()).filter(t => t !== '');
     await addProject({
       title: newTitle,
       description: newDesc || 'Executive workspace node',
       status: ProjectStatus.IDEA,
-      tags: []
+      tags: tagArray
     });
     setNewTitle('');
     setNewDesc('');
+    setNewTags('');
     setIsModalOpen(false);
   };
 
@@ -54,7 +57,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
           <div 
             key={project.id}
             onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: project.id })}
-            className="card-professional group flex flex-col h-[280px] cursor-pointer relative overflow-hidden rounded-xl"
+            className="card-professional group flex flex-col h-[320px] cursor-pointer relative overflow-hidden rounded-xl"
           >
             <div className="p-6 pb-2 flex justify-between items-start">
               <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest border ${
@@ -71,12 +74,22 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
               </button>
             </div>
             
-            <div className="p-6 flex-1">
-               <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors tracking-tight line-clamp-2 leading-tight mb-2">{project.title}</h3>
+            <div className="p-6 flex-1 flex flex-col gap-3">
+               <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors tracking-tight line-clamp-2 leading-tight">{project.title}</h3>
                <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed font-medium">{project.description}</p>
+               
+               {project.tags && project.tags.length > 0 && (
+                 <div className="flex flex-wrap gap-1.5 mt-auto">
+                    {project.tags.map(tag => (
+                      <span key={tag} className="text-[8px] font-black uppercase tracking-tighter bg-indigo-50/50 text-indigo-500 border border-indigo-100 px-2 py-0.5 rounded">
+                        {tag}
+                      </span>
+                    ))}
+                 </div>
+               )}
             </div>
             
-            <div className="p-6 pt-4 border-t border-gray-50 flex items-center justify-between">
+            <div className="p-6 pt-4 border-t border-gray-50 flex items-center justify-between bg-gray-50/10">
                <div className="flex items-center gap-4">
                  <div className="flex flex-col">
                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Progress</span>
@@ -95,7 +108,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
 
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-indigo-600 hover:bg-indigo-50/20 hover:text-indigo-600 transition-all h-[280px] gap-4 group"
+          className="border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-indigo-600 hover:bg-indigo-50/20 hover:text-indigo-600 transition-all h-[320px] gap-4 group"
         >
           <div className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center group-hover:scale-110 transition-all">
             <Plus size={24} />
@@ -133,11 +146,24 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Description</label>
                 <textarea 
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-indigo-600 outline-none transition-all h-28 resize-none text-sm font-medium leading-relaxed"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-indigo-600 outline-none transition-all h-24 resize-none text-sm font-medium leading-relaxed"
                   placeholder="Summarize objectives..."
                   value={newDesc}
                   onChange={e => setNewDesc(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Neural Tags (Comma Separated)</label>
+                <div className="relative">
+                  <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+                  <input 
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-indigo-600 outline-none transition-all text-sm font-bold"
+                    placeholder="e.g. finance, urgent, roadmap"
+                    value={newTags}
+                    onChange={e => setNewTags(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 

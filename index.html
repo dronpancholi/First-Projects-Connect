@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>First Projects Connect | Professional Workspace Ecosystem</title>
+    <title>First Projects Connect | Industrial Ecosystem</title>
     <script>
       window.global = window;
       window.process = window.process || { 
@@ -37,7 +37,7 @@
                 accent: '#111827',
                 border: '#E5E7EB',
                 muted: '#6B7280',
-                indigo: '#4F46E5'
+                yellow: '#EAB308' 
               }
             }
           }
@@ -66,8 +66,8 @@
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
       .card-professional:hover {
-        border-color: #E5E7EB;
-        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+        border-color: #EAB308;
+        box-shadow: 0 10px 25px -5px rgba(234, 179, 8, 0.05);
       }
 
       .btn-workspace {
@@ -77,35 +77,13 @@
         transform: scale(0.98);
       }
 
-      .coming-soon-lock {
-        position: relative;
-        overflow: hidden;
-      }
-      .coming-soon-lock::after {
-        content: "Coming Soon";
-        position: absolute;
-        inset: 0;
-        background: rgba(255, 255, 255, 0.85);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #111827;
-        opacity: 0;
-        transition: opacity 0.2s;
-        z-index: 10;
-        pointer-events: none;
-      }
-      .coming-soon-lock:hover::after {
-        opacity: 1;
-      }
-
       .system-gradient {
-        background: linear-gradient(135deg, #4F46E5 0%, #111827 100%);
+        background: linear-gradient(135deg, #EAB308 0%, #111827 100%);
       }
+      
+      .text-yellow-brand { color: #EAB308; }
+      .bg-yellow-brand { background-color: #EAB308; }
+      .border-yellow-brand { border-color: #EAB308; }
     </style>
   <script type="importmap">
 {

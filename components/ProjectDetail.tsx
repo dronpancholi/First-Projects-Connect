@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
-// Added missing ProjectStatus enum to imports from types
 import { Project, Task, TaskStatus, Priority, AssetType, ProjectStatus } from '../types.ts';
 import { 
   ArrowLeft, Plus, CheckCircle2, Circle, Bot, FileText, 
@@ -9,8 +8,7 @@ import {
   Figma, Layout, Database, Wand2, Slack, ArrowRight,
   Trello, Video, GitBranch, Server, Cloud, CreditCard, Box, MessageSquare, AlertTriangle, ListFilter,
   CheckCircle, ChevronRight, Share2, MoreHorizontal,
-  // Added missing Clock and Loader2 icons from lucide-react
-  Clock, Loader2
+  Clock, Loader2, Tag
 } from 'lucide-react';
 import * as GeminiService from '../services/geminiService.ts';
 
@@ -34,7 +32,7 @@ const TabButton: React.FC<{ label: string; active: boolean; onClick: () => void;
 );
 
 const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
-  const { projects, tasks, notes, assets, addTask, addNote, updateTask, updateNote, addAsset, deleteTask, deleteNote, deleteAsset } = useStore();
+  const { projects, tasks, notes, assets, addTask, addNote, updateTask, updateNote, addAsset, deleteTask, deleteNote, deleteAsset, updateProject } = useStore();
   const project = projects.find(p => p.id === projectId);
   
   const [activeTab, setActiveTab] = useState<'tasks' | 'notes' | 'assets'>('tasks');
@@ -44,6 +42,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
   const [showAIModal, setShowAIModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [loadingTaskId, setLoadingTaskId] = useState<string | null>(null);
+
+  // Tag Management State
+  const [tagInput, setTagInput] = useState('');
+  const [isAddingTag, setIsAddingTag] = useState(false);
 
   // Asset Form State
   const [assetName, setAssetName] = useState('');
@@ -71,7 +73,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
 
   const handleTaskToggle = (task: Task) => {
     updateTask(task.id, {
-      // Fix: Changed TaskStatus.PENDING to TaskStatus.TODO
       status: task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE
     });
   };
@@ -96,12 +97,29 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
       await addTask({
         projectId,
         title: st,
-        // Fix: Changed TaskStatus.PENDING to TaskStatus.TODO
         status: TaskStatus.TODO,
         priority: task.priority
       });
     }
     setLoadingTaskId(null);
+  };
+
+  const handleAddTag = () => {
+    if (!tagInput.trim()) {
+      setIsAddingTag(false);
+      return;
+    }
+    const currentTags = project.tags || [];
+    if (!currentTags.includes(tagInput.trim())) {
+      updateProject(project.id, { tags: [...currentTags, tagInput.trim()] });
+    }
+    setTagInput('');
+    setIsAddingTag(false);
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    const currentTags = project.tags || [];
+    updateProject(project.id, { tags: currentTags.filter(t => t !== tagToRemove) });
   };
 
   const handleAddAsset = async () => {
@@ -146,13 +164,46 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
         
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10">
           <div className="space-y-4 max-w-4xl">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm ${
                 project.status === ProjectStatus.ACTIVE ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'
                }`}>
                  Node Active
                </span>
-               <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">ID: {project.id.slice(0, 8)}</span>
+               <div className="h-4 w-px bg-slate-200 mx-1" />
+               
+               {/* Multi-Tag Container */}
+               <div className="flex flex-wrap items-center gap-2">
+                 {project.tags?.map(tag => (
+                   <button 
+                    key={tag}
+                    onClick={() => removeTag(tag)}
+                    className="group flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-500 hover:border-rose-200 hover:text-rose-500 transition-all"
+                   >
+                     {tag}
+                     <X size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                   </button>
+                 ))}
+                 
+                 {isAddingTag ? (
+                   <input 
+                    autoFocus
+                    className="bg-white border border-indigo-200 rounded-full px-3 py-0.5 text-[9px] font-black uppercase outline-none focus:ring-2 focus:ring-indigo-50 w-24"
+                    placeholder="TAG NAME..."
+                    value={tagInput}
+                    onChange={e => setTagInput(e.target.value)}
+                    onBlur={handleAddTag}
+                    onKeyDown={e => e.key === 'Enter' && handleAddTag()}
+                   />
+                 ) : (
+                   <button 
+                    onClick={() => setIsAddingTag(true)}
+                    className="p-1 text-slate-300 hover:text-indigo-600 transition-colors"
+                   >
+                     <Plus size={14} />
+                   </button>
+                 )}
+               </div>
             </div>
             <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-tight">{project.title}</h1>
             <p className="text-base text-slate-500 font-medium leading-relaxed">{project.description}</p>
@@ -195,7 +246,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                 </div>
               </div>
               <button 
-                // Fix: Changed TaskStatus.PENDING to TaskStatus.TODO
                 onClick={() => addTask({ projectId, title: 'New objective...', status: TaskStatus.TODO, priority: Priority.MEDIUM })}
                 className="flex items-center gap-3 bg-slate-900 text-white px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all btn-tactile shadow-xl"
               >

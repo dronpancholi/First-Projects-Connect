@@ -30,20 +30,20 @@ const NavItem: React.FC<{
     onClick={isLocked ? undefined : onClick}
     className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all group relative ${
       isActive 
-        ? 'bg-gray-100 text-black' 
+        ? 'bg-yellow-400 text-black shadow-sm' 
         : isLocked 
           ? 'text-gray-300 cursor-not-allowed' 
           : 'text-gray-500 hover:text-black hover:bg-gray-50'
     }`}
   >
-    <span className={`${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-black'}`}>
+    <span className={`${isActive ? 'text-black' : 'text-gray-400 group-hover:text-yellow-600'}`}>
       {icon}
     </span>
-    <span className="flex-1 text-left">{label}</span>
+    <span className="flex-1 text-left tracking-tight">{label}</span>
     {isLocked ? (
       <Lock size={10} className="text-gray-300" />
     ) : badge ? (
-      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-bold">
+      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-black text-white' : 'bg-yellow-50 text-yellow-600'}`}>
         {badge}
       </span>
     ) : null}
@@ -62,23 +62,23 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   return (
     <div className="flex h-screen w-full bg-white text-gray-900 font-sans overflow-hidden">
       
-      {/* Professional Sidebar */}
+      {/* Industrial Sidebar */}
       <aside className={`transition-all duration-300 sidebar-border bg-workspace-sidebar flex flex-col z-30 ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'}`}>
         <div className="p-6 pb-2 overflow-y-auto custom-scrollbar flex-1">
-          {/* Professional Monogram Logo */}
+          {/* Industrial Brand Monogram */}
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-9 h-9 system-gradient rounded-lg flex items-center justify-center text-white font-display font-bold text-lg shadow-sm">
+            <div className="w-10 h-10 system-gradient rounded-xl flex items-center justify-center text-black font-display font-black text-xl shadow-lg border-2 border-white">
               FP
             </div>
             <div className="min-w-0">
-              <h1 className="font-display font-bold text-[14px] text-gray-900 tracking-tight leading-none">First Projects</h1>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-1">Connect OS</p>
+              <h1 className="font-display font-black text-[15px] text-gray-900 tracking-tighter leading-none">First Projects</h1>
+              <p className="text-[9px] font-bold text-yellow-500 uppercase tracking-widest mt-1">Industrial OS</p>
             </div>
           </div>
 
           <div className="space-y-6">
             <section>
-              <p className="px-3 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Core Registry</p>
+              <p className="px-3 text-[9px] font-black text-gray-400 uppercase tracking-[0.25em] mb-3">Core Registry</p>
               <NavItem 
                 icon={<LayoutDashboard size={14} />} 
                 label="Executive Summary" 
@@ -102,7 +102,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
             </section>
 
             <section>
-              <p className="px-3 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Operations</p>
+              <p className="px-3 text-[9px] font-black text-gray-400 uppercase tracking-[0.25em] mb-3">Operations</p>
               <NavItem 
                 icon={<CreditCard size={14} />} 
                 label="Financial Ledger" 
@@ -123,14 +123,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
               />
               <NavItem 
                 icon={<Box size={14} />} 
-                label="Resources Matrix" 
+                label="Resource Matrix" 
                 isActive={currentView.type === 'RESOURCES'} 
                 onClick={() => setView({ type: 'RESOURCES' })} 
               />
             </section>
 
             <section>
-              <p className="px-3 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Knowledge</p>
+              <p className="px-3 text-[9px] font-black text-gray-400 uppercase tracking-[0.25em] mb-3">Knowledge</p>
               <NavItem 
                 icon={<FileText size={14} />} 
                 label="Documentation" 
@@ -139,7 +139,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
               />
               <NavItem 
                 icon={<Palette size={14} />} 
-                label="Visual Whiteboard" 
+                label="Visual Lab" 
                 isActive={currentView.type === 'WHITEBOARD'} 
                 onClick={() => setView({ type: 'WHITEBOARD' })} 
               />
@@ -147,24 +147,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           </div>
         </div>
 
-        <div className="p-4 space-y-4 border-t border-gray-100">
-          <div className="coming-soon-lock p-1">
-            <button 
-              disabled
-              className="w-full flex items-center justify-center gap-2 py-2 text-[11px] font-bold text-gray-500 bg-white border border-gray-200 rounded-lg cursor-not-allowed opacity-50"
-            >
-              <Terminal size={12} className="text-gray-400" />
-              Agentic Shell
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-100">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-indigo-600 font-bold text-xs border border-gray-100 shadow-sm">
+        <div className="p-4 space-y-4 border-t border-gray-100 bg-gray-50/30">
+          <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-black text-xs border border-white">
               <User size={14} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold text-gray-900 truncate leading-none mb-1">{user?.name || 'System Authorized'}</p>
-              <p className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Dron Pancholi Dev</p>
+              <p className="text-[11px] font-black text-gray-900 truncate leading-none mb-1">{user?.name || 'Authorized'}</p>
+              <p className="text-[8px] font-black text-yellow-500 uppercase tracking-tighter">System Root</p>
             </div>
             <button onClick={logout} className="text-gray-300 hover:text-red-500 transition-colors p-1">
               <LogOut size={14} />
@@ -180,23 +170,22 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 text-gray-400 hover:text-black transition-colors">
                <Menu size={18} />
              </button>
-             <div className="flex items-center gap-3">
-               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{currentView.type.replace('_', ' ')}</span>
-             </div>
+             <nav className="flex items-center gap-2">
+               <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{currentView.type.replace('_', ' ')}</span>
+             </nav>
            </div>
 
            <div className="flex items-center gap-6">
              <div className="flex items-center gap-4 text-gray-400">
-               <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded border border-gray-100">
-                  <HeartPulse size={12} className="text-emerald-500 animate-pulse" />
-                  <span className="text-[9px] font-bold uppercase tracking-tighter">System Nominal</span>
+               <div className="flex items-center gap-1.5 px-2 py-1 bg-yellow-50 border border-yellow-100 rounded">
+                  <HeartPulse size={12} className="text-yellow-600 animate-pulse" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-yellow-700">System Nominal</span>
                </div>
-               <button onClick={() => setIsSpotlightOpen(true)} className="p-1 hover:text-black">
+               <button onClick={() => setIsSpotlightOpen(true)} className="p-1 hover:text-black transition-colors">
                  <Search size={18} />
                </button>
-               <button className="p-1 hover:text-black relative">
-                 <Bell size={18} />
-                 <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
+               <button onClick={() => setIsVoiceActive(true)} className="p-1 hover:text-yellow-500 transition-colors">
+                 <Zap size={18} />
                </button>
              </div>
            </div>
