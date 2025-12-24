@@ -3,8 +3,9 @@ import {
   LayoutDashboard, Briefcase, FileText, Settings, Search, LogOut,
   Palette, Sparkles, RefreshCw, Menu, Zap, Link2, ShieldCheck,
   User, Lock, ChevronRight, Bell, Globe, Trello, CreditCard,
-  Users, Activity, Box, Terminal, Clock, HeartPulse
+  Users, Activity, Box, Terminal, Clock, HeartPulse, Mic
 } from 'lucide-react';
+import LiquidGlass from './ui/LiquidGlass.tsx';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
 import VoiceAssistant from './VoiceAssistant.tsx';
@@ -67,7 +68,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
             displacementScale={40}
             blurAmount={0.2}
             saturation={120}
-            aberrationIntensity={1}
             elasticity={0.2}
             cornerRadius={0}
             padding="0px"
@@ -133,50 +133,60 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
                   <LogOut size={14} className="text-slate-300 group-hover:text-rose-500 transition-colors" />
                 </button>
               </div>
-            </aside>
-
-            {/* Main Container */}
-            <main className="flex-1 flex flex-col relative overflow-hidden">
-              <header className="h-20 flex items-center px-10 shrink-0 justify-between">
-                <div className="flex items-center gap-6">
-                  <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-500 hover:text-studio-text transition-colors btn-tactile">
-                    <Menu size={20} />
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-studio-accent" />
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{currentView.type.replace('_', ' ')}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 px-4 py-2 glass rounded-full">
-                    <button onClick={() => setIsSpotlightOpen(true)} className="p-2 text-slate-500 hover:text-studio-text transition-colors"><Search size={18} /></button>
-                    <div className="w-px h-4 bg-slate-200" />
-                    <button onClick={() => setIsVoiceActive(true)} className="p-2 text-slate-500 hover:text-studio-accent transition-colors"><Sparkles size={18} /></button>
-                  </div>
-                </div>
-              </header>
-
-              <div className="flex-1 overflow-auto p-10 lg:p-14 scroll-smooth">
-                <div className="max-w-7xl mx-auto">
-                  {children}
-                </div>
-              </div>
-            </main>
-
-            {isSpotlightOpen && (
-              <SpotlightSearch
-                isOpen={isSpotlightOpen}
-                onClose={() => setIsSpotlightOpen(false)}
-                setView={setView}
-              />
-            )}
-
-            {isVoiceActive && (
-              <VoiceAssistant onClose={() => setIsVoiceActive(false)} />
-            )}
+            </div>
+          </LiquidGlass>
         </div>
-        );
+      </aside>
+
+      {/* Main Container */}
+      <main className="flex-1 flex flex-col relative overflow-hidden">
+        <header className="h-20 flex items-center px-10 shrink-0 justify-between">
+          <div className="flex items-center gap-6">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-500 hover:text-studio-text transition-colors btn-tactile">
+              <Menu size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-studio-accent" />
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{currentView.type.replace('_', ' ')}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setIsSpotlightOpen(true)}
+              className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/30 hover:bg-white/50 border border-white/40 transition-all text-slate-500 hover:text-studio-text group btn-tactile"
+            >
+              <Search size={16} />
+              <span className="text-xs font-medium">Search studio...</span>
+              <div className="flex gap-1 ml-4">
+                <span className="w-5 h-5 flex items-center justify-center rounded-md bg-white/50 text-[10px] font-bold">⌘</span>
+                <span className="w-5 h-5 flex items-center justify-center rounded-md bg-white/50 text-[10px] font-bold">K</span>
+              </div>
+            </button>
+
+            <button onClick={() => setIsVoiceActive(true)} className="p-3 rounded-full bg-white/30 hover:bg-studio-accent hover:text-white transition-all border border-white/40 text-slate-500 btn-tactile">
+              <Mic size={18} />
+            </button>
+
+            <button className="relative p-3 rounded-full bg-white/30 hover:bg-white/50 transition-all border border-white/40 text-slate-500 btn-tactile">
+              <Bell size={18} />
+              <span className="absolute top-2.5 right-3 w-2 h-2 rounded-full bg-rose-500 border border-white" />
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-auto p-10 lg:p-14 scroll-smooth">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </div>
+      </main>
+
+      {/* Modals */}
+      {isSpotlightOpen && (<SpotlightSearch isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} setView={setView} />)}
+      {isVoiceActive && (<VoiceAssistant onClose={() => setIsVoiceActive(false)} />)}
+    </div>
+  );
 };
 
-        export default Layout;
+export default Layout;

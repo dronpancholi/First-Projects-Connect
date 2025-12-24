@@ -1,5 +1,5 @@
 import React from 'react';
-import LiquidGlass from 'liquid-glass-react'; // @ts-ignore
+import LiquidGlass from './LiquidGlass.tsx';
 import { motion } from 'framer-motion';
 
 interface LiquidCardProps {
@@ -11,20 +11,16 @@ interface LiquidCardProps {
 
 const LiquidCard: React.FC<LiquidCardProps> = ({ children, className = '', onClick, delay = 0 }) => {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: delay, ease: [0.22, 1, 0.36, 1] }}
+        <div
             className={`relative ${className}`}
             onClick={onClick}
         >
             <LiquidGlass
                 displacementScale={64}
-                blurAmount={0.1}
+                blurAmount={0.3}
                 saturation={130}
-                aberrationIntensity={2}
                 elasticity={0.35}
-                cornerRadius={32} /* slightly adjusted for standard UI cards */
+                cornerRadius={32}
                 padding="0px"
                 onClick={onClick}
                 style={{ height: '100%', width: '100%' }}
@@ -33,7 +29,7 @@ const LiquidCard: React.FC<LiquidCardProps> = ({ children, className = '', onCli
                     {children}
                 </div>
             </LiquidGlass>
-        </motion.div>
+        </div>
     );
 };
 

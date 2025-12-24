@@ -90,68 +90,72 @@ const Dashboard: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }
 
         {/* Performance Graph */}
         <div className="lg:col-span-8">
-          <section className="glass-panel p-8 h-full">
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Ecosystem Vitality</h2>
-                <p className="text-xl font-semibold text-slate-800">Weekly Output Analysis</p>
+          <LiquidCard delay={0.2} className="h-full">
+            <div className="p-8 h-full">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Ecosystem Vitality</h2>
+                  <p className="text-xl font-semibold text-slate-800">Weekly Output Analysis</p>
+                </div>
+                <div className="flex gap-2">
+                  <div className="px-4 py-1.5 bg-white/50 backdrop-blur-sm border border-white/40 rounded-full text-[10px] font-bold text-slate-600 uppercase shadow-sm">This Week</div>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <div className="px-4 py-1.5 bg-white/50 backdrop-blur-sm border border-white/40 rounded-full text-[10px] font-bold text-slate-600 uppercase shadow-sm">This Week</div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={activityData}>
+                    <defs>
+                      <linearGradient id="colorEmerald" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#818CF8" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#818CF8" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B', fontWeight: 'bold' }} dy={10} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(10px)', background: 'rgba(255,255,255,0.8)', color: '#1E293B', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)' }}
+                    />
+                    <Area type="monotone" dataKey="value" stroke="#818CF8" strokeWidth={3} fillOpacity={1} fill="url(#colorEmerald)" />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={activityData}>
-                  <defs>
-                    <linearGradient id="colorEmerald" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#818CF8" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#818CF8" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B', fontWeight: 'bold' }} dy={10} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(10px)', background: 'rgba(255,255,255,0.8)', color: '#1E293B', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)' }}
-                  />
-                  <Area type="monotone" dataKey="value" stroke="#818CF8" strokeWidth={3} fillOpacity={1} fill="url(#colorEmerald)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
+          </LiquidCard>
         </div>
 
         {/* Side Actions */}
         <div className="lg:col-span-4 space-y-8">
-          <section className="glass-panel p-8 h-full">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Next Steps</h3>
-              <button className="text-slate-400 hover:text-studio-accent transition-colors"><ChevronRight size={18} /></button>
-            </div>
-            <div className="space-y-4">
-              {projects.slice(0, 3).map((p, i) => (
-                <div key={p.id} className="flex items-center gap-4 p-3 -mx-3 rounded-2xl hover:bg-white/40 transition-all cursor-pointer group" onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: p.id })}>
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50/50 flex items-center justify-center text-indigo-400 group-hover:bg-studio-accent group-hover:text-white transition-all duration-300 shadow-sm">
-                    <FolderOpen size={18} strokeWidth={2} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-slate-800 transition-colors truncate">{p.title}</h4>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-studio-accent/50 rounded-full" style={{ width: `${p.progress}%` }}></div>
+          <LiquidCard delay={0.4} className="h-full">
+            <div className="p-8 h-full">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Next Steps</h3>
+                <button className="text-slate-400 hover:text-studio-accent transition-colors"><ChevronRight size={18} /></button>
+              </div>
+              <div className="space-y-4">
+                {projects.slice(0, 3).map((p, i) => (
+                  <div key={p.id} className="flex items-center gap-4 p-3 -mx-3 rounded-2xl hover:bg-white/40 transition-all cursor-pointer group" onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: p.id })}>
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50/50 flex items-center justify-center text-indigo-400 group-hover:bg-studio-accent group-hover:text-white transition-all duration-300 shadow-sm">
+                      <FolderOpen size={18} strokeWidth={2} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-slate-800 transition-colors truncate">{p.title}</h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-studio-accent/50 rounded-full" style={{ width: `${p.progress}%` }}></div>
+                        </div>
+                        <span className="text-[9px] text-slate-400 font-medium">{p.progress}%</span>
                       </div>
-                      <span className="text-[9px] text-slate-400 font-medium">{p.progress}%</span>
                     </div>
                   </div>
-                </div>
-              ))}
-              {projects.length === 0 && (
-                <div className="text-center py-8 opacity-50">
-                  <Box size={28} className="mx-auto mb-3 text-slate-300" />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Workspace Empty</p>
-                </div>
-              )}
+                ))}
+                {projects.length === 0 && (
+                  <div className="text-center py-8 opacity-50">
+                    <Box size={28} className="mx-auto mb-3 text-slate-300" />
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Workspace Empty</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </section>
+          </LiquidCard>
         </div>
 
       </div>

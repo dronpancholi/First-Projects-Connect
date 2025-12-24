@@ -18,6 +18,7 @@ import Register from './components/Auth/Register.tsx';
 import Settings from './components/Settings.tsx';
 import { ViewState } from './types.ts';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import LiquidGlass from './components/ui/LiquidGlass.tsx';
 
 const AuthenticatedApp: React.FC = () => {
   const [currentView, setView] = useState<ViewState>({ type: 'DASHBOARD' });
@@ -104,14 +105,25 @@ const AuthFlow: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center mesh-gradient relative overflow-hidden">
-      {isRegistering ? (
-        <Register onLoginClick={() => setIsRegistering(false)} />
-      ) : (
-        <Login
-          onRegisterClick={() => setIsRegistering(true)}
-          onSettingsClick={() => setShowSettings(true)}
-        />
-      )}
+      <LiquidGlass
+        displacementScale={50}
+        blurAmount={0.3}
+        saturation={110}
+        elasticity={0.4}
+        cornerRadius={48}
+        padding="0px"
+      >
+        <div className="bg-white/30 backdrop-blur-md p-2 rounded-[3rem] border border-white/40 shadow-2xl">
+          {isRegistering ? (
+            <Register onLoginClick={() => setIsRegistering(false)} />
+          ) : (
+            <Login
+              onRegisterClick={() => setIsRegistering(true)}
+              onSettingsClick={() => setShowSettings(true)}
+            />
+          )}
+        </div>
+      </LiquidGlass>
     </div>
   );
 };
