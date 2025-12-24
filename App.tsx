@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { StoreProvider } from './context/StoreContext.tsx';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
@@ -18,7 +17,7 @@ import Register from './components/Auth/Register.tsx';
 import Settings from './components/Settings.tsx';
 import { ViewState } from './types.ts';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import LiquidGlass from './components/ui/LiquidGlass.tsx';
+import LiquidSurface from './components/ui/LiquidSurface.tsx';
 
 const AuthenticatedApp: React.FC = () => {
   const [currentView, setView] = useState<ViewState>({ type: 'DASHBOARD' });
@@ -55,7 +54,7 @@ const AuthenticatedApp: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center mesh-gradient">
+      <div className="h-full w-full flex items-center justify-center holo-mesh">
         <Loader2 className="animate-spin text-studio-accent" size={32} />
       </div>
     );
@@ -77,11 +76,11 @@ const AuthFlow: React.FC = () => {
 
   if (showSettings) {
     return (
-      <div className="min-h-screen mesh-gradient flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-4xl mb-4">
+      <div className="h-full w-full holo-mesh flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-4xl mb-4 relative z-10">
           <button
             onClick={() => setShowSettings(false)}
-            className="flex items-center gap-2 text-studio-muted hover:text-studio-text transition-colors font-medium px-2 py-1 glass rounded-lg"
+            className="flex items-center gap-2 text-studio-muted hover:text-studio-text transition-colors font-medium px-4 py-2 glass-light rounded-xl hover:bg-white/50"
           >
             <ArrowLeft size={18} /> Back to Login
           </button>
@@ -93,7 +92,7 @@ const AuthFlow: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center mesh-gradient">
+      <div className="h-full w-full flex items-center justify-center holo-mesh">
         <Loader2 className="animate-spin text-studio-accent" size={32} />
       </div>
     );
@@ -104,26 +103,39 @@ const AuthFlow: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center mesh-gradient relative overflow-hidden">
-      <LiquidGlass
-        displacementScale={50}
-        blurAmount={0.3}
-        saturation={110}
-        elasticity={0.4}
-        cornerRadius={48}
-        padding="0px"
+    <div className="h-full w-full flex items-center justify-center holo-mesh relative overflow-hidden p-6">
+
+      {/* Decorative Background Elements */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-300/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-300/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float" style={{ animationDelay: '2s' }} />
+
+      {/* Main Glass Monolith */}
+      <LiquidSurface
+        className="w-full max-w-md relative z-10"
+        intensity="high"
+        radius="xl"
+        distortion={true}
       >
-        <div className="bg-white/30 backdrop-blur-md p-2 rounded-[3rem] border border-white/40 shadow-2xl">
+        <div className="p-1"> {/* Padding for inner spacing */}
           {isRegistering ? (
-            <Register onLoginClick={() => setIsRegistering(false)} />
+            // Pass transparent prop or wrap in div if Register expects it
+            <div className="bg-transparent">
+              <Register onLoginClick={() => setIsRegistering(false)} />
+            </div>
           ) : (
-            <Login
-              onRegisterClick={() => setIsRegistering(true)}
-              onSettingsClick={() => setShowSettings(true)}
-            />
+            <div className="bg-transparent">
+              <Login
+                onRegisterClick={() => setIsRegistering(true)}
+                onSettingsClick={() => setShowSettings(true)}
+              />
+            </div>
           )}
         </div>
-      </LiquidGlass>
+      </LiquidSurface>
+
+      <div className="absolute bottom-8 text-center w-full">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-studio-muted font-bold opacity-60">First Projects Connect System</p>
+      </div>
     </div>
   );
 };

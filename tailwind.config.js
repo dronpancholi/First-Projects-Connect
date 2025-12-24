@@ -2,70 +2,54 @@
 export default {
   content: [
     "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
-    "./context/**/*.{js,ts,jsx,tsx}",
-    "./services/**/*.{js,ts,jsx,tsx}",
-    "./*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['"Inter"', 'sans-serif'],
-        display: ['"Plus Jakarta Sans"', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace']
-      },
       colors: {
         studio: {
-          bg: '#F5F5F7', // Apple light gray background
-          sidebar: 'rgba(255, 255, 255, 0.65)',
-          accent: '#007AFF', // Apple Blue
-          text: '#1D1D1F', // Apple text black
-          border: 'rgba(0, 0, 0, 0.04)',
+          bg: '#F5F5FA',
+          text: '#1D1D1F',
+          accent: '#007AFF', // classic apple blue
           muted: '#86868B',
-          glass: 'rgba(255, 255, 255, 0.72)',
         },
-        apple: {
-          gray: '#F5F5F7',
-          blue: '#007AFF',
-          indigo: '#5856D6',
-          purple: '#AF52DE',
-          pink: '#FF2D55',
-          red: '#FF3B30',
-          orange: '#FF9500',
-          yellow: '#FFCC00',
-          green: '#34C759',
-          teal: '#5AC8FA',
-          cyan: '#32ADE6',
+        glass: {
+          100: 'rgba(255, 255, 255, 0.1)',
+          200: 'rgba(255, 255, 255, 0.2)',
+          300: 'rgba(255, 255, 255, 0.3)',
+          400: 'rgba(255, 255, 255, 0.4)',
+          500: 'rgba(255, 255, 255, 0.5)',
+          600: 'rgba(255, 255, 255, 0.6)',
+          700: 'rgba(255, 255, 255, 0.7)',
+          800: 'rgba(255, 255, 255, 0.8)',
+          900: 'rgba(255, 255, 255, 0.9)',
         }
       },
-      borderRadius: {
-        '4xl': '2rem',
-        '5xl': '2.5rem',
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
       boxShadow: {
-        'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
-        'glass-hover': '0 10px 40px rgba(0, 0, 0, 0.1)',
-        'glass-strong': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-        'sidebar': '4px 0 24px rgba(0, 0, 0, 0.02)',
-        'glow': '0 0 20px rgba(0, 122, 255, 0.3)',
-        'studio': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02)',
+        'glass-sm': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
+        'glass-md': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
+        'glass-lg': '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02), inset 0 0 0 1px rgba(255, 255, 255, 0.5)',
+        'glass-strong': '0 25px 50px -12px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.6)',
+        'neon': '0 0 20px rgba(0, 122, 255, 0.4)',
       },
       backdropBlur: {
+        'xxs': '1px',
         'xs': '2px',
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',
-        'mesh': 'mesh 20s infinite ease-in-out',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       keyframes: {
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-10px)' },
-        },
-        mesh: {
-          '0%': { backgroundPosition: '0% 50%' },
-          '50%': { backgroundPosition: '100% 50%' },
-          '100%': { backgroundPosition: '0% 50%' },
         }
       }
     },

@@ -28,6 +28,7 @@
     "@supabase/supabase-js": "^2.46.1",
     "codemirror": "^6.0.2",
     "framer-motion": "^12.23.26",
+    "liquid-glass-react": "^1.1.1",
     "lucide-react": "^0.460.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
