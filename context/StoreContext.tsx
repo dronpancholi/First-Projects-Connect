@@ -76,14 +76,35 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!user || !supabase) return;
     setIsLoading(true);
     try {
-      // Mocking fetch as table might not exist yet in users Supabase
-      // In production, these would be supabase.from('table').select('*')
-      const p = await supabase.from('projects').select('*');
-      const t = await supabase.from('tasks').select('*');
-      if (p.data) setProjects(p.data.map(p => ({ ...p, createdAt: new Date(p.created_at) })));
-      if (t.data) setTasks(t.data.map(t => ({ ...t, projectId: t.project_id })));
+      const [
+        pData, tData, nData, aData, wData, sData,
+        fData, stData, auData, rData
+      ] = await Promise.all([
+        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('tasks').select('*').order('created_at', { ascending: false }),
+        supabase.from('notes').select('*').order('updated_at', { ascending: false }),
+        supabase.from('assets').select('*').order('created_at', { ascending: false }),
+        supabase.from('whiteboards').select('*').order('updated_at', { ascending: false }),
+        supabase.from('snippets').select('*').order('updated_at', { ascending: false }),
+        supabase.from('financials').select('*').order('date', { ascending: false }),
+        supabase.from('stakeholders').select('*').order('created_at', { ascending: false }),
+        supabase.from('automations').select('*').order('created_at', { ascending: false }),
+        supabase.from('resources').select('*').order('created_at', { ascending: false }),
+      ]);
+
+      if (pData.data) setProjects(pData.data.map(d => ({ ...d, createdAt: new Date(d.created_at) })));
+      if (tData.data) setTasks(tData.data.map(d => ({ ...d, projectId: d.project_id, dueDate: d.due_date ? new Date(d.due_date) : undefined })));
+      if (nData.data) setNotes(nData.data.map(d => ({ ...d, projectId: d.project_id, updatedAt: new Date(d.updated_at) })));
+      if (aData.data) setAssets(aData.data.map(d => ({ ...d, projectId: d.project_id, uploadedAt: new Date(d.created_at) })));
+      if (wData.data) setWhiteboards(wData.data.map(d => ({ ...d, updatedAt: new Date(d.updated_at) })));
+      if (sData.data) setSnippets(sData.data.map(d => ({ ...d, updatedAt: new Date(d.updated_at) })));
+      if (fData.data) setFinancials(fData.data.map(d => ({ ...d, projectId: d.project_id, date: new Date(d.date) })));
+      if (stData.data) setStakeholders(stData.data.map(d => ({ ...d, linkedProjectId: d.linked_project_id })));
+      if (auData.data) setAutomations(auData.data.map(d => ({ ...d, isActive: d.is_active })));
+      if (rData.data) setResources(rData.data.map(d => ({ ...d, expiryDate: d.expiry_date ? new Date(d.expiry_date) : undefined })));
+
     } catch (e) {
-      console.error(e);
+      console.error('Data sync failed:', e);
     } finally {
       setIsLoading(false);
     }
@@ -91,47 +112,154 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // --- CRUD helpers ---
+  // We optimistically update UI and verify with backend fetch or simply await
+  // For simplicity and reliability in this sprint, we'll await and re-fetch or strict local update
+
   const addProject = async (p: any) => {
-    const newP = { id: Math.random().toString(), ...p, createdAt: new Date(), progress: 0 };
-    setProjects(prev => [newP, ...prev]);
+    setIsSyncing(true);
+    const { data, error } = await supabase.from('projects').insert([{
+      ...p,
+      user_id: user?.id,
+      created_at: new Date()
+    }]).select().single();
+
+    if (!error && data) {
+      setProjects(prev => [{ ...data, createdAt: new Date(data.created_at) } as Project, ...prev]);
+    }
+    setIsSyncing(false);
   };
-  const deleteProject = async (id: string) => setProjects(prev => prev.filter(p => p.id !== id));
-  const updateProject = async (id: string, u: any) => setProjects(prev => prev.map(p => p.id === id ? { ...p, ...u } : p));
+
+  const updateProject = async (id: string, updates: any) => {
+    setIsSyncing(true);
+    const { error } = await supabase.from('projects').update(updates).eq('id', id);
+    if (!error) {
+      setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    }
+    setIsSyncing(false);
+  };
+
+  const deleteProject = async (id: string) => {
+    const { error } = await supabase.from('projects').delete().eq('id', id);
+    if (!error) setProjects(prev => prev.filter(p => p.id !== id));
+  };
 
   const addTask = async (t: any) => {
-    const newT = { id: Math.random().toString(), ...t };
-    setTasks(prev => [...prev, newT]);
+    const payload = {
+      title: t.title,
+      status: t.status,
+      priority: t.priority,
+      project_id: t.projectId,
+      user_id: user?.id,
+      due_date: t.dueDate
+    };
+    const { data, error } = await supabase.from('tasks').insert([payload]).select().single();
+    if (!error && data) {
+      setTasks(prev => [{ ...data, projectId: data.project_id, dueDate: data.due_date ? new Date(data.due_date) : undefined } as Task, ...prev]);
+    }
   };
-  const updateTask = async (id: string, u: any) => setTasks(prev => prev.map(t => t.id === id ? { ...t, ...u } : t));
-  const deleteTask = async (id: string) => setTasks(prev => prev.filter(t => t.id !== id));
 
-  const addFinancial = async (f: any) => setFinancials(prev => [{ id: Math.random().toString(), ...f }, ...prev]);
-  const deleteFinancial = async (id: string) => setFinancials(prev => prev.filter(x => x.id !== id));
+  const updateTask = async (id: string, updates: any) => {
+    // Map updates to snake_case if necessary
+    const payload: any = { ...updates };
+    if (updates.projectId) { payload.project_id = updates.projectId; delete payload.projectId; }
+    if (updates.dueDate) { payload.due_date = updates.dueDate; delete payload.dueDate; }
 
-  const addStakeholder = async (s: any) => setStakeholders(prev => [{ id: Math.random().toString(), ...s }, ...prev]);
-  const deleteStakeholder = async (id: string) => setStakeholders(prev => prev.filter(x => x.id !== id));
+    const { error } = await supabase.from('tasks').update(payload).eq('id', id);
+    if (!error) setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
 
-  const addAutomation = async (a: any) => setAutomations(prev => [{ id: Math.random().toString(), ...a }, ...prev]);
-  const deleteAutomation = async (id: string) => setAutomations(prev => prev.filter(x => x.id !== id));
+  const deleteTask = async (id: string) => {
+    await supabase.from('tasks').delete().eq('id', id);
+    setTasks(prev => prev.filter(t => t.id !== id));
+  };
 
-  const addResource = async (r: any) => setResources(prev => [{ id: Math.random().toString(), ...r }, ...prev]);
-  const deleteResource = async (id: string) => setResources(prev => prev.filter(x => x.id !== id));
+  // --- Other Entities ---
 
-  const addWhiteboard = async (w: any) => setWhiteboards(prev => [{ id: Math.random().toString(), ...w, updatedAt: new Date() }, ...prev]);
-  const updateWhiteboard = async (id: string, elements: any) => setWhiteboards(prev => prev.map(w => w.id === id ? { ...w, elements, updatedAt: new Date() } : w));
-  const deleteWhiteboard = async (id: string) => setWhiteboards(prev => prev.filter(w => w.id !== id));
+  const addFinancial = async (f: any) => {
+    const { data, error } = await supabase.from('financials').insert([{ ...f, user_id: user?.id, project_id: f.projectId }]).select().single();
+    if (data && !error) setFinancials(prev => [{ ...data, projectId: data.project_id, date: new Date(data.date) }, ...prev]);
+  };
+  const deleteFinancial = async (id: string) => {
+    await supabase.from('financials').delete().eq('id', id);
+    setFinancials(prev => prev.filter(x => x.id !== id));
+  };
 
-  const addNote = async (n: any) => setNotes(prev => [{ id: Math.random().toString(), ...n, updatedAt: new Date() }, ...prev]);
-  const updateNote = async (id: string, content: string) => setNotes(prev => prev.map(n => n.id === id ? { ...n, content, updatedAt: new Date() } : n));
-  const deleteNote = async (id: string) => setNotes(prev => prev.filter(n => n.id !== id));
+  const addStakeholder = async (s: any) => {
+    const { data, error } = await supabase.from('stakeholders').insert([{ ...s, user_id: user?.id, linked_project_id: s.linkedProjectId }]).select().single();
+    if (data && !error) setStakeholders(prev => [{ ...data, linkedProjectId: data.linked_project_id }, ...prev]);
+  };
+  const deleteStakeholder = async (id: string) => {
+    await supabase.from('stakeholders').delete().eq('id', id);
+    setStakeholders(prev => prev.filter(x => x.id !== id));
+  };
 
-  const addSnippet = async (s: any) => setSnippets(prev => [{ id: Math.random().toString(), ...s, updatedAt: new Date() }, ...prev]);
-  const updateSnippet = async (id: string, code: string) => setSnippets(prev => prev.map(s => s.id === id ? { ...s, code } : s));
-  const deleteSnippet = async (id: string) => setSnippets(prev => prev.filter(s => s.id !== id));
+  const addAutomation = async (a: any) => {
+    const { data, error } = await supabase.from('automations').insert([{ ...a, user_id: user?.id, is_active: a.isActive }]).select().single();
+    if (data && !error) setAutomations(prev => [{ ...data, isActive: data.is_active }, ...prev]);
+  };
+  const deleteAutomation = async (id: string) => {
+    await supabase.from('automations').delete().eq('id', id);
+    setAutomations(prev => prev.filter(x => x.id !== id));
+  };
 
-  const addAsset = async (a: any) => setAssets(prev => [{ id: Math.random().toString(), ...a, uploadedAt: new Date() }, ...prev]);
-  const deleteAsset = async (id: string) => setAssets(prev => prev.filter(a => a.id !== id));
+  const addResource = async (r: any) => {
+    const { data, error } = await supabase.from('resources').insert([{ ...r, user_id: user?.id, expiry_date: r.expiryDate }]).select().single();
+    if (data && !error) setResources(prev => [{ ...data, expiryDate: data.expiry_date ? new Date(data.expiry_date) : undefined }, ...prev]);
+  };
+  const deleteResource = async (id: string) => {
+    await supabase.from('resources').delete().eq('id', id);
+    setResources(prev => prev.filter(x => x.id !== id));
+  };
 
+  const addNote = async (n: any) => {
+    const { data, error } = await supabase.from('notes').insert([{ ...n, user_id: user?.id, project_id: n.projectId, updated_at: new Date() }]).select().single();
+    if (data && !error) setNotes(prev => [{ ...data, projectId: data.project_id, updatedAt: new Date(data.updated_at) }, ...prev]);
+  };
+  const updateNote = async (id: string, content: string) => {
+    await supabase.from('notes').update({ content, updated_at: new Date() }).eq('id', id);
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, content, updatedAt: new Date() } : n));
+  };
+  const deleteNote = async (id: string) => {
+    await supabase.from('notes').delete().eq('id', id);
+    setNotes(prev => prev.filter(x => x.id !== id));
+  };
+
+  const addWhiteboard = async (w: any) => {
+    const { data, error } = await supabase.from('whiteboards').insert([{ ...w, user_id: user?.id, updated_at: new Date() }]).select().single();
+    if (data && !error) setWhiteboards(prev => [{ ...data, updatedAt: new Date(data.updated_at) }, ...prev]);
+  };
+  const updateWhiteboard = async (id: string, elements: any) => {
+    await supabase.from('whiteboards').update({ elements, updated_at: new Date() }).eq('id', id);
+    setWhiteboards(prev => prev.map(w => w.id === id ? { ...w, elements, updatedAt: new Date() } : w));
+  };
+  const deleteWhiteboard = async (id: string) => {
+    await supabase.from('whiteboards').delete().eq('id', id);
+    setWhiteboards(prev => prev.filter(w => w.id !== id));
+  };
+
+  const addSnippet = async (s: any) => {
+    const { data, error } = await supabase.from('snippets').insert([{ ...s, user_id: user?.id, updated_at: new Date() }]).select().single();
+    if (data && !error) setSnippets(prev => [{ ...data, updatedAt: new Date(data.updated_at) }, ...prev]);
+  };
+  const updateSnippet = async (id: string, code: string) => {
+    await supabase.from('snippets').update({ code, updated_at: new Date() }).eq('id', id);
+    setSnippets(prev => prev.map(s => s.id === id ? { ...s, code, updatedAt: new Date() } : s));
+  };
+  const deleteSnippet = async (id: string) => {
+    await supabase.from('snippets').delete().eq('id', id);
+    setSnippets(prev => prev.filter(s => s.id !== id));
+  };
+
+  const addAsset = async (a: any) => {
+    // Asset uploading usually involves Storage bucket, but for now we verify metadata logic
+    const { data, error } = await supabase.from('assets').insert([{ ...a, user_id: user?.id, project_id: a.projectId }]).select().single();
+    if (data && !error) setAssets(prev => [{ ...data, projectId: data.project_id, uploadedAt: new Date(data.created_at) }, ...prev]);
+  };
+  const deleteAsset = async (id: string) => {
+    await supabase.from('assets').delete().eq('id', id);
+    setAssets(prev => prev.filter(a => a.id !== id));
+  };
   return (
     <StoreContext.Provider value={{
       projects, tasks, notes, assets, whiteboards, snippets, financials, stakeholders, automations, resources, isLoading, isSyncing,

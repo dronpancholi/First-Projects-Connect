@@ -43,59 +43,63 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <GlassCard>
-          <div className="p-6">
+        <GlassCard className="h-full">
+          <div className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
-                style={{ boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3)' }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-purple-500/20 shadow-lg shadow-purple-500/20 backdrop-blur-sm">
                 <Briefcase size={22} className="text-purple-400" />
               </div>
               <GlassBadge variant="success">Active</GlassBadge>
             </div>
-            <p className="text-4xl font-bold text-white mb-1">{projects.length}</p>
-            <p className="text-sm text-white/50">Total Projects</p>
+            <div>
+              <p className="text-4xl font-bold text-white mb-1">{projects.length}</p>
+              <p className="text-sm text-white/50">Total Projects</p>
+            </div>
           </div>
         </GlassCard>
 
-        <GlassCard>
-          <div className="p-6">
+        <GlassCard className="h-full">
+          <div className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
-                style={{ boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)' }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-500/20 shadow-lg shadow-blue-500/20 backdrop-blur-sm">
                 <Target size={22} className="text-blue-400" />
               </div>
               <GlassBadge variant="warning">{activeTasks} pending</GlassBadge>
             </div>
-            <p className="text-4xl font-bold text-white mb-1">{tasks.length}</p>
-            <p className="text-sm text-white/50">Total Tasks</p>
+            <div>
+              <p className="text-4xl font-bold text-white mb-1">{tasks.length}</p>
+              <p className="text-sm text-white/50">Total Tasks</p>
+            </div>
           </div>
         </GlassCard>
 
-        <GlassCard>
-          <div className="p-6">
+        <GlassCard className="h-full">
+          <div className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
-                style={{ boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)' }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-emerald-500/20 shadow-lg shadow-emerald-500/20 backdrop-blur-sm">
                 <CheckCircle2 size={22} className="text-green-400" />
               </div>
               <GlassBadge variant="success">+{completedTasks}</GlassBadge>
             </div>
-            <p className="text-4xl font-bold text-white mb-1">{completionRate}%</p>
-            <p className="text-sm text-white/50">Completion Rate</p>
+            <div>
+              <p className="text-4xl font-bold text-white mb-1">{completionRate}%</p>
+              <p className="text-sm text-white/50">Completion Rate</p>
+            </div>
           </div>
         </GlassCard>
 
-        <GlassCard>
-          <div className="p-6">
+        <GlassCard className="h-full">
+          <div className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
-                style={{ boxShadow: '0 8px 32px rgba(236, 72, 153, 0.3)' }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-pink-500/20 shadow-lg shadow-pink-500/20 backdrop-blur-sm">
                 <FileText size={22} className="text-pink-400" />
               </div>
               <GlassBadge>Insights</GlassBadge>
             </div>
-            <p className="text-4xl font-bold text-white mb-1">{notes.length}</p>
-            <p className="text-sm text-white/50">Total Notes</p>
+            <div>
+              <p className="text-4xl font-bold text-white mb-1">{notes.length}</p>
+              <p className="text-sm text-white/50">Total Notes</p>
+            </div>
           </div>
         </GlassCard>
       </div>
@@ -108,10 +112,10 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
             <div className="p-6 border-b border-white/10 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-white">Recent Workspaces</h2>
               <GlassButton
-                size="sm"
                 onClick={() => setView({ type: 'PROJECTS' })}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 px-3 py-2"
               >
+
                 View All <ArrowRight size={14} />
               </GlassButton>
             </div>

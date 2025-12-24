@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
-import { Loader2, ArrowRight, Settings } from 'lucide-react';
+import { Loader2, ArrowRight } from 'lucide-react';
 import { GlassButton, GlassInput } from '../ui/LiquidGlass.tsx';
 
 interface LoginProps {
@@ -19,15 +19,7 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
   };
 
   return (
-    <div className="w-full relative">
-      <button
-        onClick={onSettingsClick}
-        className="absolute -top-16 right-0 p-3 text-white/40 hover:text-white transition-colors glass-button border-transparent"
-        title="Settings"
-      >
-        <Settings size={18} />
-      </button>
-
+    <div className="w-full">
       {error && (
         <div className="mb-6 p-4 glass-card border-red-500/30 bg-red-500/10 rounded-xl text-sm text-red-300 font-medium text-center">
           {error}
