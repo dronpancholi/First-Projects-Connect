@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useStore } from '../context/StoreContext.tsx';
+import LiquidCard from './ui/LiquidCard.tsx';
 import { ProjectStatus, TaskStatus, ViewState } from '../types.ts';
 import {
   BarChart3, CheckCircle, FolderOpen, Plus,
@@ -18,26 +19,26 @@ const AnalyticCard: React.FC<{
   trend?: string;
   onClick?: () => void;
   color?: string;
-}> = ({ title, value, icon, trend, onClick, color = "bg-blue-500" }) => (
-  <div
-    onClick={onClick}
-    className={`glass-panel p-6 flex flex-col justify-between h-48 hover:scale-[1.02] transition-all duration-500 group ${onClick ? 'cursor-pointer' : ''}`}
-  >
-    <div className="flex justify-between items-start">
-      <div className={`p-3 rounded-2xl ${color} bg-opacity-20 text-slate-800 shadow-sm group-hover:scale-110 transition-transform duration-500 backdrop-blur-md`}>
-        {React.cloneElement(icon as React.ReactElement<any>, { size: 22, strokeWidth: 1.5 })}
-      </div>
-      {trend && (
-        <div className="px-2 py-1 rounded-lg bg-emerald-400/10 border border-emerald-400/20 text-[10px] font-bold text-emerald-600 flex items-center gap-1 uppercase tracking-wider">
-          {trend} <TrendingUp size={10} className="text-emerald-500 ml-0.5" />
+  delay?: number;
+}> = ({ title, value, icon, trend, onClick, color = "bg-blue-500", delay = 0 }) => (
+  <LiquidCard onClick={onClick} delay={delay} className={`h-48 group ${onClick ? 'cursor-pointer' : ''}`}>
+    <div className="flex flex-col justify-between h-full p-6">
+      <div className="flex justify-between items-start">
+        <div className={`p-3 rounded-2xl ${color} bg-opacity-20 text-slate-800 shadow-sm group-hover:scale-110 transition-transform duration-500 backdrop-blur-md`}>
+          {React.cloneElement(icon as React.ReactElement<any>, { size: 22, strokeWidth: 1.5 })}
         </div>
-      )}
+        {trend && (
+          <div className="px-2 py-1 rounded-lg bg-emerald-400/10 border border-emerald-400/20 text-[10px] font-bold text-emerald-600 flex items-center gap-1 uppercase tracking-wider">
+            {trend} <TrendingUp size={10} className="text-emerald-500 ml-0.5" />
+          </div>
+        )}
+      </div>
+      <div>
+        <h3 className="text-3xl font-display font-medium text-slate-800 tracking-tight mb-1">{value}</h3>
+        <p className="text-[11px] font-medium text-slate-500 uppercase tracking-widest opacity-80">{title}</p>
+      </div>
     </div>
-    <div>
-      <h3 className="text-3xl font-display font-medium text-slate-800 tracking-tight mb-1">{value}</h3>
-      <p className="text-[11px] font-medium text-slate-500 uppercase tracking-widest opacity-80">{title}</p>
-    </div>
-  </div>
+  </LiquidCard>
 );
 
 const Dashboard: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) => {
