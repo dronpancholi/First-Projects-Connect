@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import {
-  LayoutDashboard, Briefcase, FileText, Settings, Search, LogOut,
-  Palette, Menu, Zap, CreditCard, Users, Activity, Mic, Bell, Lock, Trello, Globe, HeartPulse, Clock, Sparkles
+  LayoutDashboard, Briefcase, FileText, LogOut, Search,
+  Palette, Menu, Zap, CreditCard, Users, Activity, Mic, Bell, Trello
 } from 'lucide-react';
-import LiquidSurface from './ui/LiquidSurface.tsx';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
 import VoiceAssistant from './VoiceAssistant.tsx';
@@ -22,29 +21,18 @@ const NavItem: React.FC<{
   isActive: boolean;
   onClick: () => void;
   badge?: string;
-  isLocked?: boolean;
-}> = ({ icon, label, isActive, onClick, badge, isLocked }) => (
+}> = ({ icon, label, isActive, onClick, badge }) => (
   <button
-    onClick={isLocked ? undefined : onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[13px] font-medium transition-all duration-300 group
-      ${isActive
-        ? 'bg-gradient-to-r from-studio-accent to-blue-500 text-white shadow-neon'
-        : isLocked
-          ? 'text-slate-300 cursor-not-allowed'
-          : 'text-slate-500 hover:text-studio-text hover:bg-glass-200'
-      }`}
+    onClick={onClick}
+    className={`nav-item w-full ${isActive ? 'active' : ''}`}
   >
-    <div className={`p-1 rounded-lg transition-all ${isActive ? 'bg-white/20' : 'bg-transparent group-hover:bg-white/50'}`}>
-      {React.cloneElement(icon as React.ReactElement<any>, { size: 18, strokeWidth: isActive ? 2 : 1.5 })}
-    </div>
-    <span className="flex-1 text-left tracking-tight">{label}</span>
-    {isLocked ? (
-      <Lock size={12} className="text-slate-300" />
-    ) : badge ? (
-      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm ${isActive ? 'bg-white/30 text-white' : 'bg-white text-slate-500'}`}>
+    {icon}
+    <span className="flex-1 text-left">{label}</span>
+    {badge && (
+      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${isActive ? 'bg-white/20' : 'bg-gray-100'}`}>
         {badge}
       </span>
-    ) : null}
+    )}
   </button>
 );
 
@@ -58,126 +46,134 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   const activeTaskCount = tasks.filter(t => t.status !== 'Done').length;
 
   return (
-    <div className="flex h-full w-full holo-mesh font-sans overflow-hidden text-studio-text">
-
-      {/* Glass Sidebar */}
-      <aside className={`transition-all duration-500 ease-spring z-30 flex flex-col h-full pl-4 py-4 ${isSidebarOpen ? 'w-80' : 'w-0 pl-0 py-0 opacity-0 overflow-hidden'}`}>
-        <LiquidSurface
-          className="h-full w-full flex flex-col"
-          intensity="medium"
-          radius="xl"
-          distortion={true} // Enabled for premium feel
-        >
-          <div className="p-6 pb-2 flex-1 overflow-y-auto hide-scrollbar flex flex-col">
-            {/* Brand */}
-            <div className="flex items-center gap-4 mb-10 px-2 mt-2">
-              <div className="w-10 h-10 bg-studio-accent rounded-xl flex items-center justify-center text-white shadow-neon backdrop-blur-md">
-                <Zap size={20} fill="currentColor" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="font-display font-bold text-lg text-studio-text tracking-tight leading-none">First Projects</h1>
-                <p className="text-[10px] font-bold text-studio-accent uppercase tracking-widest mt-1">Connect OS</p>
-              </div>
+    <div className="flex h-screen w-full animated-bg overflow-hidden">
+      {/* Sidebar */}
+      <aside
+        className={`glass-sidebar h-full flex flex-col transition-all duration-300 ${isSidebarOpen ? 'w-72' : 'w-0 overflow-hidden'
+          }`}
+      >
+        <div className="p-6 flex-1 overflow-y-auto hide-scrollbar">
+          {/* Brand */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <Zap size={20} fill="currentColor" />
             </div>
-
-            {/* Navigation */}
-            <nav className="space-y-8 flex-1">
-              <section>
-                <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Core</p>
-                <div className="space-y-1">
-                  <NavItem icon={<LayoutDashboard />} label="Dashboard" isActive={currentView.type === 'DASHBOARD'} onClick={() => setView({ type: 'DASHBOARD' })} />
-                  <NavItem icon={<Briefcase />} label="Workspaces" isActive={currentView.type === 'PROJECTS'} onClick={() => setView({ type: 'PROJECTS' })} badge={projects.length.toString()} />
-                  <NavItem icon={<Trello />} label="Operations" isActive={currentView.type === 'KANBAN'} onClick={() => setView({ type: 'KANBAN' })} badge={activeTaskCount.toString()} />
-                </div>
-              </section>
-
-              <section>
-                <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Knowledge</p>
-                <div className="space-y-1">
-                  <NavItem icon={<FileText />} label="Insights" isActive={currentView.type === 'IDEAS'} onClick={() => setView({ type: 'IDEAS' })} />
-                  <NavItem icon={<Palette />} label="Visual Lab" isActive={currentView.type === 'WHITEBOARD'} onClick={() => setView({ type: 'WHITEBOARD' })} />
-                </div>
-              </section>
-
-              <section>
-                <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">System</p>
-                <div className="space-y-1">
-                  <NavItem icon={<CreditCard />} label="Financials" isActive={currentView.type === 'FINANCIALS'} onClick={() => setView({ type: 'FINANCIALS' })} />
-                  <NavItem icon={<Activity />} label="Flows" isActive={currentView.type === 'AUTOMATION'} onClick={() => setView({ type: 'AUTOMATION' })} />
-                  <NavItem icon={<Users />} label="Directory" isActive={currentView.type === 'CRM'} onClick={() => setView({ type: 'CRM' })} />
-                </div>
-              </section>
-            </nav>
-
-            {/* User Profile */}
-            <div className="pt-6 mt-2 border-t border-white/20">
-              <button
-                onClick={logout}
-                className="w-full flex items-center gap-3 p-3 bg-white/40 hover:bg-white/60 backdrop-blur-md rounded-2xl transition-all group border border-white/40 shadow-sm"
-              >
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-slate-600 font-bold text-xs ring-2 ring-white">
-                  {user?.name?.[0] || 'U'}
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <p className="text-xs font-bold text-studio-text truncate">{user?.name || 'User'}</p>
-                  <p className="text-[9px] text-slate-500 font-medium">Online</p>
-                </div>
-                <LogOut size={16} className="text-slate-400 group-hover:text-rose-500 transition-colors" />
-              </button>
+            <div>
+              <h1 className="font-bold text-gray-900">First Projects</h1>
+              <p className="text-xs font-semibold text-blue-500 uppercase tracking-wider">Connect</p>
             </div>
           </div>
-        </LiquidSurface>
+
+          {/* Developer Credit */}
+          <div className="mb-6 px-3 py-2 rounded-xl bg-white/50 border border-white/60 text-center">
+            <p className="text-xs text-gray-500">By Dron Pancholi</p>
+          </div>
+
+          {/* Navigation */}
+          <nav className="space-y-6">
+            <div>
+              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Core</p>
+              <div className="space-y-1">
+                <NavItem icon={<LayoutDashboard size={18} />} label="Dashboard" isActive={currentView.type === 'DASHBOARD'} onClick={() => setView({ type: 'DASHBOARD' })} />
+                <NavItem icon={<Briefcase size={18} />} label="Workspaces" isActive={currentView.type === 'PROJECTS'} onClick={() => setView({ type: 'PROJECTS' })} badge={projects.length.toString()} />
+                <NavItem icon={<Trello size={18} />} label="Operations" isActive={currentView.type === 'KANBAN'} onClick={() => setView({ type: 'KANBAN' })} badge={activeTaskCount.toString()} />
+              </div>
+            </div>
+
+            <div>
+              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Knowledge</p>
+              <div className="space-y-1">
+                <NavItem icon={<FileText size={18} />} label="Insights" isActive={currentView.type === 'IDEAS'} onClick={() => setView({ type: 'IDEAS' })} />
+                <NavItem icon={<Palette size={18} />} label="Visual Lab" isActive={currentView.type === 'WHITEBOARD'} onClick={() => setView({ type: 'WHITEBOARD' })} />
+              </div>
+            </div>
+
+            <div>
+              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">System</p>
+              <div className="space-y-1">
+                <NavItem icon={<CreditCard size={18} />} label="Financials" isActive={currentView.type === 'FINANCIALS'} onClick={() => setView({ type: 'FINANCIALS' })} />
+                <NavItem icon={<Activity size={18} />} label="Flows" isActive={currentView.type === 'AUTOMATION'} onClick={() => setView({ type: 'AUTOMATION' })} />
+                <NavItem icon={<Users size={18} />} label="Directory" isActive={currentView.type === 'CRM'} onClick={() => setView({ type: 'CRM' })} />
+              </div>
+            </div>
+          </nav>
+        </div>
+
+        {/* User Profile */}
+        <div className="p-4 border-t border-white/30">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/50 transition-all group"
+          >
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-600 font-bold text-sm">
+              {user?.name?.[0] || 'U'}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-semibold text-gray-800 truncate">{user?.name || 'User'}</p>
+              <p className="text-xs text-gray-500">Online</p>
+            </div>
+            <LogOut size={16} className="text-gray-400 group-hover:text-red-500 transition-colors" />
+          </button>
+        </div>
       </aside>
 
-      {/* Main Container */}
-      <main className="flex-1 flex flex-col relative overflow-hidden h-full">
-        {/* Floating Header */}
-        <header className="h-24 flex items-center px-10 shrink-0 justify-between z-20">
-          <div className="flex items-center gap-6">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-3 text-studio-text hover:bg-white/50 rounded-xl transition-all glass-light">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="h-20 px-8 flex items-center justify-between shrink-0 border-b border-white/30">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 rounded-xl hover:bg-white/50 transition-all text-gray-600"
+            >
               <Menu size={20} />
             </button>
-            <div className="flex items-center gap-3 glass-light px-4 py-2 rounded-full">
-              <div className="h-2 w-2 rounded-full bg-studio-accent animate-pulse" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{currentView.type.replace('_', ' ')}</span>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-blue-500" />
+              <span className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                {currentView.type.replace('_', ' ')}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSpotlightOpen(true)}
-              className="flex items-center gap-3 px-5 py-3 rounded-2xl glass-base hover:bg-white/60 transition-all text-slate-500 hover:text-studio-text group shadow-glass-sm"
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/50 hover:bg-white/70 border border-white/60 transition-all text-gray-500"
             >
               <Search size={16} />
-              <span className="text-xs font-medium">Search knowledge...</span>
-              <div className="flex gap-1 ml-6">
-                <span className="w-5 h-5 flex items-center justify-center rounded-md bg-white/50 text-[10px] font-bold text-slate-400 border border-white/50">⌘</span>
-                <span className="w-5 h-5 flex items-center justify-center rounded-md bg-white/50 text-[10px] font-bold text-slate-400 border border-white/50">K</span>
+              <span className="text-sm">Search...</span>
+              <div className="flex gap-1 ml-4">
+                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-xs font-medium">⌘</span>
+                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-xs font-medium">K</span>
               </div>
             </button>
 
-            <button onClick={() => setIsVoiceActive(true)} className="p-3 rounded-full glass-base hover:bg-studio-accent hover:text-white transition-all text-slate-500">
-              <Mic size={20} />
+            <button
+              onClick={() => setIsVoiceActive(true)}
+              className="p-2.5 rounded-xl bg-white/50 hover:bg-white/70 border border-white/60 transition-all text-gray-500"
+            >
+              <Mic size={18} />
             </button>
 
-            <button className="relative p-3 rounded-full glass-base hover:bg-white/60 transition-all text-slate-500">
-              <Bell size={20} />
-              <span className="absolute top-3 right-3.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
+            <button className="relative p-2.5 rounded-xl bg-white/50 hover:bg-white/70 border border-white/60 transition-all text-gray-500">
+              <Bell size={18} />
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500" />
             </button>
           </div>
         </header>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-auto px-10 pb-10 scroll-smooth">
-          <div className="max-w-[1400px] mx-auto h-full">
+        {/* Content */}
+        <div className="flex-1 overflow-auto p-8">
+          <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </div>
       </main>
 
       {/* Modals */}
-      {isSpotlightOpen && (<SpotlightSearch isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} setView={setView} />)}
-      {isVoiceActive && (<VoiceAssistant onClose={() => setIsVoiceActive(false)} />)}
+      {isSpotlightOpen && <SpotlightSearch isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} setView={setView} />}
+      {isVoiceActive && <VoiceAssistant onClose={() => setIsVoiceActive(false)} />}
     </div>
   );
 };
