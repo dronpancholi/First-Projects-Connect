@@ -1,24 +1,22 @@
-
 import React, { useState, useMemo } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { TaskStatus, Task, Priority, ViewState } from '../types.ts';
-import { 
-  Plus, MoreHorizontal, ChevronRight, Filter, Search, 
-  Clock, AlertCircle, CheckCircle2, Circle, Layout, Briefcase,
-  // Added missing Zap icon
-  Zap
+import {
+  Plus, MoreHorizontal, Clock, AlertCircle, CheckCircle2,
+  Layout, Briefcase, Zap, Search
 } from 'lucide-react';
+import { GlassCard, GlassColumn, GlassButton, GlassBadge, GlassInput } from './ui/LiquidGlass.tsx';
 
 const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) => {
   const { tasks, projects, updateTask, addTask, deleteTask } = useStore();
   const [filterQuery, setFilterQuery] = useState('');
 
-  const columns: { title: string; status: TaskStatus }[] = [
-    { title: 'Backlog', status: TaskStatus.BACKLOG },
-    { title: 'To Do', status: TaskStatus.TODO },
-    { title: 'Processing', status: TaskStatus.IN_PROGRESS },
-    { title: 'Peer Review', status: TaskStatus.REVIEW },
-    { title: 'Verified', status: TaskStatus.DONE },
+  const columns: { title: string; status: TaskStatus; color: string }[] = [
+    { title: 'Backlog', status: TaskStatus.BACKLOG, color: 'from-gray-400 to-gray-500' },
+    { title: 'To Do', status: TaskStatus.TODO, color: 'from-blue-400 to-blue-500' },
+    { title: 'In Progress', status: TaskStatus.IN_PROGRESS, color: 'from-amber-400 to-orange-500' },
+    { title: 'Review', status: TaskStatus.REVIEW, color: 'from-purple-400 to-purple-500' },
+    { title: 'Done', status: TaskStatus.DONE, color: 'from-green-400 to-green-500' },
   ];
 
   const filteredTasks = useMemo(() => {
@@ -29,111 +27,130 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
     await updateTask(taskId, { status: newStatus });
   };
 
-  const getPriorityColor = (p: Priority) => {
+  const getPriorityBadge = (p: Priority) => {
     switch (p) {
-      case Priority.CRITICAL: return 'text-rose-600 bg-rose-50 border-rose-100';
-      case Priority.HIGH: return 'text-orange-600 bg-orange-50 border-orange-100';
-      case Priority.MEDIUM: return 'text-yellow-600 bg-yellow-50 border-yellow-100';
-      default: return 'text-slate-400 bg-slate-50 border-slate-100';
+      case Priority.CRITICAL: return <GlassBadge variant="danger">{p}</GlassBadge>;
+      case Priority.HIGH: return <GlassBadge variant="warning">{p}</GlassBadge>;
+      case Priority.MEDIUM: return <GlassBadge variant="primary">{p}</GlassBadge>;
+      default: return <GlassBadge>{p}</GlassBadge>;
     }
   };
 
   return (
-    <div className="h-full flex flex-col space-y-12 animate-in fade-in duration-500 pb-20">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-gray-100 pb-12">
+    <div className="h-full flex flex-col space-y-8 animate-fade-in pb-20">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <div className="flex items-center gap-3 text-yellow-600 mb-3">
-             <Layout size={16} />
-             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Throughput Engine active</span>
+          <div className="flex items-center gap-3 text-amber-600 mb-2">
+            <Layout size={16} />
+            <span className="text-xs font-semibold uppercase tracking-wider">Operations Board</span>
           </div>
-          <h1 className="text-5xl font-display font-black text-gray-900 tracking-tighter leading-none mb-3">Lifecycle Board</h1>
-          <p className="text-gray-500 text-sm font-medium">Orchestrate mission tasks through industrial validation cycles.</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Task Pipeline</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage tasks through validation stages.</p>
         </div>
-        
-        <div className="flex gap-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input 
-              className="pl-12 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-xl text-[13px] font-bold outline-none focus:ring-4 focus:ring-yellow-50 focus:border-yellow-400 transition-all w-80 shadow-inner"
-              placeholder="Query task registry..."
-              value={filterQuery}
-              onChange={e => setFilterQuery(e.target.value)}
-            />
-          </div>
+
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input
+            className="pl-11 pr-4 py-3 glass-input w-72"
+            placeholder="Search tasks..."
+            value={filterQuery}
+            onChange={e => setFilterQuery(e.target.value)}
+          />
         </div>
       </header>
 
-      <div className="flex gap-8 overflow-x-auto pb-12 no-scrollbar px-1">
+      {/* Kanban Columns */}
+      <div className="flex gap-5 overflow-x-auto pb-4 custom-scrollbar">
         {columns.map(col => {
           const colTasks = filteredTasks.filter(t => t.status === col.status);
           return (
-            <div key={col.status} className="flex-shrink-0 w-80 flex flex-col gap-6">
-              <div className="flex items-center justify-between px-3">
-                <div className="flex items-center gap-4">
-                   <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-900">{col.title}</h3>
-                   <span className="px-2.5 py-0.5 rounded-full bg-gray-900 text-yellow-400 text-[10px] font-black">{colTasks.length}</span>
+            <div key={col.status} className="flex-shrink-0 w-80">
+              <GlassColumn>
+                {/* Column Header */}
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100/50">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${col.color}`} />
+                    <h3 className="text-sm font-semibold text-gray-900">{col.title}</h3>
+                    <span className="text-xs font-medium text-gray-400 bg-gray-100/80 px-2 py-0.5 rounded-full">
+                      {colTasks.length}
+                    </span>
+                  </div>
+                  <button className="text-gray-300 hover:text-gray-600 transition-colors">
+                    <MoreHorizontal size={16} />
+                  </button>
                 </div>
-                <button className="text-gray-300 hover:text-black transition-colors"><MoreHorizontal size={16}/></button>
-              </div>
 
-              <div className="flex-1 flex flex-col gap-4 min-h-[600px] p-2 bg-gray-50/50 rounded-[2rem] border border-gray-100/50">
-                {colTasks.length === 0 && (
-                   <div className="h-full flex flex-col items-center justify-center opacity-20 py-20">
-                      <Zap size={32} className="mb-4" />
-                      <p className="text-[9px] font-black uppercase tracking-widest">Zone Clear</p>
-                   </div>
-                )}
-                {colTasks.map(task => {
-                  const project = projects.find(p => p.id === task.projectId);
-                  return (
-                    <div 
-                      key={task.id} 
-                      className="card-professional p-6 space-y-5 group cursor-pointer rounded-2xl hover:translate-y-[-4px] transition-all bg-white"
-                      onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: task.projectId })}
-                    >
-                      <div className="flex justify-between items-start">
-                        <span className={`px-3 py-1 rounded text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm ${getPriorityColor(task.priority)}`}>
-                          {task.priority}
-                        </span>
-                        <div className="flex gap-1.5">
-                           {col.status !== TaskStatus.DONE && (
-                              <button onClick={(e) => { e.stopPropagation(); handleStatusChange(task.id, TaskStatus.DONE); }} className="p-1.5 text-gray-200 hover:text-emerald-500 bg-gray-50 rounded-lg">
-                                 <CheckCircle2 size={14} />
-                              </button>
-                           )}
-                           <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="p-1.5 text-gray-200 hover:text-rose-500 bg-gray-50 rounded-lg">
-                              <AlertCircle size={14} />
-                           </button>
-                        </div>
-                      </div>
-                      
-                      <h4 className="text-[15px] font-black text-gray-900 leading-snug group-hover:text-yellow-600 transition-colors tracking-tight">{task.title}</h4>
-                      
-                      <div className="pt-4 flex items-center justify-between border-t border-gray-50">
-                         <div className="flex items-center gap-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                            <Briefcase size={12} className="text-yellow-500" />
-                            <span className="truncate max-w-[140px]">{project?.title || 'System'}</span>
-                         </div>
-                         <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 rounded-lg">
-                            <Clock size={12} className="text-gray-300" />
-                            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Active</span>
-                         </div>
-                      </div>
+                {/* Tasks */}
+                <div className="space-y-3 min-h-[300px]">
+                  {colTasks.length === 0 && (
+                    <div className="h-full flex flex-col items-center justify-center py-12 text-gray-300">
+                      <Zap size={24} className="mb-2" />
+                      <p className="text-xs font-medium">No tasks</p>
                     </div>
-                  );
-                })}
-                
-                <button 
+                  )}
+
+                  {colTasks.map(task => {
+                    const project = projects.find(p => p.id === task.projectId);
+                    return (
+                      <GlassCard
+                        key={task.id}
+                        className="cursor-pointer group"
+                        onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: task.projectId })}
+                      >
+                        <div className="p-4 space-y-3">
+                          <div className="flex justify-between items-start">
+                            {getPriorityBadge(task.priority)}
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {col.status !== TaskStatus.DONE && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleStatusChange(task.id, TaskStatus.DONE); }}
+                                  className="p-1.5 text-gray-300 hover:text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                                >
+                                  <CheckCircle2 size={14} />
+                                </button>
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                                className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <AlertCircle size={14} />
+                              </button>
+                            </div>
+                          </div>
+
+                          <h4 className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors leading-snug">
+                            {task.title}
+                          </h4>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                              <Briefcase size={12} className="text-blue-500" />
+                              <span className="truncate max-w-[120px]">{project?.title || 'System'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50/80 rounded text-xs text-gray-400">
+                              <Clock size={10} />
+                              <span>Active</span>
+                            </div>
+                          </div>
+                        </div>
+                      </GlassCard>
+                    );
+                  })}
+                </div>
+
+                {/* Add Task Button */}
+                <button
                   onClick={() => {
                     const fp = projects[0];
-                    if (fp) addTask({ projectId: fp.id, title: 'Define new mission target...', status: col.status, priority: Priority.MEDIUM });
-                    else alert("Initialize a Workspace node first.");
+                    if (fp) addTask({ projectId: fp.id, title: 'New task...', status: col.status, priority: Priority.MEDIUM });
+                    else alert("Create a Workspace first.");
                   }}
-                  className="w-full py-6 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center text-gray-300 hover:border-yellow-400 hover:text-yellow-600 hover:bg-yellow-50/50 transition-all group"
+                  className="w-full mt-4 py-3 border-2 border-dashed border-gray-200/80 rounded-xl flex items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all group"
                 >
-                  <Plus size={24} className="group-hover:scale-125 transition-all" />
+                  <Plus size={18} className="group-hover:scale-110 transition-transform" />
                 </button>
-              </div>
+              </GlassColumn>
             </div>
           );
         })}

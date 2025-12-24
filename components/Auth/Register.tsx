@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { Loader2, ArrowRight } from 'lucide-react';
+import { GlassButton, GlassInput } from '../ui/LiquidGlass.tsx';
 
 interface RegisterProps {
   onLoginClick: () => void;
@@ -19,68 +19,64 @@ const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
   };
 
   return (
-    <div className="w-full max-w-md p-8 bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100">
-      <div className="text-center mb-8">
-        <div className="w-12 h-12 bg-black rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg">
-           <span className="text-white font-bold text-xl">F</span>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">First Projects Connect</h2>
-        <p className="text-sm text-gray-500 mt-2">Create your identity in the ecosystem.</p>
-      </div>
-
+    <div className="w-full">
       {error && (
-        <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600 flex items-center justify-center">
+        <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-medium text-center">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Full Name</label>
-          <input 
-            type="text" 
-            required
-            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</label>
+          <GlassInput
+            type="text"
             placeholder="John Doe"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            autoFocus
           />
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
-          <input 
-            type="email" 
-            required
-            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
-            placeholder="name@example.com"
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</label>
+          <GlassInput
+            type="email"
+            placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Password</label>
-          <input 
-            type="password" 
-            required
-            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Password</label>
+          <GlassInput
+            type="password"
             placeholder="Create a strong password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
-        <button 
-          type="submit" 
+        <GlassButton
+          type="submit"
+          variant="primary"
           disabled={isLoading}
-          className="w-full bg-black text-white font-medium py-3 rounded-lg mt-2 hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 py-3"
         >
-          {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Register Account <ArrowRight size={16} /></>}
-        </button>
+          {isLoading ? (
+            <Loader2 className="animate-spin" size={18} />
+          ) : (
+            <>Create Account <ArrowRight size={16} /></>
+          )}
+        </GlassButton>
       </form>
 
-      <div className="mt-8 text-center text-sm text-gray-500">
-        Already have an account?{' '}
-        <button onClick={onLoginClick} className="text-blue-600 hover:underline font-medium">Sign In</button>
+      <div className="mt-8 text-center">
+        <p className="text-sm text-gray-500">
+          Already have an account?{' '}
+          <button onClick={onLoginClick} className="text-blue-600 hover:underline font-medium">
+            Sign In
+          </button>
+        </p>
       </div>
     </div>
   );

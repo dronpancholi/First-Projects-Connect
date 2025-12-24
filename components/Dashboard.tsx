@@ -5,34 +5,7 @@ import {
   Briefcase, Activity, Zap, Database, TrendingUp, FolderOpen, Box, ChevronRight, Plus
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-
-// Stat Card Component
-const StatCard: React.FC<{
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  trend?: string;
-  onClick?: () => void;
-  color: string;
-}> = ({ title, value, icon, trend, onClick, color }) => (
-  <div
-    onClick={onClick}
-    className={`glass-card stat-card p-6 ${onClick ? 'cursor-pointer' : ''}`}
-  >
-    <div className="flex justify-between items-start mb-6">
-      <div className={`p-3 rounded-xl ${color} text-white shadow-lg`}>
-        {icon}
-      </div>
-      {trend && (
-        <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-green-50 text-green-600 text-xs font-semibold">
-          {trend} <TrendingUp size={12} />
-        </div>
-      )}
-    </div>
-    <h3 className="text-3xl font-bold text-gray-900 mb-1">{value}</h3>
-    <p className="text-sm text-gray-500">{title}</p>
-  </div>
-);
+import { GlassCard, GlassPanel, GlassButton, GlassBadge } from './ui/LiquidGlass.tsx';
 
 const Dashboard: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) => {
   const { projects, tasks, financials } = useStore();
@@ -49,137 +22,167 @@ const Dashboard: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }
     { name: 'Sun', value: 18 },
   ];
 
+  const stats = [
+    { title: 'Active Workspaces', value: activeProjects, icon: Briefcase, trend: '+12%', gradient: 'from-blue-500 to-purple-600', onClick: () => setView({ type: 'PROJECTS' }) },
+    { title: 'Pending Tasks', value: pendingTasks, icon: Activity, gradient: 'from-indigo-500 to-blue-600' },
+    { title: 'Completion Rate', value: `${completionRate}%`, icon: Zap, gradient: 'from-amber-500 to-orange-600' },
+    { title: 'Total Capital', value: `$${totalCapital.toLocaleString()}`, icon: Database, gradient: 'from-gray-700 to-gray-900', onClick: () => setView({ type: 'FINANCIALS' }) },
+  ];
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Good Morning, Studio
-          </h1>
-          <p className="text-gray-500">
-            You have <span className="font-semibold text-blue-500">{pendingTasks}</span> pending tasks across{' '}
-            <span className="font-semibold text-blue-500">{activeProjects}</span> active workspaces.
+          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {pendingTasks} pending tasks across {activeProjects} workspaces
           </p>
         </div>
-        <button
+        <GlassButton
+          variant="primary"
           onClick={() => setView({ type: 'PROJECTS' })}
-          className="glass-btn flex items-center gap-2"
+          className="flex items-center gap-2"
         >
-          <Plus size={18} /> New Workspace
-        </button>
+          <Plus size={16} /> New Workspace
+        </GlassButton>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Active Workspaces"
-          value={activeProjects}
-          icon={<Briefcase size={22} />}
-          trend="+12%"
-          onClick={() => setView({ type: 'PROJECTS' })}
-          color="bg-blue-500"
-        />
-        <StatCard
-          title="Pending Tasks"
-          value={pendingTasks}
-          icon={<Activity size={22} />}
-          color="bg-indigo-500"
-        />
-        <StatCard
-          title="Completion Rate"
-          value={`${completionRate}%`}
-          icon={<Zap size={22} />}
-          color="bg-amber-500"
-        />
-        <StatCard
-          title="Total Capital"
-          value={`$${totalCapital.toLocaleString()}`}
-          icon={<Database size={22} />}
-          onClick={() => setView({ type: 'FINANCIALS' })}
-          color="bg-gray-800"
-        />
+      {/* Stats with Glass Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <GlassCard
+              key={i}
+              onClick={stat.onClick}
+              className={stat.onClick ? 'cursor-pointer' : ''}
+            >
+              <div className="p-5">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`p-2.5 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg`}>
+                    <Icon size={18} className="text-white" />
+                  </div>
+                  {stat.trend && (
+                    <GlassBadge variant="success" className="flex items-center gap-1">
+                      {stat.trend} <TrendingUp size={10} />
+                    </GlassBadge>
+                  )}
+                </div>
+                <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
+                <div className="text-xs text-gray-500 mt-1">{stat.title}</div>
+              </div>
+            </GlassCard>
+          );
+        })}
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Main Chart */}
-        <div className="lg:col-span-2 glass-card p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Weekly Activity</h2>
-              <p className="text-sm text-gray-500">Output analysis for the week</p>
+        <div className="lg:col-span-2">
+          <GlassPanel>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="font-medium text-gray-900">Weekly Activity</h2>
+                  <p className="text-xs text-gray-500">Output analysis</p>
+                </div>
+                <GlassBadge variant="primary">This Week</GlassBadge>
+              </div>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={activityData}>
+                    <defs>
+                      <linearGradient id="activityGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0071e3" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#0071e3" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#86868b' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: 'none',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                        fontSize: '12px',
+                        background: 'rgba(255,255,255,0.95)',
+                        backdropFilter: 'blur(8px)'
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#0071e3"
+                      strokeWidth={2.5}
+                      fill="url(#activityGrad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold">
-              This Week
-            </div>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={activityData}>
-                <defs>
-                  <linearGradient id="colorBlue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#007AFF" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#007AFF" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '12px',
-                    border: 'none',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                    background: 'white'
-                  }}
-                />
-                <Area type="monotone" dataKey="value" stroke="#007AFF" strokeWidth={3} fillOpacity={1} fill="url(#colorBlue)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          </GlassPanel>
         </div>
 
-        {/* Projects List */}
-        <div className="glass-card p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Active Projects</h2>
-            <button
-              onClick={() => setView({ type: 'PROJECTS' })}
-              className="text-gray-400 hover:text-blue-500 transition-colors"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-          <div className="space-y-4">
-            {projects.slice(0, 4).map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/50 transition-all cursor-pointer"
-                onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: p.id })}
-              >
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500">
-                  <FolderOpen size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-semibold text-gray-800 truncate">{p.title}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 rounded-full transition-all"
-                        style={{ width: `${p.progress}%` }}
-                      />
+        {/* Projects */}
+        <div>
+          <GlassPanel>
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-medium text-gray-900">Projects</h2>
+                <button
+                  onClick={() => setView({ type: 'PROJECTS' })}
+                  className="p-1.5 rounded-lg hover:bg-gray-100/50 text-gray-400 hover:text-blue-600 transition-colors"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {projects.slice(0, 4).map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/50 cursor-pointer transition-all group"
+                    onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: p.id })}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
+                      <FolderOpen size={16} />
                     </div>
-                    <span className="text-xs text-gray-500 font-medium">{p.progress}%</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">{p.title}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+                            style={{ width: `${p.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-medium text-gray-400">{p.progress}%</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
+                {projects.length === 0 && (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                      <Box size={24} className="text-gray-300" />
+                    </div>
+                    <p className="text-xs text-gray-400">No projects yet</p>
+                    <button
+                      onClick={() => setView({ type: 'PROJECTS' })}
+                      className="text-xs text-blue-600 font-medium mt-2 hover:underline"
+                    >
+                      Create one
+                    </button>
+                  </div>
+                )}
               </div>
-            ))}
-            {projects.length === 0 && (
-              <div className="text-center py-8">
-                <Box size={32} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-sm text-gray-400">No active projects</p>
-              </div>
-            )}
-          </div>
+            </div>
+          </GlassPanel>
         </div>
       </div>
     </div>

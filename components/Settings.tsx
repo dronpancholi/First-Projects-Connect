@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { saveSupabaseConfig, getSupabaseConfig } from '../services/supabaseClient.ts';
-import { Database, Check, AlertCircle, Copy, RefreshCw, Zap, ExternalLink, Link2, ShieldCheck } from 'lucide-react';
+import { Database, Check, AlertCircle, Copy, RefreshCw, Zap, ExternalLink, ShieldCheck, Settings as SettingsIcon } from 'lucide-react';
+import { GlassPanel, GlassCard, GlassButton, GlassInput, GlassBadge } from './ui/LiquidGlass.tsx';
 
 const SQL_SCHEMA = `
 -- First Projects Connect Database Schema
@@ -133,120 +133,145 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto pb-20">
+    <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
+      {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">System Settings</h1>
-        <div className="px-2 py-1 bg-zinc-900 rounded text-[10px] font-black text-zinc-500 uppercase tracking-widest border border-zinc-800">v1.3.1</div>
+        <div className="flex items-center gap-3 text-gray-600 mb-2">
+          <SettingsIcon size={16} />
+          <span className="text-xs font-semibold uppercase tracking-wider">Configuration</span>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
+      <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">Settings</h1>
+      <div className="flex items-center gap-2 mb-8">
+        <GlassBadge>v1.3.1</GlassBadge>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
         {/* Connection Config */}
-        <div className="space-y-8">
-          <div className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-sm">
-            <div className="flex items-center gap-2 mb-4 text-white">
-              <Database size={20} className="text-zinc-400" />
-              <h2 className="text-lg font-bold">Backend Connection</h2>
-            </div>
-            <p className="text-sm text-zinc-500 mb-6 leading-relaxed">
-              Synchronize your personal ecosystem with your Supabase cloud instance.
-            </p>
-            
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-2">Endpoint URL</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 focus:border-brand-primary outline-none text-sm font-mono transition-all text-zinc-200"
-                  placeholder="https://xyz.supabase.co"
-                  value={url}
-                  onChange={e => setUrl(e.target.value)}
-                />
+        <div className="space-y-6">
+          <GlassPanel>
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Database size={20} className="text-blue-500" />
+                <h2 className="text-lg font-semibold text-gray-900">Backend Connection</h2>
               </div>
-              <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-2">Service Key</label>
-                <input 
-                  type="password" 
-                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 focus:border-brand-primary outline-none text-sm font-mono transition-all text-zinc-200"
-                  placeholder="eyJh..."
-                  value={key}
-                  onChange={e => setKey(e.target.value)}
-                />
-              </div>
-              <button 
-                type="submit" 
-                className="w-full bg-zinc-100 text-zinc-900 font-bold py-2.5 rounded-xl hover:bg-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/20"
-              >
-                <RefreshCw size={14} /> Update Persistence
-              </button>
-            </form>
-          </div>
+              <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                Synchronize your ecosystem with your Supabase cloud instance.
+              </p>
 
-          <div className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-sm">
-            <div className="flex items-center gap-2 mb-4 text-white">
-              <Zap size={20} className="text-brand-primary" />
-              <h2 className="text-lg font-bold">AI Uplink</h2>
+              <form onSubmit={handleSave} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Endpoint URL</label>
+                  <GlassInput
+                    type="text"
+                    placeholder="https://xyz.supabase.co"
+                    value={url}
+                    onChange={e => setUrl(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Service Key</label>
+                  <GlassInput
+                    type="password"
+                    placeholder="eyJh..."
+                    value={key}
+                    onChange={e => setKey(e.target.value)}
+                  />
+                </div>
+                <GlassButton
+                  type="submit"
+                  variant="primary"
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <RefreshCw size={14} /> Save Connection
+                </GlassButton>
+              </form>
             </div>
-            <p className="text-sm text-zinc-500 mb-6 leading-relaxed">
-              Link your Gemini API account to enable agentic vision and native audio reasoning.
-            </p>
-            
-            <div className="space-y-4">
-               <div className={`p-4 rounded-xl border flex items-center justify-between ${isAiLinked ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-amber-500/5 border-amber-500/20'}`}>
-                  <div className="flex items-center gap-3">
-                    {isAiLinked ? <ShieldCheck className="text-emerald-500" size={20} /> : <AlertCircle className="text-amber-500" size={20} />}
-                    <div>
-                      <p className="text-xs font-bold text-zinc-200">{isAiLinked ? 'AI Bridge Active' : 'Bridge Restricted'}</p>
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{isAiLinked ? 'Ready for operation' : 'Key authorization required'}</p>
+          </GlassPanel>
+
+          <GlassPanel>
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap size={20} className="text-amber-500" />
+                <h2 className="text-lg font-semibold text-gray-900">AI Integration</h2>
+              </div>
+              <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                Link your Gemini API account to enable AI features.
+              </p>
+
+              <div className="space-y-4">
+                <GlassCard className={isAiLinked ? 'border-green-200' : 'border-amber-200'}>
+                  <div className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {isAiLinked ? (
+                        <ShieldCheck className="text-green-500" size={20} />
+                      ) : (
+                        <AlertCircle className="text-amber-500" size={20} />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {isAiLinked ? 'AI Connected' : 'Not Connected'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {isAiLinked ? 'Ready for operation' : 'Authorization required'}
+                        </p>
+                      </div>
                     </div>
+                    <GlassButton onClick={handleLinkAi} size="sm">
+                      {isAiLinked ? 'Refresh' : 'Link'}
+                    </GlassButton>
                   </div>
-                  <button onClick={handleLinkAi} className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-[10px] font-black text-white uppercase tracking-widest rounded-lg border border-zinc-700">
-                    {isAiLinked ? 'Refresh' : 'Link'}
-                  </button>
-               </div>
+                </GlassCard>
 
-               <a 
-                href="https://ai.google.dev/gemini-api/docs/billing" 
-                target="_blank" 
-                className="flex items-center justify-between p-3 px-4 bg-zinc-950 border border-zinc-800 rounded-xl group transition-all hover:border-zinc-700"
-               >
-                 <span className="text-[10px] font-bold text-zinc-400 group-hover:text-zinc-200">Billing Documentation</span>
-                 <ExternalLink size={12} className="text-zinc-600 group-hover:text-brand-primary" />
-               </a>
+                <a
+                  href="https://ai.google.dev/gemini-api/docs/billing"
+                  target="_blank"
+                  className="flex items-center justify-between p-4 glass-card-subtle rounded-xl group transition-all hover:bg-white/80"
+                >
+                  <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900">Billing Documentation</span>
+                  <ExternalLink size={14} className="text-gray-400 group-hover:text-blue-600" />
+                </a>
+              </div>
             </div>
-          </div>
+          </GlassPanel>
         </div>
 
         {/* Setup Instructions */}
         <div className="space-y-6">
-          <div className="bg-brand-primary/10 p-6 rounded-2xl border border-brand-primary/20">
-            <div className="flex items-start gap-3">
-              <ShieldCheck className="text-brand-primary shrink-0 mt-0.5" size={20} />
-              <div>
-                <h3 className="text-brand-primary font-bold mb-1">Database Sync (v1.3.1)</h3>
-                <p className="text-zinc-400 text-xs leading-relaxed">
-                  System optimized: Schema update detected. Ensure your tables are correctly configured for multi-user isolation.
-                  <br/><br/>
-                  1. Copy the SQL code below.<br/>
-                  2. Go to the <a href="https://supabase.com/dashboard" target="_blank" className="underline font-bold text-white">Supabase SQL Editor</a>.<br/>
-                  3. Execute the script to synchronize logic layers.
-                </p>
+          <GlassCard className="border-blue-200 bg-blue-50/30">
+            <div className="p-5">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="text-blue-600 shrink-0 mt-0.5" size={20} />
+                <div>
+                  <h3 className="text-blue-600 font-semibold mb-1">Database Sync (v1.3.1)</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    Schema update detected. Ensure your tables are correctly configured for multi-user isolation.
+                    <br /><br />
+                    1. Copy the SQL code below.<br />
+                    2. Go to the <a href="https://supabase.com/dashboard" target="_blank" className="underline font-medium text-blue-600">Supabase SQL Editor</a>.<br />
+                    3. Execute the script to synchronize logic layers.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </GlassCard>
 
-          <div className="bg-zinc-950 text-zinc-400 rounded-2xl overflow-hidden border border-zinc-900">
-            <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">schema_v1.3.1.sql</span>
-              <button onClick={copySQL} className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:text-white transition-colors">
-                {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                {copied ? 'Copied' : 'Copy'}
+          <GlassPanel>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100/50">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">schema_v1.3.1.sql</span>
+              <button
+                onClick={copySQL}
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              >
+                {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
-            <pre className="p-4 text-[10px] font-mono overflow-x-auto h-80 text-brand-primary/80 custom-scrollbar">
+            <pre className="p-4 text-xs font-mono overflow-x-auto h-80 text-gray-600 bg-gray-50/50 custom-scrollbar">
               {SQL_SCHEMA}
             </pre>
-          </div>
+          </GlassPanel>
         </div>
 
       </div>

@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
-import { Loader2, ArrowRight, Settings, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRight, Settings } from 'lucide-react';
+import { GlassButton, GlassInput } from '../ui/LiquidGlass.tsx';
 
 interface LoginProps {
   onRegisterClick: () => void;
@@ -19,70 +19,63 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
   };
 
   return (
-    <div className="w-full max-w-sm p-10 bg-white rounded-2xl shadow-2xl border border-gray-100 relative">
-      <button 
+    <div className="w-full">
+      <button
         onClick={onSettingsClick}
-        className="absolute top-8 right-8 p-2 text-gray-300 hover:text-black transition-colors"
+        className="absolute top-8 right-8 p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100/50"
         title="Settings"
       >
-        <Settings size={20} />
+        <Settings size={18} />
       </button>
 
-      <div className="text-center mb-10">
-        <div className="w-16 h-16 system-gradient rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-indigo-100 text-white font-display font-bold text-3xl">
-           FP
-        </div>
-        <h2 className="text-2xl font-display font-bold text-gray-900 tracking-tight">Ecosystem Login</h2>
-        <p className="text-sm text-gray-400 mt-2 font-medium">Access your professional workspace.</p>
-      </div>
-
       {error && (
-        <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-center justify-center font-bold">
+        <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-medium text-center">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Professional Identity</label>
-          <input 
-            type="email" 
-            required
-            className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-100 focus:border-indigo-600 focus:bg-white outline-none transition-all text-sm font-medium"
-            placeholder="Email address"
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</label>
+          <GlassInput
+            type="email"
+            placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoFocus
           />
         </div>
-        <div>
-          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Access Credentials</label>
-          <input 
-            type="password" 
-            required
-            className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-100 focus:border-indigo-600 focus:bg-white outline-none transition-all text-sm font-medium"
-            placeholder="Security password"
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Password</label>
+          <GlassInput
+            type="password"
+            placeholder="Your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
-        <button 
-          type="submit" 
+        <GlassButton
+          type="submit"
+          variant="primary"
           disabled={isLoading}
-          className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl mt-4 hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-70 shadow-xl"
+          className="w-full flex items-center justify-center gap-2 py-3"
         >
-          {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Continue to Workspace <ArrowRight size={18} /></>}
-        </button>
+          {isLoading ? (
+            <Loader2 className="animate-spin" size={18} />
+          ) : (
+            <>Continue <ArrowRight size={16} /></>
+          )}
+        </GlassButton>
       </form>
 
-      <div className="mt-10 text-center">
-        <p className="text-sm text-gray-400">
-          New to First Projects?{' '}
-          <button onClick={onRegisterClick} className="text-indigo-600 hover:underline font-bold">Initialize Identity</button>
+      <div className="mt-8 text-center">
+        <p className="text-sm text-gray-500">
+          New here?{' '}
+          <button onClick={onRegisterClick} className="text-blue-600 hover:underline font-medium">
+            Create account
+          </button>
         </p>
-        <div className="mt-12 pt-6 border-t border-gray-50">
-          <p className="text-[10px] font-bold uppercase text-gray-300 tracking-widest">First Projects Connect • Dron Pancholi</p>
-        </div>
       </div>
     </div>
   );
