@@ -135,15 +135,15 @@ const Settings: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="flex items-center gap-3 text-gray-600 mb-2">
-          <SettingsIcon size={16} />
-          <span className="text-xs font-semibold uppercase tracking-wider">Configuration</span>
+      <div className="mb-8">
+        <div className="flex items-center gap-3 text-purple-400 mb-3">
+          <SettingsIcon size={18} />
+          <span className="text-xs font-semibold uppercase tracking-widest">Configuration</span>
         </div>
-      </div>
-      <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">Settings</h1>
-      <div className="flex items-center gap-2 mb-8">
-        <GlassBadge>v1.3.1</GlassBadge>
+        <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Settings</h1>
+        <div className="flex items-center gap-2">
+          <GlassBadge variant="primary">v1.3.1</GlassBadge>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -151,18 +151,18 @@ const Settings: React.FC = () => {
         {/* Connection Config */}
         <div className="space-y-6">
           <GlassPanel>
-            <div className="p-6">
+            <div className="p-6 relative z-10">
               <div className="flex items-center gap-2 mb-4">
-                <Database size={20} className="text-blue-500" />
-                <h2 className="text-lg font-semibold text-gray-900">Backend Connection</h2>
+                <Database size={20} className="text-blue-400" />
+                <h2 className="text-lg font-semibold text-white">Backend Connection</h2>
               </div>
-              <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              <p className="text-sm text-white/50 mb-6 leading-relaxed">
                 Synchronize your ecosystem with your Supabase cloud instance.
               </p>
 
               <form onSubmit={handleSave} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Endpoint URL</label>
+                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Endpoint URL</label>
                   <GlassInput
                     type="text"
                     placeholder="https://xyz.supabase.co"
@@ -171,7 +171,7 @@ const Settings: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Service Key</label>
+                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Service Key</label>
                   <GlassInput
                     type="password"
                     placeholder="eyJh..."
@@ -191,29 +191,29 @@ const Settings: React.FC = () => {
           </GlassPanel>
 
           <GlassPanel>
-            <div className="p-6">
+            <div className="p-6 relative z-10">
               <div className="flex items-center gap-2 mb-4">
-                <Zap size={20} className="text-amber-500" />
-                <h2 className="text-lg font-semibold text-gray-900">AI Integration</h2>
+                <Zap size={20} className="text-amber-400" />
+                <h2 className="text-lg font-semibold text-white">AI Integration</h2>
               </div>
-              <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              <p className="text-sm text-white/50 mb-6 leading-relaxed">
                 Link your Gemini API account to enable AI features.
               </p>
 
               <div className="space-y-4">
-                <GlassCard className={isAiLinked ? 'border-green-200' : 'border-amber-200'}>
-                  <div className="p-4 flex items-center justify-between">
+                <GlassCard className={isAiLinked ? 'border-green-500/30 bg-green-500/10' : 'border-amber-500/30 bg-amber-500/10'}>
+                  <div className="p-4 flex items-center justify-between relative z-10">
                     <div className="flex items-center gap-3">
                       {isAiLinked ? (
-                        <ShieldCheck className="text-green-500" size={20} />
+                        <ShieldCheck className="text-green-400" size={20} />
                       ) : (
-                        <AlertCircle className="text-amber-500" size={20} />
+                        <AlertCircle className="text-amber-400" size={20} />
                       )}
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-white">
                           {isAiLinked ? 'AI Connected' : 'Not Connected'}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-white/50">
                           {isAiLinked ? 'Ready for operation' : 'Authorization required'}
                         </p>
                       </div>
@@ -227,10 +227,10 @@ const Settings: React.FC = () => {
                 <a
                   href="https://ai.google.dev/gemini-api/docs/billing"
                   target="_blank"
-                  className="flex items-center justify-between p-4 glass-card-subtle rounded-xl group transition-all hover:bg-white/80"
+                  className="flex items-center justify-between p-4 glass-card-subtle rounded-xl group transition-all hover:bg-white/10"
                 >
-                  <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900">Billing Documentation</span>
-                  <ExternalLink size={14} className="text-gray-400 group-hover:text-blue-600" />
+                  <span className="text-sm font-medium text-white/60 group-hover:text-white">Billing Documentation</span>
+                  <ExternalLink size={14} className="text-white/40 group-hover:text-purple-400" />
                 </a>
               </div>
             </div>
@@ -239,17 +239,17 @@ const Settings: React.FC = () => {
 
         {/* Setup Instructions */}
         <div className="space-y-6">
-          <GlassCard className="border-blue-200 bg-blue-50/30">
-            <div className="p-5">
+          <GlassCard className="border-blue-500/30 bg-blue-500/10">
+            <div className="p-5 relative z-10">
               <div className="flex items-start gap-3">
-                <ShieldCheck className="text-blue-600 shrink-0 mt-0.5" size={20} />
+                <ShieldCheck className="text-blue-400 shrink-0 mt-0.5" size={20} />
                 <div>
-                  <h3 className="text-blue-600 font-semibold mb-1">Database Sync (v1.3.1)</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <h3 className="text-blue-400 font-semibold mb-1">Database Sync (v1.3.1)</h3>
+                  <p className="text-white/60 text-sm leading-relaxed">
                     Schema update detected. Ensure your tables are correctly configured for multi-user isolation.
                     <br /><br />
                     1. Copy the SQL code below.<br />
-                    2. Go to the <a href="https://supabase.com/dashboard" target="_blank" className="underline font-medium text-blue-600">Supabase SQL Editor</a>.<br />
+                    2. Go to the <a href="https://supabase.com/dashboard" target="_blank" className="underline font-medium text-blue-400">Supabase SQL Editor</a>.<br />
                     3. Execute the script to synchronize logic layers.
                   </p>
                 </div>
@@ -258,17 +258,17 @@ const Settings: React.FC = () => {
           </GlassCard>
 
           <GlassPanel>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100/50">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">schema_v1.3.1.sql</span>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 relative z-10">
+              <span className="text-xs font-medium text-white/50 uppercase tracking-wider">schema_v1.3.1.sql</span>
               <button
                 onClick={copySQL}
-                className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-medium text-white/50 hover:text-white transition-colors"
               >
-                {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
                 {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
-            <pre className="p-4 text-xs font-mono overflow-x-auto h-80 text-gray-600 bg-gray-50/50 custom-scrollbar">
+            <pre className="p-4 text-xs font-mono overflow-x-auto h-80 text-white/60 bg-black/20 custom-scrollbar relative z-10">
               {SQL_SCHEMA}
             </pre>
           </GlassPanel>

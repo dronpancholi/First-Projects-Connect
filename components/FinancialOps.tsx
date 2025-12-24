@@ -1,265 +1,210 @@
 import React, { useState } from 'react';
-import { useStore } from '../context/StoreContext.tsx';
+import { CreditCard, Plus, X, TrendingUp, TrendingDown, DollarSign, Receipt, PieChart } from 'lucide-react';
+import { GlassPanel, GlassCard, GlassModal, GlassButton, GlassInput, GlassSelect, GlassBadge } from './ui/LiquidGlass.tsx';
 import { ViewState } from '../types.ts';
-import {
-   CreditCard, TrendingUp, TrendingDown,
-   Plus, X, Trash2, Wallet
-} from 'lucide-react';
-import { BarChart, Bar, ResponsiveContainer, XAxis, Tooltip, Cell } from 'recharts';
-import { GlassPanel, GlassCard, GlassModal, GlassButton, GlassInput, GlassSelect } from './ui/LiquidGlass.tsx';
+
+interface Transaction {
+   id: string;
+   description: string;
+   amount: number;
+   type: 'income' | 'expense';
+   category: string;
+   date: string;
+}
 
 const FinancialOps: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) => {
-   const { projects, financials, addFinancial, deleteFinancial } = useStore();
-   const [showModal, setShowModal] = useState(false);
-   const [amount, setAmount] = useState('');
-   const [desc, setDesc] = useState('');
-   const [type, setType] = useState<'revenue' | 'expense'>('expense');
-   const [projectId, setProjectId] = useState('');
+   const [transactions, setTransactions] = useState<Transaction[]>([
+      { id: '1', description: 'Client Payment', amount: 5000, type: 'income', category: 'Revenue', date: '2024-01-15' },
+      { id: '2', description: 'Software License', amount: 299, type: 'expense', category: 'Tools', date: '2024-01-14' },
+      { id: '3', description: 'Freelance Work', amount: 1200, type: 'income', category: 'Revenue', date: '2024-01-12' },
+   ]);
 
-   const handleLog = async (e: React.FormEvent) => {
+   const [showModal, setShowModal] = useState(false);
+   const [newTransaction, setNewTransaction] = useState({
+      description: '', amount: '', type: 'income' as const, category: ''
+   });
+
+   const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+   const balance = totalIncome - totalExpenses;
+
+   const handleAddTransaction = (e: React.FormEvent) => {
       e.preventDefault();
-      if (!amount || !desc || !projectId) return;
-      await addFinancial({
-         projectId,
-         amount: parseFloat(amount),
-         type,
-         description: desc,
-         date: new Date()
-      });
-      setAmount('');
-      setDesc('');
+      if (!newTransaction.description || !newTransaction.amount) return;
+      setTransactions([
+         {
+            id: Date.now().toString(),
+            ...newTransaction,
+            amount: parseFloat(newTransaction.amount),
+            date: new Date().toISOString().split('T')[0]
+         },
+         ...transactions
+      ]);
+      setNewTransaction({ description: '', amount: '', type: 'income', category: '' });
       setShowModal(false);
    };
-
-   const totalRevenue = financials.filter(f => f.type === 'revenue').reduce((acc, f) => acc + f.amount, 0);
-   const totalExpense = financials.filter(f => f.type === 'expense').reduce((acc, f) => acc + f.amount, 0);
-   const netCapital = totalRevenue - totalExpense;
-
-   const chartData = financials.slice(-7).map(f => ({
-      name: f.description.slice(0, 8),
-      value: f.amount,
-      type: f.type
-   }));
 
    return (
       <div className="space-y-8 animate-fade-in pb-20">
          {/* Header */}
          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-               <div className="flex items-center gap-3 text-amber-600 mb-2">
-                  <CreditCard size={16} />
-                  <span className="text-xs font-semibold uppercase tracking-wider">Financial Dashboard</span>
+               <div className="flex items-center gap-3 text-green-400 mb-3">
+                  <CreditCard size={18} />
+                  <span className="text-xs font-semibold uppercase tracking-widest">Finance Hub</span>
                </div>
-               <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Financial Operations</h1>
-               <p className="text-gray-500 text-sm mt-1">Track revenue and expenses across projects.</p>
+               <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Financials</h1>
+               <p className="text-white/50 text-sm">Track income, expenses, and cash flow.</p>
             </div>
 
             <GlassButton variant="primary" onClick={() => setShowModal(true)} className="flex items-center gap-2">
-               <Plus size={16} /> Log Transaction
+               <Plus size={18} /> Add Transaction
             </GlassButton>
          </header>
 
-         {/* Stats Cards */}
+         {/* Stats Grid */}
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Net Capital */}
-            <GlassCard className="bg-gradient-to-br from-gray-800 to-gray-900">
-               <div className="p-6 text-white">
-                  <div className="flex items-center gap-2 text-emerald-400 mb-4">
-                     <TrendingUp size={16} />
-                     <span className="text-xs font-semibold uppercase tracking-wider">Net Capital</span>
+            <GlassCard className="bg-gradient-to-br from-green-500/20 to-emerald-500/20">
+               <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                     <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
+                        style={{ boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)' }}>
+                        <TrendingUp size={22} className="text-green-400" />
+                     </div>
+                     <GlassBadge variant="success">Income</GlassBadge>
                   </div>
-                  <h3 className="text-4xl font-bold tracking-tight mb-2">${netCapital.toLocaleString()}</h3>
-                  <span className="text-xs font-medium text-emerald-400/80 bg-emerald-400/10 px-2 py-1 rounded">
-                     Active Balance
-                  </span>
+                  <p className="text-4xl font-bold text-white mb-1">${totalIncome.toLocaleString()}</p>
+                  <p className="text-sm text-white/50">Total Income</p>
                </div>
             </GlassCard>
 
-            {/* Expenses */}
-            <GlassCard>
+            <GlassCard className="bg-gradient-to-br from-red-500/20 to-rose-500/20">
                <div className="p-6">
-                  <div className="flex items-center gap-2 text-red-500 mb-4">
-                     <TrendingDown size={16} />
-                     <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Total Expenses</span>
+                  <div className="flex items-start justify-between mb-4">
+                     <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
+                        style={{ boxShadow: '0 8px 32px rgba(239, 68, 68, 0.3)' }}>
+                        <TrendingDown size={22} className="text-red-400" />
+                     </div>
+                     <GlassBadge variant="danger">Expenses</GlassBadge>
                   </div>
-                  <h3 className="text-4xl font-bold tracking-tight text-gray-900 mb-2">${totalExpense.toLocaleString()}</h3>
-                  <span className="text-xs font-medium text-red-500">Outbound</span>
+                  <p className="text-4xl font-bold text-white mb-1">${totalExpenses.toLocaleString()}</p>
+                  <p className="text-sm text-white/50">Total Expenses</p>
                </div>
             </GlassCard>
 
-            {/* Revenue */}
-            <GlassCard>
+            <GlassCard className="bg-gradient-to-br from-purple-500/20 to-blue-500/20">
                <div className="p-6">
-                  <div className="flex items-center gap-2 text-amber-500 mb-4">
-                     <TrendingUp size={16} />
-                     <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Total Revenue</span>
+                  <div className="flex items-start justify-between mb-4">
+                     <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
+                        style={{ boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3)' }}>
+                        <DollarSign size={22} className="text-purple-400" />
+                     </div>
+                     <GlassBadge variant={balance >= 0 ? 'success' : 'danger'}>
+                        {balance >= 0 ? 'Positive' : 'Negative'}
+                     </GlassBadge>
                   </div>
-                  <h3 className="text-4xl font-bold tracking-tight text-gray-900 mb-2">${totalRevenue.toLocaleString()}</h3>
-                  <span className="text-xs font-medium text-amber-600">Inbound</span>
+                  <p className="text-4xl font-bold text-white mb-1">${balance.toLocaleString()}</p>
+                  <p className="text-sm text-white/50">Net Balance</p>
                </div>
             </GlassCard>
          </div>
 
-         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Chart */}
-            <div className="lg:col-span-7">
-               <GlassPanel>
-                  <div className="p-6">
-                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-sm font-semibold text-gray-900">Transaction Overview</h2>
-                     </div>
-                     <div className="h-72 w-full">
-                        {financials.length === 0 ? (
-                           <div className="h-full flex flex-col items-center justify-center text-gray-300">
-                              <Wallet size={48} className="mb-4" />
-                              <p className="text-sm">No transactions yet</p>
-                           </div>
-                        ) : (
-                           <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={chartData}>
-                                 <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                                 />
-                                 <Tooltip
-                                    cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-                                    contentStyle={{
-                                       borderRadius: '12px',
-                                       border: 'none',
-                                       background: 'rgba(255,255,255,0.95)',
-                                       backdropFilter: 'blur(8px)',
-                                       boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-                                    }}
-                                 />
-                                 <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                                    {chartData.map((entry, index) => (
-                                       <Cell
-                                          key={`cell-${index}`}
-                                          fill={entry.type === 'revenue' ? '#34c759' : '#5856d6'}
-                                       />
-                                    ))}
-                                 </Bar>
-                              </BarChart>
-                           </ResponsiveContainer>
-                        )}
-                     </div>
-                  </div>
-               </GlassPanel>
+         {/* Transactions */}
+         <GlassPanel>
+            <div className="p-6 border-b border-white/10 flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                  <Receipt size={20} className="text-white/60" />
+                  <h2 className="text-lg font-semibold text-white">Transaction Registry</h2>
+               </div>
+               <span className="glass-badge">{transactions.length} entries</span>
             </div>
-
-            {/* Transaction List */}
-            <div className="lg:col-span-5">
-               <GlassPanel className="h-full">
-                  <div className="flex flex-col h-full">
-                     <div className="px-5 py-4 border-b border-gray-100/50">
-                        <h2 className="text-sm font-semibold text-gray-900">Recent Transactions</h2>
+            <div className="divide-y divide-white/5">
+               {transactions.map(transaction => (
+                  <div key={transaction.id} className="p-5 flex items-center gap-4 hover:bg-white/5 transition-colors">
+                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${transaction.type === 'income'
+                           ? 'glass-card bg-green-500/20'
+                           : 'glass-card bg-red-500/20'
+                        }`}>
+                        {transaction.type === 'income'
+                           ? <TrendingUp size={18} className="text-green-400" />
+                           : <TrendingDown size={18} className="text-red-400" />
+                        }
                      </div>
-                     <div className="flex-1 overflow-auto custom-scrollbar divide-y divide-gray-50">
-                        {financials.length === 0 && (
-                           <div className="p-12 text-center text-gray-400 text-sm">
-                              No transactions logged
-                           </div>
-                        )}
-                        {financials.slice().reverse().map((t) => (
-                           <div key={t.id} className="flex items-center gap-4 p-4 hover:bg-white/50 transition-colors group">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${t.type === 'revenue'
-                                    ? 'bg-green-50 text-green-600'
-                                    : 'bg-purple-50 text-purple-600'
-                                 }`}>
-                                 {t.type === 'revenue' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                 <h4 className="text-sm font-medium text-gray-900 truncate">{t.description}</h4>
-                                 <p className="text-xs text-gray-400 capitalize">{t.type}</p>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                 <span className={`text-sm font-semibold ${t.type === 'expense' ? 'text-gray-900' : 'text-green-600'
-                                    }`}>
-                                    {t.type === 'expense' ? '-' : '+'}${t.amount.toLocaleString()}
-                                 </span>
-                                 <button
-                                    onClick={() => deleteFinancial(t.id)}
-                                    className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-300 hover:text-red-500 transition-all"
-                                 >
-                                    <Trash2 size={14} />
-                                 </button>
-                              </div>
-                           </div>
-                        ))}
+                     <div className="flex-1">
+                        <p className="font-medium text-white">{transaction.description}</p>
+                        <p className="text-xs text-white/40">{transaction.category} • {transaction.date}</p>
                      </div>
+                     <p className={`font-semibold ${transaction.type === 'income' ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                        {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                     </p>
                   </div>
-               </GlassPanel>
+               ))}
             </div>
-         </div>
+         </GlassPanel>
 
          {/* Add Transaction Modal */}
          {showModal && (
             <GlassModal onClose={() => setShowModal(false)}>
-               <form onSubmit={handleLog}>
+               <form onSubmit={handleAddTransaction}>
                   <div className="p-8">
                      <div className="flex justify-between items-start mb-6">
                         <div>
-                           <h3 className="text-2xl font-bold text-gray-900">Log Transaction</h3>
-                           <p className="text-sm text-gray-500 mt-1">Record a new financial entry</p>
+                           <h3 className="text-2xl font-bold text-white">Add Transaction</h3>
+                           <p className="text-sm text-white/50 mt-1">Record a new financial entry</p>
                         </div>
                         <button
                            type="button"
                            onClick={() => setShowModal(false)}
-                           className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                           className="p-2 text-white/40 hover:text-white transition-colors"
                         >
                            <X size={24} />
                         </button>
                      </div>
 
                      <div className="space-y-6">
-                        {/* Type Toggle */}
-                        <div className="flex bg-gray-100/80 rounded-xl p-1">
-                           <button
-                              type="button"
-                              onClick={() => setType('expense')}
-                              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${type === 'expense' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-                                 }`}
-                           >
-                              Expense
-                           </button>
-                           <button
-                              type="button"
-                              onClick={() => setType('revenue')}
-                              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${type === 'revenue' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-                                 }`}
-                           >
-                              Revenue
-                           </button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                           <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (USD)</label>
-                              <GlassInput
-                                 type="number"
-                                 value={amount}
-                                 onChange={e => setAmount(e.target.value)}
-                                 placeholder="0.00"
-                              />
-                           </div>
-                           <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Project</label>
-                              <GlassSelect value={projectId} onChange={e => setProjectId(e.target.value)}>
-                                 <option value="">Select project</option>
-                                 {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                              </GlassSelect>
-                           </div>
-                        </div>
-
                         <div className="space-y-2">
-                           <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Description</label>
+                           <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Type</label>
+                           <div className="flex gap-3">
+                              {['income', 'expense'].map(type => (
+                                 <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => setNewTransaction({ ...newTransaction, type: type as 'income' | 'expense' })}
+                                    className={`flex-1 p-4 glass-card rounded-xl text-center font-medium capitalize transition-all ${newTransaction.type === type
+                                          ? 'border-purple-500/50 bg-purple-500/20 text-white'
+                                          : 'border-white/10 text-white/60'
+                                       }`}
+                                 >
+                                    {type}
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Description</label>
                            <GlassInput
-                              type="text"
-                              value={desc}
-                              onChange={e => setDesc(e.target.value)}
-                              placeholder="Transaction description..."
+                              value={newTransaction.description}
+                              onChange={e => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                              placeholder="What was this transaction for?"
+                              autoFocus
+                           />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Amount</label>
+                           <GlassInput
+                              type="number"
+                              value={newTransaction.amount}
+                              onChange={e => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+                              placeholder="0.00"
+                           />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Category</label>
+                           <GlassInput
+                              value={newTransaction.category}
+                              onChange={e => setNewTransaction({ ...newTransaction, category: e.target.value })}
+                              placeholder="e.g. Revenue, Tools, Subscriptions"
                            />
                         </div>
                      </div>
@@ -269,7 +214,7 @@ const FinancialOps: React.FC<{ setView: (view: ViewState) => void }> = ({ setVie
                            Cancel
                         </GlassButton>
                         <GlassButton type="submit" variant="primary">
-                           Log Transaction
+                           Add Transaction
                         </GlassButton>
                      </div>
                   </div>

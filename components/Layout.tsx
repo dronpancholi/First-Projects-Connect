@@ -40,23 +40,24 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
     <div className="flex h-screen w-full app-bg">
       {/* Sidebar */}
       {isSidebarOpen && (
-        <GlassSidebar className="w-64 h-full">
+        <GlassSidebar className="w-72 h-full">
           {/* Logo */}
-          <div className="p-5 border-b border-white/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white text-sm font-bold">FP</span>
+          <div className="p-6 border-b border-white/10">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center shadow-xl"
+                style={{ boxShadow: '0 10px 40px rgba(139, 92, 246, 0.3)' }}>
+                <span className="text-white text-lg font-bold">FP</span>
               </div>
               <div>
-                <h1 className="text-sm font-semibold text-gray-900">First Projects</h1>
-                <p className="text-[10px] text-blue-600 font-medium uppercase tracking-wider">Connect</p>
+                <h1 className="text-base font-semibold text-white">First Projects</h1>
+                <p className="text-xs text-white/50 font-medium uppercase tracking-wider">Connect</p>
               </div>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-3 overflow-y-auto hide-scrollbar">
-            <div className="space-y-1">
+          <nav className="flex-1 p-4 overflow-y-auto hide-scrollbar">
+            <div className="space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentView.type === item.view;
@@ -66,10 +67,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
                     onClick={() => setView({ type: item.view as any })}
                     className={`glass-nav-item w-full ${isActive ? 'active' : ''}`}
                   >
-                    <Icon size={18} />
+                    <Icon size={20} />
                     <span className="flex-1 text-left">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
-                      <span className="glass-badge text-[10px]">
+                      <span className="glass-badge">
                         {item.badge}
                       </span>
                     )}
@@ -80,18 +81,19 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           </nav>
 
           {/* User */}
-          <div className="p-3 border-t border-white/20">
+          <div className="p-4 border-t border-white/10">
             <button
               onClick={logout}
               className="glass-nav-item w-full group"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-medium shadow-md">
+              <div className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-white text-sm font-medium">
                 {user?.name?.[0] || 'U'}
               </div>
               <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</p>
+                <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
+                <p className="text-xs text-white/40">Logout</p>
               </div>
-              <LogOut size={14} className="text-gray-400 group-hover:text-red-500 transition-colors" />
+              <LogOut size={16} className="text-white/40 group-hover:text-red-400 transition-colors" />
             </button>
           </div>
         </GlassSidebar>
@@ -101,40 +103,40 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <GlassHeader>
-          <div className="h-14 px-6 flex items-center justify-between">
+          <div className="h-16 px-6 flex items-center justify-between relative z-10">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="p-2 rounded-lg glass-button border-transparent text-gray-600"
+                className="glass-button p-3 border-transparent"
               >
-                <Menu size={18} />
+                <Menu size={20} />
               </button>
-              <span className="text-sm font-medium text-gray-600">
+              <span className="text-base font-medium text-white/80">
                 {currentView.type.replace('_', ' ')}
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setIsSpotlightOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 glass-button text-gray-600 text-sm"
+                className="flex items-center gap-3 px-5 py-2.5 glass-button"
               >
-                <Search size={14} />
+                <Search size={16} />
                 <span>Search</span>
-                <kbd className="text-[10px] bg-white/60 px-1.5 py-0.5 rounded border border-gray-200/50">⌘K</kbd>
+                <kbd className="text-xs glass-badge px-2 py-0.5">⌘K</kbd>
               </button>
 
-              <button className="relative p-2 rounded-lg glass-button border-transparent text-gray-600">
-                <Bell size={18} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
+              <button className="relative glass-button p-3 border-transparent">
+                <Bell size={20} />
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white/20" />
               </button>
             </div>
           </div>
         </GlassHeader>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6 custom-scrollbar">
-          <div className="max-w-6xl mx-auto">
+        <div className="flex-1 overflow-auto p-8 custom-scrollbar">
+          <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </div>

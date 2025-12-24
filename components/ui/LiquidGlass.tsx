@@ -1,218 +1,253 @@
 import React from 'react';
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   LIQUID GLASS COMPONENT LIBRARY
-   Pure CSS glassmorphism components without external dependencies
-   ═══════════════════════════════════════════════════════════════════════════ */
+// ============================================================================
+// PURE CSS LIQUID GLASS COMPONENTS
+// ============================================================================
+// This component library uses ONLY CSS for glassmorphism effects.
+// The liquid-glass-react library was removed due to layout issues.
+// ============================================================================
 
 interface GlassProps {
     children: React.ReactNode;
     className?: string;
     style?: React.CSSProperties;
-    onClick?: () => void;
 }
 
 interface GlassButtonProps extends GlassProps {
-    variant?: 'default' | 'primary' | 'ghost';
-    size?: 'sm' | 'md' | 'lg';
+    onClick?: () => void;
+    variant?: 'default' | 'primary' | 'ghost' | 'danger';
     disabled?: boolean;
     type?: 'button' | 'submit' | 'reset';
 }
 
 interface GlassInputProps {
     className?: string;
+    style?: React.CSSProperties;
     placeholder?: string;
     value?: string;
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     type?: string;
-    autoFocus?: boolean;
+    required?: boolean;
+    disabled?: boolean;
+    id?: string;
+    name?: string;
+}
+
+interface GlassTextareaProps {
+    className?: string;
+    style?: React.CSSProperties;
+    placeholder?: string;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    rows?: number;
+    required?: boolean;
+    disabled?: boolean;
+    id?: string;
+    name?: string;
+}
+
+interface GlassSelectProps {
+    children: React.ReactNode;
+    className?: string;
+    style?: React.CSSProperties;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    required?: boolean;
+    disabled?: boolean;
+    id?: string;
+    name?: string;
 }
 
 interface GlassBadgeProps {
     children: React.ReactNode;
-    variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
     className?: string;
+    variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   BASE GLASS WRAPPER
-   Standard glass effect for general use
-───────────────────────────────────────────────────────────────────────────── */
-export const LiquidGlass: React.FC<GlassProps> = ({
-    children,
-    className = '',
-    style,
-    onClick
-}) => {
+// Base glass styles
+const baseGlassStyle: React.CSSProperties = {
+    background: 'rgba(255, 255, 255, 0.08)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: '16px',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+};
+
+// Main LiquidGlass component
+export const LiquidGlass: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
     return (
         <div
             className={`glass-card ${className}`}
-            style={style}
-            onClick={onClick}
+            style={{
+                ...baseGlassStyle,
+                ...style,
+            }}
         >
             {children}
         </div>
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS PANEL
-   Large container with prominent glass effect
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassPanel: React.FC<GlassProps> = ({
-    children,
-    className = '',
-    style,
-    onClick
-}) => {
+// Glass Panel - larger container
+export const GlassPanel: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
     return (
         <div
             className={`glass-panel ${className}`}
-            style={style}
-            onClick={onClick}
+            style={{
+                ...baseGlassStyle,
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '20px',
+                ...style,
+            }}
         >
             {children}
         </div>
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS CARD
-   Medium container for cards and content blocks
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassCard: React.FC<GlassProps> = ({
-    children,
-    className = '',
-    style,
-    onClick
-}) => {
+// Glass Card - standard card
+export const GlassCard: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
     return (
         <div
             className={`glass-card ${className}`}
-            style={style}
-            onClick={onClick}
+            style={{
+                ...baseGlassStyle,
+                transition: 'all 0.3s ease',
+                ...style,
+            }}
         >
             {children}
         </div>
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS CARD SUBTLE
-   Less prominent glass card for nested content
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassCardSubtle: React.FC<GlassProps> = ({
-    children,
-    className = '',
-    style,
-    onClick
-}) => {
+// Glass Card Subtle - less prominent
+export const GlassCardSubtle: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
     return (
         <div
             className={`glass-card-subtle ${className}`}
-            style={style}
-            onClick={onClick}
+            style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px',
+                transition: 'all 0.3s ease',
+                ...style,
+            }}
         >
             {children}
         </div>
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS SIDEBAR
-   Navigation sidebar with glass effect
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassSidebar: React.FC<GlassProps> = ({
-    children,
-    className = '',
-    style
-}) => {
+// Glass Sidebar - fixed sidebar
+export const GlassSidebar: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
     return (
         <aside
-            className={`glass-sidebar h-full flex flex-col ${className}`}
-            style={style}
+            className={`glass-sidebar ${className}`}
+            style={{
+                background: 'rgba(15, 15, 20, 0.85)',
+                backdropFilter: 'blur(30px)',
+                WebkitBackdropFilter: 'blur(30px)',
+                borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+                ...style,
+            }}
         >
             {children}
         </aside>
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS HEADER
-   Top navigation bar with glass effect
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassHeader: React.FC<GlassProps> = ({
-    children,
-    className = '',
-    style
-}) => {
+// Glass Header - fixed header
+export const GlassHeader: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
     return (
         <header
             className={`glass-header ${className}`}
-            style={style}
+            style={{
+                background: 'rgba(15, 15, 20, 0.8)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                ...style,
+            }}
         >
             {children}
         </header>
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS MODAL
-   Modal dialog with strong glass effect
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassModal: React.FC<GlassProps & { onClose?: () => void }> = ({
-    children,
-    className = '',
-    style,
-    onClose
-}) => {
+// Glass Modal
+export const GlassModal: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
     return (
         <div
-            className="fixed inset-0 z-[100] glass-overlay flex items-center justify-center p-6 animate-fade-in"
-            onClick={(e) => e.target === e.currentTarget && onClose?.()}
+            className={`glass-modal ${className}`}
+            style={{
+                background: 'rgba(20, 20, 30, 0.95)',
+                backdropFilter: 'blur(40px)',
+                WebkitBackdropFilter: 'blur(40px)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '24px',
+                boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                ...style,
+            }}
         >
-            <div
-                className={`glass-modal w-full max-w-lg animate-scale-in ${className}`}
-                style={style}
-            >
-                {children}
-            </div>
+            {children}
         </div>
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS BUTTON
-   Interactive button with glass effect
-───────────────────────────────────────────────────────────────────────────── */
+// Glass Button
 export const GlassButton: React.FC<GlassButtonProps> = ({
     children,
     className = '',
-    style,
+    style = {},
     onClick,
     variant = 'default',
-    size = 'md',
     disabled = false,
-    type = 'button'
+    type = 'button',
 }) => {
-    const sizeClasses = {
-        sm: 'px-3 py-1.5 text-xs',
-        md: 'px-4 py-2 text-sm',
-        lg: 'px-6 py-3 text-base'
-    };
-
-    const variantClasses = {
-        default: 'glass-button',
-        primary: 'glass-button glass-button-primary',
-        ghost: 'glass-button border-transparent bg-transparent hover:bg-white/50'
+    const variantStyles: Record<string, React.CSSProperties> = {
+        default: {
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: '#fff',
+        },
+        primary: {
+            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            border: '1px solid rgba(139, 92, 246, 0.5)',
+            color: '#fff',
+        },
+        ghost: {
+            background: 'transparent',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.7)',
+        },
+        danger: {
+            background: 'rgba(239, 68, 68, 0.2)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            color: '#ef4444',
+        },
     };
 
     return (
         <button
             type={type}
-            className={`${variantClasses[variant]} ${sizeClasses[size]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={style}
-            onClick={disabled ? undefined : onClick}
+            className={`glass-button ${className}`}
+            style={{
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                borderRadius: '12px',
+                padding: '10px 20px',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                opacity: disabled ? 0.5 : 1,
+                transition: 'all 0.2s ease',
+                fontWeight: 500,
+                ...variantStyles[variant],
+                ...style,
+            }}
+            onClick={onClick}
             disabled={disabled}
         >
             {children}
@@ -220,176 +255,190 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS INPUT
-   Text input with glass effect
-───────────────────────────────────────────────────────────────────────────── */
+// Glass Input
 export const GlassInput: React.FC<GlassInputProps> = ({
     className = '',
-    placeholder,
-    value,
-    onChange,
-    type = 'text',
-    autoFocus = false
+    style = {},
+    ...props
 }) => {
     return (
         <input
-            type={type}
             className={`glass-input ${className}`}
-            placeholder={placeholder}
-            value={value}
-            onChange={onChange}
-            autoFocus={autoFocus}
+            style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                color: '#fff',
+                outline: 'none',
+                width: '100%',
+                transition: 'all 0.2s ease',
+                ...style,
+            }}
+            {...props}
         />
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS TEXTAREA
-   Multi-line input with glass effect
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassTextarea: React.FC<{
-    className?: string;
-    placeholder?: string;
-    value?: string;
-    onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    rows?: number;
-}> = ({
+// Glass Textarea
+export const GlassTextarea: React.FC<GlassTextareaProps> = ({
     className = '',
-    placeholder,
-    value,
-    onChange,
-    rows = 4
+    style = {},
+    ...props
 }) => {
-        return (
-            <textarea
-                className={`glass-input resize-none ${className}`}
-                placeholder={placeholder}
-                value={value}
-                onChange={onChange}
-                rows={rows}
-            />
-        );
-    };
+    return (
+        <textarea
+            className={`glass-textarea ${className}`}
+            style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                color: '#fff',
+                outline: 'none',
+                width: '100%',
+                resize: 'vertical',
+                transition: 'all 0.2s ease',
+                ...style,
+            }}
+            {...props}
+        />
+    );
+};
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS SELECT
-   Dropdown select with glass effect
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassSelect: React.FC<{
-    children: React.ReactNode;
-    className?: string;
-    value?: string;
-    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-}> = ({
+// Glass Select
+export const GlassSelect: React.FC<GlassSelectProps> = ({
     children,
     className = '',
-    value,
-    onChange
+    style = {},
+    ...props
 }) => {
-        return (
-            <select
-                className={`glass-input cursor-pointer ${className}`}
-                value={value}
-                onChange={onChange}
-            >
-                {children}
-            </select>
-        );
-    };
+    return (
+        <select
+            className={`glass-select ${className}`}
+            style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                color: '#fff',
+                outline: 'none',
+                width: '100%',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                ...style,
+            }}
+            {...props}
+        >
+            {children}
+        </select>
+    );
+};
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS BADGE
-   Status indicator with glass effect
-───────────────────────────────────────────────────────────────────────────── */
+// Glass Badge
 export const GlassBadge: React.FC<GlassBadgeProps> = ({
     children,
+    className = '',
     variant = 'default',
-    className = ''
 }) => {
-    const variantClasses = {
-        default: 'bg-gray-100 text-gray-600 border-gray-200',
-        primary: 'bg-blue-50 text-blue-600 border-blue-200',
-        success: 'bg-green-50 text-green-600 border-green-200',
-        warning: 'bg-amber-50 text-amber-600 border-amber-200',
-        danger: 'bg-red-50 text-red-600 border-red-200'
+    const variantStyles: Record<string, React.CSSProperties> = {
+        default: {
+            background: 'rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.8)',
+        },
+        success: {
+            background: 'rgba(34, 197, 94, 0.2)',
+            color: '#22c55e',
+        },
+        warning: {
+            background: 'rgba(234, 179, 8, 0.2)',
+            color: '#eab308',
+        },
+        danger: {
+            background: 'rgba(239, 68, 68, 0.2)',
+            color: '#ef4444',
+        },
+        info: {
+            background: 'rgba(59, 130, 246, 0.2)',
+            color: '#3b82f6',
+        },
     };
 
     return (
-        <span className={`glass-badge ${variantClasses[variant]} ${className}`}>
+        <span
+            className={`glass-badge ${className}`}
+            style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '4px 10px',
+                borderRadius: '9999px',
+                fontSize: '12px',
+                fontWeight: 500,
+                ...variantStyles[variant],
+            }}
+        >
             {children}
         </span>
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS COLUMN
-   Kanban column with glass effect
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassColumn: React.FC<GlassProps> = ({
-    children,
-    className = '',
-    style
-}) => {
+// Glass Column - for Kanban
+export const GlassColumn: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
     return (
         <div
-            className={`glass-card-subtle rounded-2xl p-4 min-w-[300px] max-w-[350px] flex flex-col ${className}`}
-            style={style}
+            className={`glass-column ${className}`}
+            style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(15px)',
+                WebkitBackdropFilter: 'blur(15px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '16px',
+                ...style,
+            }}
         >
             {children}
         </div>
     );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GLASS STAT CARD
-   Dashboard stat card with glass effect
-───────────────────────────────────────────────────────────────────────────── */
-export const GlassStatCard: React.FC<GlassProps & {
-    icon: React.ReactNode;
-    label: string;
-    value: string | number;
-    trend?: string;
-}> = ({
-    icon,
-    label,
-    value,
-    trend,
-    className = ''
-}) => {
-        return (
-            <div className={`glass-card p-5 ${className}`}>
-                <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-                        {icon}
-                    </div>
-                    {trend && (
-                        <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                            {trend}
-                        </span>
-                    )}
-                </div>
-                <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
-                <p className="text-sm text-gray-500">{label}</p>
-            </div>
-        );
-    };
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   LIQUID GLASS STRONG
-   Strong glass effect for auth screens (pure CSS version)
-───────────────────────────────────────────────────────────────────────────── */
-export const LiquidGlassStrong: React.FC<GlassProps> = ({
-    children,
-    className = '',
-    style
-}) => {
+// Glass Stat Card
+export const GlassStatCard: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
     return (
         <div
-            className={`${className}`}
-            style={style}
+            className={`glass-stat-card ${className}`}
+            style={{
+                ...baseGlassStyle,
+                background: 'rgba(255, 255, 255, 0.08)',
+                ...style,
+            }}
         >
             {children}
         </div>
     );
 };
+
+// Legacy support - LiquidGlassStrong
+export const LiquidGlassStrong: React.FC<GlassProps> = ({ children, className = '', style = {} }) => {
+    return (
+        <div
+            className={`liquid-glass-strong ${className}`}
+            style={{
+                ...baseGlassStyle,
+                background: 'rgba(255, 255, 255, 0.12)',
+                backdropFilter: 'blur(30px)',
+                WebkitBackdropFilter: 'blur(30px)',
+                ...style,
+            }}
+        >
+            {children}
+        </div>
+    );
+};
+
+export default LiquidGlass;

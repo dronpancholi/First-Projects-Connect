@@ -19,24 +19,24 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full relative">
       <button
         onClick={onSettingsClick}
-        className="absolute top-8 right-8 p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100/50"
+        className="absolute -top-16 right-0 p-3 text-white/40 hover:text-white transition-colors glass-button border-transparent"
         title="Settings"
       >
         <Settings size={18} />
       </button>
 
       {error && (
-        <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-medium text-center">
+        <div className="mb-6 p-4 glass-card border-red-500/30 bg-red-500/10 rounded-xl text-sm text-red-300 font-medium text-center">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</label>
+          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Email</label>
           <GlassInput
             type="email"
             placeholder="you@example.com"
@@ -46,7 +46,7 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
           />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Password</label>
+          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Password</label>
           <GlassInput
             type="password"
             placeholder="Your password"
@@ -59,20 +59,20 @@ const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
           type="submit"
           variant="primary"
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 py-3"
+          className="w-full flex items-center justify-center gap-2 py-4 text-base"
         >
           {isLoading ? (
-            <Loader2 className="animate-spin" size={18} />
+            <Loader2 className="animate-spin" size={20} />
           ) : (
-            <>Continue <ArrowRight size={16} /></>
+            <>Continue <ArrowRight size={18} /></>
           )}
         </GlassButton>
       </form>
 
       <div className="mt-8 text-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-white/40">
           New here?{' '}
-          <button onClick={onRegisterClick} className="text-blue-600 hover:underline font-medium">
+          <button onClick={onRegisterClick} className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
             Create account
           </button>
         </p>

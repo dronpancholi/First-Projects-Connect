@@ -1,188 +1,202 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext.tsx';
-import { ProjectStatus, TaskStatus, ViewState } from '../types.ts';
+import { ViewState } from '../types.ts';
 import {
-  Briefcase, Activity, Zap, Database, TrendingUp, FolderOpen, Box, ChevronRight, Plus
+  Briefcase, CheckCircle2, FileText, TrendingUp,
+  ArrowRight, Zap, Clock, Target
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { GlassCard, GlassPanel, GlassButton, GlassBadge } from './ui/LiquidGlass.tsx';
 
-const Dashboard: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) => {
-  const { projects, tasks, financials } = useStore();
+interface DashboardProps {
+  setView: (view: ViewState) => void;
+}
 
-  const activeProjects = projects.filter(p => p.status === ProjectStatus.ACTIVE).length;
-  const pendingTasks = tasks.filter(t => t.status !== TaskStatus.DONE).length;
-  const completionRate = tasks.length === 0 ? 0 : Math.round((tasks.filter(t => t.status === TaskStatus.DONE).length / tasks.length) * 100);
-  const totalCapital = financials.reduce((acc, f) => acc + (f.type === 'revenue' ? f.amount : -f.amount), 0);
+const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
+  const { projects, tasks, notes } = useStore();
+  const activeTasks = tasks.filter(t => t.status !== 'Done').length;
+  const completedTasks = tasks.filter(t => t.status === 'Done').length;
+  const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
-  const activityData = [
-    { name: 'Mon', value: 30 }, { name: 'Tue', value: 45 },
-    { name: 'Wed', value: 38 }, { name: 'Thu', value: 52 },
-    { name: 'Fri', value: 48 }, { name: 'Sat', value: 24 },
-    { name: 'Sun', value: 18 },
-  ];
-
-  const stats = [
-    { title: 'Active Workspaces', value: activeProjects, icon: Briefcase, trend: '+12%', gradient: 'from-blue-500 to-purple-600', onClick: () => setView({ type: 'PROJECTS' }) },
-    { title: 'Pending Tasks', value: pendingTasks, icon: Activity, gradient: 'from-indigo-500 to-blue-600' },
-    { title: 'Completion Rate', value: `${completionRate}%`, icon: Zap, gradient: 'from-amber-500 to-orange-600' },
-    { title: 'Total Capital', value: `$${totalCapital.toLocaleString()}`, icon: Database, gradient: 'from-gray-700 to-gray-900', onClick: () => setView({ type: 'FINANCIALS' }) },
-  ];
+  const recentProjects = projects.slice(0, 4);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {pendingTasks} pending tasks across {activeProjects} workspaces
-          </p>
+          <div className="flex items-center gap-3 text-purple-400 mb-3">
+            <Zap size={18} />
+            <span className="text-xs font-semibold uppercase tracking-widest">Command Center</span>
+          </div>
+          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Dashboard</h1>
+          <p className="text-white/50 text-sm">Your productivity overview at a glance.</p>
         </div>
+
         <GlassButton
           variant="primary"
           onClick={() => setView({ type: 'PROJECTS' })}
           className="flex items-center gap-2"
         >
-          <Plus size={16} /> New Workspace
+          <Briefcase size={18} /> New Workspace <ArrowRight size={16} />
         </GlassButton>
-      </div>
+      </header>
 
-      {/* Stats with Glass Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => {
-          const Icon = stat.icon;
-          return (
-            <GlassCard
-              key={i}
-              onClick={stat.onClick}
-              className={stat.onClick ? 'cursor-pointer' : ''}
-            >
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-2.5 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg`}>
-                    <Icon size={18} className="text-white" />
-                  </div>
-                  {stat.trend && (
-                    <GlassBadge variant="success" className="flex items-center gap-1">
-                      {stat.trend} <TrendingUp size={10} />
-                    </GlassBadge>
-                  )}
-                </div>
-                <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
-                <div className="text-xs text-gray-500 mt-1">{stat.title}</div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <GlassCard>
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
+                style={{ boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3)' }}>
+                <Briefcase size={22} className="text-purple-400" />
               </div>
-            </GlassCard>
-          );
-        })}
+              <GlassBadge variant="success">Active</GlassBadge>
+            </div>
+            <p className="text-4xl font-bold text-white mb-1">{projects.length}</p>
+            <p className="text-sm text-white/50">Total Projects</p>
+          </div>
+        </GlassCard>
+
+        <GlassCard>
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
+                style={{ boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)' }}>
+                <Target size={22} className="text-blue-400" />
+              </div>
+              <GlassBadge variant="warning">{activeTasks} pending</GlassBadge>
+            </div>
+            <p className="text-4xl font-bold text-white mb-1">{tasks.length}</p>
+            <p className="text-sm text-white/50">Total Tasks</p>
+          </div>
+        </GlassCard>
+
+        <GlassCard>
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
+                style={{ boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)' }}>
+                <CheckCircle2 size={22} className="text-green-400" />
+              </div>
+              <GlassBadge variant="success">+{completedTasks}</GlassBadge>
+            </div>
+            <p className="text-4xl font-bold text-white mb-1">{completionRate}%</p>
+            <p className="text-sm text-white/50">Completion Rate</p>
+          </div>
+        </GlassCard>
+
+        <GlassCard>
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
+                style={{ boxShadow: '0 8px 32px rgba(236, 72, 153, 0.3)' }}>
+                <FileText size={22} className="text-pink-400" />
+              </div>
+              <GlassBadge>Insights</GlassBadge>
+            </div>
+            <p className="text-4xl font-bold text-white mb-1">{notes.length}</p>
+            <p className="text-sm text-white/50">Total Notes</p>
+          </div>
+        </GlassCard>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Main Chart */}
+      {/* Recent Projects & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Projects */}
         <div className="lg:col-span-2">
           <GlassPanel>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="font-medium text-gray-900">Weekly Activity</h2>
-                  <p className="text-xs text-gray-500">Output analysis</p>
+            <div className="p-6 border-b border-white/10 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-white">Recent Workspaces</h2>
+              <GlassButton
+                size="sm"
+                onClick={() => setView({ type: 'PROJECTS' })}
+                className="flex items-center gap-1"
+              >
+                View All <ArrowRight size={14} />
+              </GlassButton>
+            </div>
+            <div className="divide-y divide-white/5">
+              {recentProjects.length === 0 && (
+                <div className="p-12 text-center">
+                  <Briefcase size={48} className="mx-auto text-white/20 mb-4" />
+                  <p className="text-white/40">No projects yet. Create your first workspace!</p>
                 </div>
-                <GlassBadge variant="primary">This Week</GlassBadge>
-              </div>
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={activityData}>
-                    <defs>
-                      <linearGradient id="activityGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0071e3" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#0071e3" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey="name"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: '#86868b' }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: '12px',
-                        border: 'none',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                        fontSize: '12px',
-                        background: 'rgba(255,255,255,0.95)',
-                        backdropFilter: 'blur(8px)'
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#0071e3"
-                      strokeWidth={2.5}
-                      fill="url(#activityGrad)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              )}
+              {recentProjects.map(project => (
+                <button
+                  key={project.id}
+                  onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: project.id })}
+                  className="w-full p-5 flex items-center gap-4 hover:bg-white/5 transition-all group text-left"
+                >
+                  <div className="w-12 h-12 rounded-xl glass-card flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Briefcase size={20} className="text-purple-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-white truncate mb-1">{project.title}</h3>
+                    <p className="text-xs text-white/40 truncate">{project.description || 'No description'}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <GlassBadge variant={project.status === 'Active' ? 'success' : 'default'}>
+                      {project.status}
+                    </GlassBadge>
+                    <ArrowRight size={16} className="text-white/30 group-hover:text-white/60 transition-colors" />
+                  </div>
+                </button>
+              ))}
             </div>
           </GlassPanel>
         </div>
 
-        {/* Projects */}
-        <div>
+        {/* Quick Actions */}
+        <div className="space-y-6">
           <GlassPanel>
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-medium text-gray-900">Projects</h2>
-                <button
-                  onClick={() => setView({ type: 'PROJECTS' })}
-                  className="p-1.5 rounded-lg hover:bg-gray-100/50 text-gray-400 hover:text-blue-600 transition-colors"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Zap size={18} className="text-yellow-400" /> Quick Actions
+              </h3>
               <div className="space-y-3">
-                {projects.slice(0, 4).map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/50 cursor-pointer transition-all group"
-                    onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: p.id })}
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
-                      <FolderOpen size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">{p.title}</p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
-                            style={{ width: `${p.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] font-medium text-gray-400">{p.progress}%</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {projects.length === 0 && (
-                  <div className="text-center py-8">
-                    <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                      <Box size={24} className="text-gray-300" />
-                    </div>
-                    <p className="text-xs text-gray-400">No projects yet</p>
-                    <button
-                      onClick={() => setView({ type: 'PROJECTS' })}
-                      className="text-xs text-blue-600 font-medium mt-2 hover:underline"
-                    >
-                      Create one
-                    </button>
-                  </div>
-                )}
+                <GlassButton
+                  className="w-full justify-start gap-3"
+                  onClick={() => setView({ type: 'PROJECTS' })}
+                >
+                  <Briefcase size={18} /> New Project
+                </GlassButton>
+                <GlassButton
+                  className="w-full justify-start gap-3"
+                  onClick={() => setView({ type: 'KANBAN' })}
+                >
+                  <Target size={18} /> View Tasks
+                </GlassButton>
+                <GlassButton
+                  className="w-full justify-start gap-3"
+                  onClick={() => setView({ type: 'IDEAS' })}
+                >
+                  <FileText size={18} /> Write Note
+                </GlassButton>
               </div>
             </div>
           </GlassPanel>
+
+          <GlassCard className="overflow-visible">
+            <div className="p-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <TrendingUp size={20} className="text-white" />
+                </div>
+                <h3 className="font-semibold text-white">Productivity Score</h3>
+              </div>
+              <p className="text-5xl font-bold text-white mb-2">{completionRate}%</p>
+              <p className="text-sm text-white/50">
+                {completedTasks} of {tasks.length} tasks completed
+              </p>
+              <div className="mt-4 h-2 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                  style={{ width: `${completionRate}%` }}
+                />
+              </div>
+            </div>
+          </GlassCard>
         </div>
       </div>
     </div>

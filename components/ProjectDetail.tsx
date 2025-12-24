@@ -19,9 +19,9 @@ interface ProjectDetailProps {
 const TabButton: React.FC<{ label: string; active: boolean; onClick: () => void; icon: React.ReactNode }> = ({ label, active, onClick, icon }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2.5 px-5 py-2.5 text-xs font-medium rounded-xl transition-all ${active
-        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/50 glass-button border-transparent'
+    className={`flex items-center gap-2.5 px-5 py-2.5 text-sm font-medium rounded-xl transition-all ${active
+        ? 'glass-card bg-purple-500/20 text-white border-purple-500/50'
+        : 'text-white/50 hover:text-white hover:bg-white/5'
       }`}
   >
     {icon}
@@ -52,9 +52,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
 
   if (!project) return (
     <div className="h-full flex flex-col items-center justify-center p-12 text-center">
-      <AlertTriangle size={48} className="text-amber-500 mb-4" />
-      <h2 className="text-2xl font-bold text-gray-900">Project Not Found</h2>
-      <p className="text-gray-500 mt-2">The requested project doesn't exist.</p>
+      <AlertTriangle size={48} className="text-amber-400 mb-4" />
+      <h2 className="text-2xl font-bold text-white">Project Not Found</h2>
+      <p className="text-white/50 mt-2">The requested project doesn't exist.</p>
       <GlassButton onClick={onBack} variant="primary" className="mt-8">
         Return to Projects
       </GlassButton>
@@ -139,7 +139,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
 
   const getAssetConfig = (type: AssetType) => {
     switch (type) {
-      case 'github': return { icon: <Github size={18} />, color: 'bg-gray-900' };
+      case 'github': return { icon: <Github size={18} />, color: 'bg-gray-700' };
       case 'vercel': return { icon: <Server size={18} />, color: 'bg-black' };
       case 'figma': return { icon: <Figma size={18} />, color: 'bg-purple-600' };
       case 'slack': return { icon: <Slack size={18} />, color: 'bg-green-600' };
@@ -151,12 +151,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
   return (
     <div className="flex flex-col h-full animate-fade-in">
       {/* Header */}
-      <GlassPanel>
-        <div className="p-6 lg:px-10 space-y-6">
+      <GlassPanel className="mb-6">
+        <div className="p-6 lg:px-10 space-y-6 relative z-10">
           <div className="flex items-center justify-between">
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-gray-400 hover:text-gray-900 transition-colors text-sm font-medium"
+              className="flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm font-medium"
             >
               <ArrowLeft size={16} /> Back to Projects
             </button>
@@ -181,7 +181,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                   <button
                     key={tag}
                     onClick={() => removeTag(tag)}
-                    className="group flex items-center gap-1.5 px-3 py-1 glass-card-subtle rounded-full text-xs font-medium text-gray-600 hover:text-red-500 transition-all"
+                    className="group flex items-center gap-1.5 px-3 py-1 glass-card-subtle rounded-full text-xs font-medium text-white/60 hover:text-red-400 transition-all"
                   >
                     {tag}
                     <X size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -201,14 +201,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                 ) : (
                   <button
                     onClick={() => setIsAddingTag(true)}
-                    className="p-1.5 text-gray-300 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+                    className="p-1.5 text-white/30 hover:text-purple-400 transition-colors rounded-lg hover:bg-purple-500/20"
                   >
                     <Plus size={14} />
                   </button>
                 )}
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{project.title}</h1>
-              <p className="text-gray-500 text-sm">{project.description}</p>
+              <h1 className="text-3xl font-bold text-white tracking-tight">{project.title}</h1>
+              <p className="text-white/50 text-sm">{project.description}</p>
             </div>
           </div>
 
@@ -221,20 +221,20 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
       </GlassPanel>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto p-6 lg:p-10 custom-scrollbar">
+      <div className="flex-1 overflow-auto custom-scrollbar">
 
         {/* TASKS VIEW */}
         {activeTab === 'tasks' && (
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
+                <h2 className="text-lg font-semibold text-white">Tasks</h2>
                 <div className="flex glass-card-subtle p-1 rounded-xl">
                   {(['PENDING', 'DONE', 'ALL'] as const).map(f => (
                     <button
                       key={f}
                       onClick={() => setTaskFilter(f)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${taskFilter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${taskFilter === f ? 'glass-card text-white' : 'text-white/40 hover:text-white/60'
                         }`}
                     >
                       {f === 'PENDING' ? 'Active' : f === 'DONE' ? 'Complete' : 'All'}
@@ -252,23 +252,23 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
             </div>
 
             <GlassPanel>
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-white/5 relative z-10">
                 {projectTasks.length === 0 && (
                   <div className="py-16 text-center">
-                    <CheckCircle2 size={48} className="mx-auto text-gray-200 mb-4" />
-                    <p className="text-gray-400">No tasks to show</p>
+                    <CheckCircle2 size={48} className="mx-auto text-white/20 mb-4" />
+                    <p className="text-white/40">No tasks to show</p>
                   </div>
                 )}
                 {projectTasks.map(task => (
-                  <div key={task.id} className="flex items-center gap-4 p-4 hover:bg-white/50 transition-all group">
+                  <div key={task.id} className="flex items-center gap-4 p-4 hover:bg-white/5 transition-all group">
                     <button
                       onClick={() => handleTaskToggle(task)}
-                      className={`transition-all ${task.status === TaskStatus.DONE ? 'text-green-500' : 'text-gray-300 hover:text-blue-500'}`}
+                      className={`transition-all ${task.status === TaskStatus.DONE ? 'text-green-400' : 'text-white/30 hover:text-purple-400'}`}
                     >
                       {task.status === TaskStatus.DONE ? <CheckCircle2 size={22} /> : <Circle size={22} />}
                     </button>
                     <input
-                      className={`flex-1 bg-transparent outline-none text-sm font-medium transition-all ${task.status === TaskStatus.DONE ? 'text-gray-400 line-through' : 'text-gray-900'
+                      className={`flex-1 bg-transparent outline-none text-sm font-medium transition-all ${task.status === TaskStatus.DONE ? 'text-white/40 line-through' : 'text-white'
                         }`}
                       value={task.title}
                       placeholder="Task description..."
@@ -281,8 +281,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                           onClick={() => handleBreakdownTask(task)}
                           disabled={loadingTaskId === task.id}
                           className={`p-2 rounded-lg transition-all ${loadingTaskId === task.id
-                              ? 'bg-blue-50 text-blue-600 animate-pulse'
-                              : 'text-gray-300 hover:bg-blue-50 hover:text-blue-600'
+                              ? 'bg-purple-500/20 text-purple-400 animate-pulse'
+                              : 'text-white/30 hover:bg-purple-500/20 hover:text-purple-400'
                             }`}
                           title="AI Breakdown"
                         >
@@ -291,7 +291,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                       )}
                       <button
                         onClick={() => { if (confirm('Delete task?')) deleteTask(task.id); }}
-                        className="p-2 rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all"
+                        className="p-2 rounded-lg text-white/30 hover:bg-red-500/20 hover:text-red-400 transition-all"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -318,7 +318,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <button
                 onClick={() => addNote({ projectId, title: 'New Note', content: '' })}
-                className="aspect-[4/5] glass-card-subtle border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 cursor-pointer transition-all group"
+                className="aspect-[4/5] glass-card-subtle border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center text-white/40 hover:border-purple-500/50 hover:text-purple-400 hover:bg-purple-500/10 cursor-pointer transition-all group"
               >
                 <div className="w-14 h-14 rounded-xl glass-card flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <Plus size={28} />
@@ -328,28 +328,28 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
 
               {projectNotes.map(note => (
                 <GlassCard key={note.id} className="aspect-[4/5] group">
-                  <div className="p-5 flex flex-col h-full">
+                  <div className="p-5 flex flex-col h-full relative z-10">
                     <div className="flex justify-between items-start mb-3">
                       <input
-                        className="font-semibold text-gray-900 outline-none w-full bg-transparent"
+                        className="font-semibold text-white outline-none w-full bg-transparent"
                         value={note.title}
                         placeholder="Title..."
                         onChange={(e) => updateNote(note.id, e.target.value)}
                       />
                       <button
                         onClick={() => { if (confirm('Delete note?')) deleteNote(note.id); }}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-white/30 hover:bg-red-500/20 hover:text-red-400 transition-all"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
                     <textarea
-                      className="flex-1 resize-none outline-none text-gray-500 text-sm leading-relaxed custom-scrollbar bg-transparent"
+                      className="flex-1 resize-none outline-none text-white/60 text-sm leading-relaxed custom-scrollbar bg-transparent"
                       placeholder="Write something..."
                       value={note.content}
                       onChange={(e) => updateNote(note.id, e.target.value)}
                     />
-                    <div className="mt-4 pt-3 border-t border-gray-100/50 flex items-center text-xs text-gray-400">
+                    <div className="mt-4 pt-3 border-t border-white/10 flex items-center text-xs text-white/40">
                       <Clock size={12} className="mr-1.5" />
                       {new Date(note.updatedAt).toLocaleDateString()}
                     </div>
@@ -364,7 +364,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
         {activeTab === 'assets' && (
           <div className="max-w-5xl mx-auto space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">Connected Resources</h2>
+              <h2 className="text-lg font-semibold text-white">Connected Resources</h2>
               <GlassButton
                 onClick={() => setShowAssetModal(true)}
                 variant="primary"
@@ -375,10 +375,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
             </div>
 
             {projectAssets.length === 0 ? (
-              <div className="glass-card-subtle p-16 text-center rounded-3xl border-2 border-dashed">
-                <LinkIcon size={48} className="mx-auto text-gray-200 mb-6" />
-                <h3 className="text-lg font-semibold text-gray-400 mb-2">No assets yet</h3>
-                <p className="text-sm text-gray-400 mb-6 max-w-sm mx-auto">
+              <div className="glass-card-subtle p-16 text-center rounded-3xl border-2 border-dashed border-white/10">
+                <LinkIcon size={48} className="mx-auto text-white/20 mb-6" />
+                <h3 className="text-lg font-semibold text-white/40 mb-2">No assets yet</h3>
+                <p className="text-sm text-white/30 mb-6 max-w-sm mx-auto">
                   Connect external tools, repos, and design files.
                 </p>
                 <GlassButton variant="primary" onClick={() => setShowAssetModal(true)}>
@@ -395,7 +395,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                         href={asset.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block p-5"
+                        className="block p-5 relative z-10"
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center shadow-lg ${config.color}`}>
@@ -403,14 +403,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                           </div>
                           <button
                             onClick={(e) => { e.preventDefault(); if (confirm('Remove asset?')) deleteAsset(asset.id); }}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-300 hover:text-red-500 transition-all"
+                            className="opacity-0 group-hover:opacity-100 p-1.5 text-white/30 hover:text-red-400 transition-all"
                           >
                             <X size={16} />
                           </button>
                         </div>
-                        <h3 className="font-semibold text-gray-900 truncate mb-1">{asset.name}</h3>
-                        <p className="text-xs text-gray-400 uppercase">{asset.type}</p>
-                        <div className="flex items-center gap-1.5 text-xs text-blue-600 font-medium mt-4 opacity-0 group-hover:opacity-100 transition-all">
+                        <h3 className="font-semibold text-white truncate mb-1">{asset.name}</h3>
+                        <p className="text-xs text-white/40 uppercase">{asset.type}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-purple-400 font-medium mt-4 opacity-0 group-hover:opacity-100 transition-all">
                           Open <ArrowRight size={12} />
                         </div>
                       </a>
@@ -426,30 +426,30 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
       {/* AI Assistant Modal */}
       {showAIModal && (
         <GlassModal onClose={() => setShowAIModal(false)}>
-          <div className="p-8">
+          <div className="p-8 relative z-10">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white shadow-lg">
                 <Bot size={28} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">AI Assistant</h2>
-                <p className="text-sm text-gray-500">Generate plans for {project.title}</p>
+                <h2 className="text-2xl font-bold text-white">AI Assistant</h2>
+                <p className="text-sm text-white/50">Generate plans for {project.title}</p>
               </div>
             </div>
 
             <button
               onClick={handleGeneratePlan}
               disabled={isGenerating}
-              className="w-full text-left p-6 glass-card rounded-2xl hover:bg-blue-50/50 transition-all group flex items-center gap-4"
+              className="w-full text-left p-6 glass-card rounded-2xl hover:bg-purple-500/20 transition-all group flex items-center gap-4"
             >
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+              <div className="w-12 h-12 rounded-xl glass-card flex items-center justify-center text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-all">
                 <Wand2 size={22} />
               </div>
               <div>
-                <div className="font-semibold text-gray-900">Generate Project Plan</div>
-                <div className="text-xs text-gray-500">AI-powered roadmap and strategy</div>
+                <div className="font-semibold text-white">Generate Project Plan</div>
+                <div className="text-xs text-white/50">AI-powered roadmap and strategy</div>
               </div>
-              {isGenerating && <Loader2 className="ml-auto animate-spin text-blue-600" size={20} />}
+              {isGenerating && <Loader2 className="ml-auto animate-spin text-purple-400" size={20} />}
             </button>
 
             <div className="mt-6 flex justify-center">
@@ -464,20 +464,20 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
       {/* Asset Connection Modal */}
       {showAssetModal && (
         <GlassModal onClose={() => setShowAssetModal(false)}>
-          <div className="p-8">
+          <div className="p-8 relative z-10">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900">Add Asset</h3>
-                <p className="text-sm text-gray-500 mt-1">Connect an external resource</p>
+                <h3 className="text-2xl font-bold text-white">Add Asset</h3>
+                <p className="text-sm text-white/50 mt-1">Connect an external resource</p>
               </div>
-              <button onClick={() => setShowAssetModal(false)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={() => setShowAssetModal(false)} className="p-2 text-white/40 hover:text-white transition-colors">
                 <X size={24} />
               </button>
             </div>
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Name</label>
+                <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Name</label>
                 <GlassInput
                   placeholder="e.g. Main Repository"
                   value={assetName}
@@ -486,7 +486,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">URL</label>
+                <label className="text-xs font-medium text-white/50 uppercase tracking-wider">URL</label>
                 <GlassInput
                   placeholder="https://..."
                   value={assetUrl}

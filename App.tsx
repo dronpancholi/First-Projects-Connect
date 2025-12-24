@@ -16,8 +16,8 @@ import Login from './components/Auth/Login.tsx';
 import Register from './components/Auth/Register.tsx';
 import Settings from './components/Settings.tsx';
 import { ViewState } from './types.ts';
-import { Loader2, ArrowLeft, Settings as SettingsIcon } from 'lucide-react';
-import { LiquidGlassStrong, GlassButton } from './components/ui/LiquidGlass.tsx';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import { GlassButton } from './components/ui/LiquidGlass.tsx';
 
 const AuthenticatedApp: React.FC = () => {
   const [currentView, setView] = useState<ViewState>({ type: 'DASHBOARD' });
@@ -44,10 +44,10 @@ const AuthenticatedApp: React.FC = () => {
     return (
       <div className="h-full w-full flex items-center justify-center app-bg">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse">
-            <Loader2 className="animate-spin text-white" size={24} />
+          <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center">
+            <Loader2 className="animate-spin text-white" size={28} />
           </div>
-          <p className="text-sm text-gray-500">Loading...</p>
+          <p className="text-sm text-white/70">Loading...</p>
         </div>
       </div>
     );
@@ -73,7 +73,7 @@ const AuthFlow: React.FC = () => {
         <div className="w-full max-w-4xl mb-4">
           <button
             onClick={() => setShowSettings(false)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium glass-button"
+            className="flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm font-medium glass-button"
           >
             <ArrowLeft size={16} /> Back
           </button>
@@ -87,10 +87,10 @@ const AuthFlow: React.FC = () => {
     return (
       <div className="h-screen w-full flex items-center justify-center apple-bg">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center">
-            <Loader2 className="animate-spin text-white" size={32} />
+          <div className="w-20 h-20 rounded-3xl glass-card flex items-center justify-center">
+            <Loader2 className="animate-spin text-white" size={36} />
           </div>
-          <p className="text-sm text-white/80">Loading...</p>
+          <p className="text-sm text-white/70">Initializing...</p>
         </div>
       </div>
     );
@@ -100,42 +100,75 @@ const AuthFlow: React.FC = () => {
     return <AuthenticatedApp />;
   }
 
-  // Premium Glass Login Screen
+  // Premium Liquid Glass Login Screen
   return (
     <div className="min-h-screen w-full flex items-center justify-center apple-bg overflow-hidden">
-      {/* Background orbs */}
+      {/* Animated Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-[600px] h-[600px] -top-32 -left-32 bg-gradient-to-br from-blue-400/30 to-purple-600/30 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute w-[500px] h-[500px] -bottom-24 -right-24 bg-gradient-to-br from-pink-400/30 to-orange-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute w-[300px] h-[300px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl" />
+        <div
+          className="absolute w-[700px] h-[700px] -top-40 -left-40 rounded-full blur-3xl"
+          style={{
+            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.5) 0%, transparent 70%)',
+            animation: 'float 20s ease-in-out infinite'
+          }}
+        />
+        <div
+          className="absolute w-[600px] h-[600px] -bottom-32 -right-32 rounded-full blur-3xl"
+          style={{
+            background: 'radial-gradient(circle, rgba(236, 72, 153, 0.4) 0%, transparent 70%)',
+            animation: 'float 25s ease-in-out infinite reverse'
+          }}
+        />
+        <div
+          className="absolute w-[400px] h-[400px] top-1/3 left-1/4 rounded-full blur-3xl"
+          style={{
+            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)',
+            animation: 'float 15s ease-in-out infinite'
+          }}
+        />
+        <div
+          className="absolute w-[300px] h-[300px] bottom-1/4 right-1/4 rounded-full blur-3xl"
+          style={{
+            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%)',
+            animation: 'float 18s ease-in-out infinite reverse'
+          }}
+        />
       </div>
 
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(30px, -30px) scale(1.05); }
+          50% { transform: translate(-20px, 20px) scale(0.95); }
+          75% { transform: translate(15px, 15px) scale(1.02); }
+        }
+      `}</style>
+
       <div className="w-full max-w-md mx-6 relative z-10">
-        <LiquidGlassStrong>
-          <div className="bg-white/85 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl border border-white/50">
-            {/* Logo */}
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-xl shadow-blue-500/30">
-                <span className="text-white text-3xl font-bold">FP</span>
-              </div>
-              <h1 className="text-2xl font-semibold text-gray-900">First Projects</h1>
-              <p className="text-sm text-blue-600 font-medium uppercase tracking-wider mt-1">Connect</p>
+        <div className="glass-modal p-10 animate-fade-in">
+          {/* Logo */}
+          <div className="text-center mb-10">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-3xl glass-card flex items-center justify-center shadow-2xl"
+              style={{ boxShadow: '0 20px 60px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.2)' }}>
+              <span className="text-white text-4xl font-bold">FP</span>
             </div>
-
-            {isRegistering ? (
-              <Register onLoginClick={() => setIsRegistering(false)} />
-            ) : (
-              <Login
-                onRegisterClick={() => setIsRegistering(true)}
-                onSettingsClick={() => setShowSettings(true)}
-              />
-            )}
-
-            <div className="mt-8 pt-6 border-t border-gray-200/50 text-center">
-              <p className="text-xs text-gray-400">By Dron Pancholi</p>
-            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">First Projects</h1>
+            <p className="text-sm text-white/60 font-medium uppercase tracking-widest">Connect</p>
           </div>
-        </LiquidGlassStrong>
+
+          {isRegistering ? (
+            <Register onLoginClick={() => setIsRegistering(false)} />
+          ) : (
+            <Login
+              onRegisterClick={() => setIsRegistering(true)}
+              onSettingsClick={() => setShowSettings(true)}
+            />
+          )}
+
+          <div className="mt-10 pt-6 border-t border-white/10 text-center">
+            <p className="text-xs text-white/40">Crafted by Dron Pancholi</p>
+          </div>
+        </div>
       </div>
     </div>
   );

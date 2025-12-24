@@ -21,14 +21,14 @@ const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
   return (
     <div className="w-full">
       {error && (
-        <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-medium text-center">
+        <div className="mb-6 p-4 glass-card border-red-500/30 bg-red-500/10 rounded-xl text-sm text-red-300 font-medium text-center">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</label>
+          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Full Name</label>
           <GlassInput
             type="text"
             placeholder="John Doe"
@@ -38,7 +38,7 @@ const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
           />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</label>
+          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Email</label>
           <GlassInput
             type="email"
             placeholder="you@example.com"
@@ -47,7 +47,7 @@ const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
           />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Password</label>
+          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Password</label>
           <GlassInput
             type="password"
             placeholder="Create a strong password"
@@ -60,20 +60,20 @@ const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
           type="submit"
           variant="primary"
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 py-3"
+          className="w-full flex items-center justify-center gap-2 py-4 text-base"
         >
           {isLoading ? (
-            <Loader2 className="animate-spin" size={18} />
+            <Loader2 className="animate-spin" size={20} />
           ) : (
-            <>Create Account <ArrowRight size={16} /></>
+            <>Create Account <ArrowRight size={18} /></>
           )}
         </GlassButton>
       </form>
 
       <div className="mt-8 text-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-white/40">
           Already have an account?{' '}
-          <button onClick={onLoginClick} className="text-blue-600 hover:underline font-medium">
+          <button onClick={onLoginClick} className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
             Sign In
           </button>
         </p>

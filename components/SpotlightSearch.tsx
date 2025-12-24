@@ -1,201 +1,184 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Search, X, Briefcase, FileText, CheckCircle, FolderOpen, ArrowRight } from 'lucide-react';
 import { useStore } from '../context/StoreContext.tsx';
-import { Search, Folder, CheckSquare, FileText, ArrowRight, Link as LinkIcon, X, Command } from 'lucide-react';
 import { ViewState } from '../types.ts';
 
-interface SpotlightProps {
+interface SpotlightSearchProps {
   isOpen: boolean;
   onClose: () => void;
   setView: (view: ViewState) => void;
 }
 
-const SpotlightSearch: React.FC<SpotlightProps> = ({ isOpen, onClose, setView }) => {
+const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ isOpen, onClose, setView }) => {
   const { projects, tasks, notes, assets } = useStore();
   const [query, setQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
+      inputRef.current?.focus();
       setQuery('');
       setSelectedIndex(0);
     }
   }, [isOpen]);
 
-  const filtered = useMemo(() => {
-    if (!query) return [];
-    const q = query.toLowerCase();
-
-    const projectResults = projects
-      .filter(p => p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q))
-      .map(p => ({
-        type: 'Project',
-        id: p.id,
-        title: p.title,
-        detail: 'Project Workspace',
-        onClick: () => setView({ type: 'PROJECT_DETAIL', projectId: p.id })
-      }));
-
-    const taskResults = tasks
-      .filter(t => t.title.toLowerCase().includes(q))
-      .map(t => ({
-        type: 'Task',
-        id: t.id,
-        title: t.title,
-        detail: `Task in ${projects.find(p => p.id === t.projectId)?.title || 'Unknown Project'}`,
-        onClick: () => setView({ type: 'PROJECT_DETAIL', projectId: t.projectId })
-      }));
-
-    const noteResults = notes
-      .filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
-      .map(n => ({
-        type: 'Note',
-        id: n.id,
-        title: n.title,
-        detail: 'Note / Idea',
-        onClick: () => {
-          if (n.projectId) setView({ type: 'PROJECT_DETAIL', projectId: n.projectId });
-          else setView({ type: 'IDEAS' });
-        }
-      }));
-
-    const assetResults = assets
-      .filter(a => a.name.toLowerCase().includes(q) || a.url.toLowerCase().includes(q))
-      .map(a => ({
-        type: 'Asset',
-        id: a.id,
-        title: a.name,
-        detail: `Linked ${a.type}`,
-        onClick: () => window.open(a.url, '_blank')
-      }));
-
-    return [...projectResults, ...assetResults, ...taskResults, ...noteResults].slice(0, 8);
-  }, [query, projects, tasks, notes, assets, setView]);
-
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
-  // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-
-      if (e.key === 'ArrowDown') {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, filtered.length - 1));
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 1, 0));
-      } else if (e.key === 'Enter' && filtered[selectedIndex]) {
-        e.preventDefault();
-        filtered[selectedIndex].onClick();
-        onClose();
-      } else if (e.key === 'Escape') {
         onClose();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filtered, selectedIndex, onClose]);
+  }, [onClose]);
 
-  if (!isOpen) return null;
+  const results = useMemo(() => {
+    if (!query.trim()) return [];
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'Project': return <Folder size={18} />;
-      case 'Task': return <CheckSquare size={18} />;
-      case 'Note': return <FileText size={18} />;
-      case 'Asset': return <LinkIcon size={18} />;
-      default: return null;
+    const q = query.toLowerCase();
+    const items: { type: string; icon: React.ReactNode; title: string; subtitle: string; action: () => void }[] = [];
+
+    projects.filter(p => p.title.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q))
+      .slice(0, 3)
+      .forEach(p => items.push({
+        type: 'Project',
+        icon: <Briefcase size={18} className="text-purple-400" />,
+        title: p.title,
+        subtitle: p.description || 'No description',
+        action: () => { setView({ type: 'PROJECT_DETAIL', projectId: p.id }); onClose(); }
+      }));
+
+    tasks.filter(t => t.title.toLowerCase().includes(q))
+      .slice(0, 3)
+      .forEach(t => items.push({
+        type: 'Task',
+        icon: <CheckCircle size={18} className="text-blue-400" />,
+        title: t.title,
+        subtitle: t.status,
+        action: () => { setView({ type: 'KANBAN' }); onClose(); }
+      }));
+
+    notes.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
+      .slice(0, 3)
+      .forEach(n => items.push({
+        type: 'Note',
+        icon: <FileText size={18} className="text-amber-400" />,
+        title: n.title,
+        subtitle: n.content.substring(0, 50) + '...',
+        action: () => { setView({ type: 'IDEAS' }); onClose(); }
+      }));
+
+    assets.filter(a => a.name.toLowerCase().includes(q))
+      .slice(0, 2)
+      .forEach(a => items.push({
+        type: 'Asset',
+        icon: <FolderOpen size={18} className="text-orange-400" />,
+        title: a.name,
+        subtitle: a.type,
+        action: () => { setView({ type: 'RESOURCES' }); onClose(); }
+      }));
+
+    return items;
+  }, [query, projects, tasks, notes, assets, setView, onClose]);
+
+  const handleKeyNavigation = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(i => Math.min(i + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(i => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' && results[selectedIndex]) {
+      results[selectedIndex].action();
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center pt-[20vh] glass-overlay animate-fade-in"
+      className="fixed inset-0 z-[100] glass-overlay flex items-start justify-center pt-[15vh] animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl glass-modal overflow-hidden flex flex-col animate-scale-in"
+        className="glass-modal w-full max-w-2xl mx-6 overflow-hidden animate-scale-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Search Input */}
-        <div className="flex items-center px-5 py-4 border-b border-gray-100/50">
-          <Search className="text-gray-400 mr-4" size={20} />
+        <div className="flex items-center gap-4 p-5 border-b border-white/10 relative">
+          <Search size={22} className="text-white/40" />
           <input
             ref={inputRef}
-            className="flex-1 bg-transparent outline-none text-lg text-gray-900 placeholder-gray-400"
-            placeholder="Search projects, tasks, notes..."
+            type="text"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => { setQuery(e.target.value); setSelectedIndex(0); }}
+            onKeyDown={handleKeyNavigation}
+            placeholder="Search projects, tasks, notes..."
+            className="flex-1 bg-transparent outline-none text-lg text-white placeholder-white/30"
           />
           <div className="flex items-center gap-2">
-            <kbd className="text-xs text-gray-400 bg-gray-100/80 px-2 py-1 rounded border border-gray-200/50 flex items-center gap-1">
-              <Command size={10} /> K
-            </kbd>
-            <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100/50 transition-colors">
-              <X size={18} />
+            <kbd className="glass-badge text-xs">ESC</kbd>
+            <button onClick={onClose} className="p-2 text-white/40 hover:text-white transition-colors">
+              <X size={20} />
             </button>
           </div>
         </div>
 
         {/* Results */}
-        {filtered.length > 0 && (
-          <div className="py-2 max-h-[400px] overflow-auto custom-scrollbar">
-            {filtered.map((item, index) => (
-              <button
-                key={`${item.type}-${item.id}`}
-                onClick={() => {
-                  item.onClick();
-                  onClose();
-                }}
-                className={`w-full px-5 py-3 flex items-center text-left transition-all group ${index === selectedIndex
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                    : 'hover:bg-gray-50/80'
-                  }`}
-              >
-                <div className={`mr-4 w-6 flex justify-center ${index === selectedIndex ? 'text-white/80' : 'text-gray-400'
-                  }`}>
-                  {getIcon(item.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className={`font-medium truncate ${index === selectedIndex ? 'text-white' : 'text-gray-900'
-                    }`}>{item.title}</div>
-                  <div className={`text-xs truncate ${index === selectedIndex ? 'text-white/70' : 'text-gray-500'
-                    }`}>{item.detail}</div>
-                </div>
-                {item.type === 'Asset' ? (
-                  <LinkIcon size={14} className={`rotate-[-45deg] ${index === selectedIndex ? 'text-white/60' : 'text-gray-300 opacity-0 group-hover:opacity-100'
-                    } transition-opacity`} />
-                ) : (
-                  <ArrowRight size={14} className={`${index === selectedIndex ? 'text-white/60' : 'text-gray-300 opacity-0 group-hover:opacity-100'
-                    } transition-opacity`} />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {query && filtered.length === 0 && (
-          <div className="p-12 text-center text-gray-400">
-            <Search size={32} className="mx-auto mb-3 text-gray-200" />
-            <p>No results found for "{query}"</p>
-          </div>
-        )}
-
-        {!query && (
-          <div className="p-6 text-center">
-            <p className="text-sm text-gray-400">Type to search your entire ecosystem</p>
-            <div className="flex items-center justify-center gap-4 mt-4 text-xs text-gray-400">
-              <span className="flex items-center gap-1"><kbd className="bg-gray-100/80 px-1.5 rounded">↑</kbd><kbd className="bg-gray-100/80 px-1.5 rounded">↓</kbd> navigate</span>
-              <span className="flex items-center gap-1"><kbd className="bg-gray-100/80 px-1.5 rounded">↵</kbd> select</span>
-              <span className="flex items-center gap-1"><kbd className="bg-gray-100/80 px-2 rounded">esc</kbd> close</span>
+        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+          {query.trim() === '' ? (
+            <div className="p-8 text-center text-white/30">
+              <Search size={40} className="mx-auto mb-4 opacity-30" />
+              <p>Start typing to search...</p>
             </div>
+          ) : results.length === 0 ? (
+            <div className="p-8 text-center text-white/30">
+              <p>No results found for "{query}"</p>
+            </div>
+          ) : (
+            <div className="p-2">
+              {results.map((result, index) => (
+                <button
+                  key={index}
+                  onClick={result.action}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all ${index === selectedIndex
+                      ? 'glass-card bg-purple-500/20 border-purple-500/30'
+                      : 'hover:bg-white/5'
+                    }`}
+                >
+                  <div className="w-10 h-10 rounded-xl glass-card flex items-center justify-center">
+                    {result.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-white truncate">{result.title}</p>
+                      <span className="text-xs text-white/30">{result.type}</span>
+                    </div>
+                    <p className="text-sm text-white/40 truncate">{result.subtitle}</p>
+                  </div>
+                  <ArrowRight size={16} className="text-white/20" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-white/10 flex items-center justify-between text-xs text-white/30">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1">
+              <kbd className="glass-badge px-1.5">↑↓</kbd> Navigate
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="glass-badge px-1.5">↵</kbd> Open
+            </span>
           </div>
-        )}
+          <span>{results.length} results</span>
+        </div>
       </div>
     </div>
   );
