@@ -54,8 +54,8 @@ const AuthenticatedApp: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-apple-gray">
-        <Loader2 className="animate-spin text-gray-400" size={32} />
+      <div className="h-screen w-full flex items-center justify-center mesh-gradient">
+        <Loader2 className="animate-spin text-studio-accent" size={32} />
       </div>
     );
   }
@@ -76,11 +76,11 @@ const AuthFlow: React.FC = () => {
 
   if (showSettings) {
     return (
-      <div className="min-h-screen bg-apple-gray flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen mesh-gradient flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-4xl mb-4">
-          <button 
+          <button
             onClick={() => setShowSettings(false)}
-            className="flex items-center gap-2 text-gray-500 hover:text-black transition-colors font-medium px-2 py-1"
+            className="flex items-center gap-2 text-studio-muted hover:text-studio-text transition-colors font-medium px-2 py-1 glass rounded-lg"
           >
             <ArrowLeft size={18} /> Back to Login
           </button>
@@ -92,8 +92,8 @@ const AuthFlow: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-apple-gray">
-        <Loader2 className="animate-spin text-gray-400" size={32} />
+      <div className="h-screen w-full flex items-center justify-center mesh-gradient">
+        <Loader2 className="animate-spin text-studio-accent" size={32} />
       </div>
     );
   }
@@ -103,16 +103,12 @@ const AuthFlow: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#F5F5F7] relative overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-200/30 rounded-full blur-[100px] pointer-events-none"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-[100px] pointer-events-none"></div>
-      
+    <div className="min-h-screen w-full flex items-center justify-center mesh-gradient relative overflow-hidden">
       {isRegistering ? (
         <Register onLoginClick={() => setIsRegistering(false)} />
       ) : (
-        <Login 
-          onRegisterClick={() => setIsRegistering(true)} 
+        <Login
+          onRegisterClick={() => setIsRegistering(true)}
           onSettingsClick={() => setShowSettings(true)}
         />
       )}

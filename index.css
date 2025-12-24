@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-studio-bg text-studio-text antialiased;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+}
+
+@layer utilities {
+    .glass {
+        @apply bg-white/40 backdrop-blur-[30px] border border-white/40 shadow-[0_8px_32px_0_rgba(31, 38, 135, 0.07)];
+    }
+
+    .glass-panel {
+        @apply bg-white/30 backdrop-blur-xl border border-white/50 shadow-glass rounded-[2rem];
+    }
+
+    .glass-sidebar {
+        @apply bg-white/20 backdrop-blur-2xl border-r border-white/30 shadow-[4px_0_24px_rgba(0, 0, 0, 0.02)];
+    }
+
+    .btn-tactile {
+        @apply transition-all duration-300 active:scale-95 hover:shadow-[0_0_20px_rgba(0, 122, 255, 0.3)] hover:-translate-y-0.5;
+    }
+
+    .mesh-gradient {
+        background-color: #f0f4f8;
+        background-image:
+            radial-gradient(at 0% 0%, rgba(132, 219, 255, 0.5) 0px, transparent 50%),
+            radial-gradient(at 98% 1%, rgba(206, 172, 255, 0.5) 0px, transparent 50%),
+            radial-gradient(at 5% 95%, rgba(144, 238, 144, 0.45) 0px, transparent 50%),
+            radial-gradient(at 96% 91%, rgba(254, 215, 170, 0.5) 0px, transparent 50%),
+            radial-gradient(at 50% 50%, rgba(255, 255, 255, 0.6) 0px, transparent 50%);
+        background-size: 150% 150%;
+        animation: mesh 15s ease-in-out infinite alternate;
+    }
+
+    @keyframes mesh {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}

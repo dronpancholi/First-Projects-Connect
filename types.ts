@@ -50,11 +50,13 @@ export interface Stakeholder {
   name: string;
   role: string;
   email: string;
+  company?: string;
   linkedProjectId?: string;
 }
 
 export interface AutomationRule {
   id: string;
+  name?: string;
   trigger: string;
   action: string;
   isActive: boolean;
@@ -77,7 +79,7 @@ export interface CodeSnippet {
   updatedAt: Date;
 }
 
-export type AssetType = 
+export type AssetType =
   | 'github' | 'gitlab' | 'bitbucket' | 'linear' | 'jira' | 'vercel' | 'netlify' | 'cloudflare' | 'docker'
   | 'figma' | 'miro' | 'adobe_xd' | 'sketch' | 'framer' | 'canva'
   | 'google_drive' | 'notion' | 'trello' | 'asana' | 'slack' | 'discord' | 'teams' | 'zoom' | 'dropbox' | 'onedrive'
@@ -132,7 +134,7 @@ export interface Whiteboard {
   updatedAt: Date;
 }
 
-export type ViewState = 
+export type ViewState =
   | { type: 'DASHBOARD' }
   | { type: 'PROJECTS' }
   | { type: 'PROJECT_DETAIL'; projectId: string }

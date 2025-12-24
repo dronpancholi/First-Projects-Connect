@@ -1,7 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { 
-  Project, Task, Note, Asset, Whiteboard, CanvasElement, 
+import {
+  Project, Task, Note, Asset, Whiteboard, CanvasElement,
   TaskStatus, ProjectStatus, Priority, CodeSnippet,
   FinancialEntry, Stakeholder, AutomationRule, Resource
 } from '../types.ts';
@@ -21,20 +20,20 @@ interface StoreContextType {
   resources: Resource[];
   isLoading: boolean;
   isSyncing: boolean;
-  
+
   addProject: (p: Omit<Project, 'id' | 'createdAt' | 'progress'>) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
-  
+
   addTask: (t: Omit<Task, 'id'>) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
-  
+
   addFinancial: (f: Omit<FinancialEntry, 'id'>) => Promise<void>;
   addStakeholder: (s: Omit<Stakeholder, 'id'>) => Promise<void>;
   addAutomation: (a: Omit<AutomationRule, 'id'>) => Promise<void>;
   addResource: (r: Omit<Resource, 'id'>) => Promise<void>;
-  
+
   deleteFinancial: (id: string) => Promise<void>;
   deleteStakeholder: (id: string) => Promise<void>;
   deleteAutomation: (id: string) => Promise<void>;
@@ -47,6 +46,13 @@ interface StoreContextType {
   addNote: (n: Omit<Note, 'id' | 'updatedAt'>) => Promise<void>;
   updateNote: (id: string, content: string) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
+
+  addSnippet: (s: Omit<CodeSnippet, 'id' | 'updatedAt'>) => Promise<void>;
+  updateSnippet: (id: string, code: string) => Promise<void>;
+  deleteSnippet: (id: string) => Promise<void>;
+
+  addAsset: (a: Omit<Asset, 'id' | 'uploadedAt'>) => Promise<void>;
+  deleteAsset: (id: string) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -90,13 +96,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setProjects(prev => [newP, ...prev]);
   };
   const deleteProject = async (id: string) => setProjects(prev => prev.filter(p => p.id !== id));
-  const updateProject = async (id: string, u: any) => setProjects(prev => prev.map(p => p.id === id ? {...p, ...u} : p));
+  const updateProject = async (id: string, u: any) => setProjects(prev => prev.map(p => p.id === id ? { ...p, ...u } : p));
 
   const addTask = async (t: any) => {
     const newT = { id: Math.random().toString(), ...t };
     setTasks(prev => [...prev, newT]);
   };
-  const updateTask = async (id: string, u: any) => setTasks(prev => prev.map(t => t.id === id ? {...t, ...u} : t));
+  const updateTask = async (id: string, u: any) => setTasks(prev => prev.map(t => t.id === id ? { ...t, ...u } : t));
   const deleteTask = async (id: string) => setTasks(prev => prev.filter(t => t.id !== id));
 
   const addFinancial = async (f: any) => setFinancials(prev => [{ id: Math.random().toString(), ...f }, ...prev]);
@@ -119,6 +125,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateNote = async (id: string, content: string) => setNotes(prev => prev.map(n => n.id === id ? { ...n, content, updatedAt: new Date() } : n));
   const deleteNote = async (id: string) => setNotes(prev => prev.filter(n => n.id !== id));
 
+  const addSnippet = async (s: any) => setSnippets(prev => [{ id: Math.random().toString(), ...s, updatedAt: new Date() }, ...prev]);
+  const updateSnippet = async (id: string, code: string) => setSnippets(prev => prev.map(s => s.id === id ? { ...s, code } : s));
+  const deleteSnippet = async (id: string) => setSnippets(prev => prev.filter(s => s.id !== id));
+
+  const addAsset = async (a: any) => setAssets(prev => [{ id: Math.random().toString(), ...a, uploadedAt: new Date() }, ...prev]);
+  const deleteAsset = async (id: string) => setAssets(prev => prev.filter(a => a.id !== id));
+
   return (
     <StoreContext.Provider value={{
       projects, tasks, notes, assets, whiteboards, snippets, financials, stakeholders, automations, resources, isLoading, isSyncing,
@@ -127,7 +140,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       addFinancial, addStakeholder, addAutomation, addResource,
       deleteFinancial, deleteStakeholder, deleteAutomation, deleteResource,
       updateWhiteboard, addWhiteboard, deleteWhiteboard,
-      addNote, updateNote, deleteNote
+      addNote, updateNote, deleteNote,
+      addSnippet, updateSnippet, deleteSnippet,
+      addAsset, deleteAsset
     }}>
       {children}
     </StoreContext.Provider>
