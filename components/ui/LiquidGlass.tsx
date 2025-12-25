@@ -27,17 +27,17 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
     className = '',
     style,
     onClick,
-    displacementScale = 150,
-    blurAmount = 0.4,
-    saturation = 160,
-    aberrationIntensity = 4,
-    elasticity = 0.5,
+    displacementScale = 180,
+    blurAmount = 0.5,
+    saturation = 170,
+    aberrationIntensity = 4.5,
+    elasticity = 0.6,
     cornerRadius = 24
 }) => {
     return (
         <div
-            className={`relative ${className}`}
-            style={style}
+            className={`relative flex flex-col overflow-hidden ${className}`}
+            style={{ ...style, cursor: 'pointer' }}
             onClick={onClick}
         >
             {/* Glass effect as absolute background layer */}
@@ -45,9 +45,8 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
                 position: 'absolute',
                 inset: 0,
                 zIndex: 0,
-                pointerEvents: 'none',
-                overflow: 'hidden',
-                borderRadius: cornerRadius
+                borderRadius: cornerRadius,
+                boxShadow: 'inset 0 0 40px rgba(255,255,255,0.1)'
             }}>
                 <LiquidGlassComponent
                     displacementScale={displacementScale}
@@ -62,9 +61,11 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
                 </LiquidGlassComponent>
             </div>
 
-            {/* Content layer above glass */}
-            <div style={{ position: 'relative', zIndex: 1 }}>
-                {children}
+            {/* Content layer above glass - purely strictly layout */}
+            <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', pointerEvents: 'none' }}>
+                <div style={{ pointerEvents: 'auto', width: '100%', height: '100%' }}>
+                    {children}
+                </div>
             </div>
         </div>
     );
@@ -81,15 +82,15 @@ interface LiquidGlassProps {
     onClick?: () => void;
 }
 
-// Standard card with subtle glass effect
+// Standard card with refined max glass effect
 export const LiquidGlass: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={200}
-        blurAmount={0.5}
-        saturation={180}
+        displacementScale={220}
+        blurAmount={0.6}
+        saturation={190}
         aberrationIntensity={5}
-        elasticity={0.6}
+        elasticity={0.7}
         cornerRadius={24}
     />
 );
@@ -97,11 +98,11 @@ export const LiquidGlass: React.FC<LiquidGlassProps> = (props) => (
 export const GlassPanel: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={220}
-        blurAmount={0.6}
-        saturation={190}
+        displacementScale={250}
+        blurAmount={0.65}
+        saturation={200}
         aberrationIntensity={6}
-        elasticity={0.7}
+        elasticity={0.75}
         cornerRadius={32}
     />
 );
@@ -109,11 +110,11 @@ export const GlassPanel: React.FC<LiquidGlassProps> = (props) => (
 export const GlassCard: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={210}
+        displacementScale={230}
         blurAmount={0.55}
-        saturation={185}
+        saturation={195}
         aberrationIntensity={5.5}
-        elasticity={0.65}
+        elasticity={0.7}
         cornerRadius={24}
     />
 );
@@ -121,12 +122,12 @@ export const GlassCard: React.FC<LiquidGlassProps> = (props) => (
 export const GlassCardSubtle: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={80}
-        blurAmount={0.15}
-        saturation={130}
-        aberrationIntensity={1.5}
-        elasticity={0.3}
-        cornerRadius={12}
+        displacementScale={120}
+        blurAmount={0.3}
+        saturation={150}
+        aberrationIntensity={3}
+        elasticity={0.5}
+        cornerRadius={16}
     />
 );
 
@@ -137,19 +138,19 @@ interface GlassModalProps extends LiquidGlassProps {
 export const GlassModal: React.FC<GlassModalProps> = ({ onClose, children, className = '', ...props }) => (
     <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
+        style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(20px) saturate(150%)' }}
         onClick={(e) => {
             if (e.target === e.currentTarget && onClose) onClose();
         }}
     >
-        <div className={`w-full max-w-lg ${className}`}>
+        <div className={`w-full max-w-lg transition-all duration-300 ${className}`}>
             <GlassWrapper
                 {...props}
-                displacementScale={300}
-                blurAmount={0.8}
-                saturation={220}
-                aberrationIntensity={8}
-                elasticity={0.8}
+                displacementScale={320}
+                blurAmount={1.0}
+                saturation={240}
+                aberrationIntensity={10}
+                elasticity={0.9}
                 cornerRadius={32}
             >
                 {children}
@@ -161,11 +162,11 @@ export const GlassModal: React.FC<GlassModalProps> = ({ onClose, children, class
 export const GlassColumn: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={100}
-        blurAmount={0.2}
-        saturation={140}
-        aberrationIntensity={2}
-        elasticity={0.35}
+        displacementScale={180}
+        blurAmount={0.4}
+        saturation={160}
+        aberrationIntensity={4}
+        elasticity={0.6}
         cornerRadius={20}
     />
 );
@@ -173,23 +174,23 @@ export const GlassColumn: React.FC<LiquidGlassProps> = (props) => (
 export const GlassStatCard: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={150}
-        blurAmount={0.3}
-        saturation={170}
-        aberrationIntensity={3.5}
-        elasticity={0.5}
-        cornerRadius={20}
+        displacementScale={280}
+        blurAmount={0.7}
+        saturation={210}
+        aberrationIntensity={7}
+        elasticity={0.8}
+        cornerRadius={24}
     />
 );
 
 export const LiquidGlassStrong: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={350}
-        blurAmount={1.0}
-        saturation={250}
-        aberrationIntensity={10}
-        elasticity={0.9}
+        displacementScale={400}
+        blurAmount={1.5}
+        saturation={300}
+        aberrationIntensity={15}
+        elasticity={0.95}
         cornerRadius={32}
     />
 );
@@ -267,13 +268,13 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
                 <button
                     type="submit"
                     disabled={disabled}
-                    className="relative z-10 px-6 py-3 text-white font-medium flex items-center gap-2"
+                    className="relative z-10 px-6 py-3 text-glass-primary font-medium flex items-center gap-2"
                     style={{ background: 'transparent', border: 'none' }}
                 >
                     {children}
                 </button>
             ) : (
-                <span className="relative z-10 px-6 py-3 text-white font-medium flex items-center gap-2">
+                <span className="relative z-10 px-6 py-3 text-glass-primary font-medium flex items-center gap-2">
                     {children}
                 </span>
             )}
@@ -311,8 +312,8 @@ export const GlassInput: React.FC<GlassInputProps> = ({
         onChange={onChange}
         disabled={disabled}
         required={required}
-        className={`w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 
-      focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all backdrop-blur-sm ${className}`}
+        className={`w-full px-4 py-3 rounded-xl bg-glass-subtle border border-glass-border-subtle text-glass-primary placeholder-glass-muted 
+      focus:outline-none focus:border-glass-border focus:bg-glass transition-all backdrop-blur-sm ${className}`}
     />
 );
 
@@ -339,8 +340,8 @@ export const GlassTextarea: React.FC<GlassTextareaProps> = ({
         onChange={onChange}
         rows={rows}
         disabled={disabled}
-        className={`w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 
-      focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all backdrop-blur-sm resize-none ${className}`}
+        className={`w-full px-4 py-3 rounded-xl bg-glass-subtle border border-glass-border-subtle text-glass-primary placeholder-glass-muted 
+      focus:outline-none focus:border-glass-border focus:bg-glass transition-all backdrop-blur-sm resize-none ${className}`}
     />
 );
 
@@ -363,9 +364,9 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className={`w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white 
-      focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all backdrop-blur-sm ${className}`}
-        style={{ colorScheme: 'dark' }}
+        className={`w-full px-4 py-3 rounded-xl bg-glass-subtle border border-glass-border-subtle text-glass-primary 
+      focus:outline-none focus:border-glass-border focus:bg-glass transition-all backdrop-blur-sm ${className}`}
+        style={{ colorScheme: 'light' }}
     >
         {children}
     </select>
@@ -387,12 +388,12 @@ export const GlassBadge: React.FC<GlassBadgeProps> = ({
     className = ''
 }) => {
     const variantStyles: Record<string, string> = {
-        default: 'bg-white/10 text-white/80 border-white/20',
-        success: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-        warning: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-        danger: 'bg-red-500/20 text-red-300 border-red-500/30',
-        info: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-        purple: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+        default: 'bg-glass-subtle text-glass-secondary border-glass-border-subtle',
+        success: 'bg-green-500/10 text-green-700 border-green-500/20',
+        warning: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+        danger: 'bg-red-500/10 text-red-700 border-red-500/20',
+        info: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
+        purple: 'bg-purple-500/10 text-purple-700 border-purple-500/20',
     };
 
     return (

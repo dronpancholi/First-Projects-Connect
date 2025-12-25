@@ -42,15 +42,15 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
       {isSidebarOpen && (
         <GlassSidebar className="w-72 h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-white/10">
+          <div className="p-6 border-b border-glass-border-subtle">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center shadow-xl"
                 style={{ boxShadow: '0 10px 40px rgba(139, 92, 246, 0.3)' }}>
-                <span className="text-white text-lg font-bold">FP</span>
+                <span className="text-glass-primary text-lg font-bold">FP</span>
               </div>
               <div>
-                <h1 className="text-base font-semibold text-white">First Projects</h1>
-                <p className="text-xs text-white/50 font-medium uppercase tracking-wider">Connect</p>
+                <h1 className="text-base font-semibold text-glass-primary">First Projects</h1>
+                <p className="text-xs text-glass-secondary font-medium uppercase tracking-wider">Connect</p>
               </div>
             </div>
           </div>
@@ -81,19 +81,19 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           </nav>
 
           {/* User */}
-          <div className="p-4 border-t border-white/10">
+          <div className="p-4 border-t border-glass-border-subtle">
             <button
               onClick={logout}
               className="glass-nav-item w-full group"
             >
-              <div className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-white text-sm font-medium">
+              <div className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-glass-primary text-sm font-medium">
                 {user?.name?.[0] || 'U'}
               </div>
               <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
-                <p className="text-xs text-white/40">Logout</p>
+                <p className="text-sm font-medium text-glass-primary truncate">{user?.name || 'User'}</p>
+                <p className="text-xs text-glass-secondary">Logout</p>
               </div>
-              <LogOut size={16} className="text-white/40 group-hover:text-red-400 transition-colors" />
+              <LogOut size={16} className="text-glass-secondary group-hover:text-red-400 transition-colors" />
             </button>
           </div>
         </GlassSidebar>
@@ -109,9 +109,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 className="glass-button p-3 border-transparent"
               >
-                <Menu size={20} />
+                <Menu size={20} className="text-glass-primary" />
               </button>
-              <span className="text-base font-medium text-white/80">
+              <span className="text-base font-medium text-glass-primary">
                 {currentView.type.replace('_', ' ')}
               </span>
             </div>
@@ -127,8 +127,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
               </button>
 
               <button className="relative glass-button p-3 border-transparent">
-                <Bell size={20} />
-                <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white/20" />
+                <Bell size={20} className="text-glass-primary" />
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-glass-border" />
               </button>
             </div>
           </div>
