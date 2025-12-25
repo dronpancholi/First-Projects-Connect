@@ -9,40 +9,40 @@
 
 /* ─── CSS Variables ─── */
 :root {
-    /* Glass Properties - Enhanced for dramatic effect */
-    --glass-blur: 60px;
-    --glass-blur-strong: 80px;
-    --glass-blur-subtle: 30px;
-    --glass-saturation: 220%;
-    --glass-brightness: 120%;
+    /* Glass Properties - Extreme for "Max Liquid" effect */
+    --glass-blur: 80px;
+    --glass-blur-strong: 120px;
+    --glass-blur-subtle: 40px;
+    --glass-saturation: 250%;
+    --glass-brightness: 130%;
 
-    /* Glass Backgrounds - Semi-transparent with tint */
-    --glass-bg: rgba(255, 255, 255, 0.2);
-    --glass-bg-strong: rgba(255, 255, 255, 0.3);
-    --glass-bg-subtle: rgba(255, 255, 255, 0.1);
-    --glass-bg-dark: rgba(20, 20, 30, 0.6);
+    /* Glass Backgrounds - High transparency for liquid feel */
+    --glass-bg: rgba(255, 255, 255, 0.15);
+    --glass-bg-strong: rgba(255, 255, 255, 0.25);
+    --glass-bg-subtle: rgba(255, 255, 255, 0.08);
+    --glass-bg-dark: rgba(20, 20, 30, 0.7);
 
-    /* Glass Borders - Gradient-like effect */
-    --glass-border: rgba(255, 255, 255, 0.5);
-    --glass-border-subtle: rgba(255, 255, 255, 0.3);
-    --glass-border-strong: rgba(255, 255, 255, 0.7);
+    /* Glass Borders - Sharp and bright */
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --glass-border-subtle: rgba(255, 255, 255, 0.4);
+    --glass-border-strong: rgba(255, 255, 255, 0.8);
 
-    /* Glass Shadows - Multi-layered depth */
+    /* Glass Shadows - Deep and colored */
     --glass-shadow:
-        0 12px 40px rgba(31, 38, 135, 0.25),
-        0 8px 24px rgba(0, 0, 0, 0.15);
+        0 20px 60px rgba(31, 38, 135, 0.4),
+        0 8px 32px rgba(0, 0, 0, 0.2);
     --glass-shadow-hover:
-        0 16px 48px rgba(31, 38, 135, 0.3),
-        0 8px 24px rgba(0, 0, 0, 0.15);
-    --glass-shadow-inset: inset 0 2px 4px rgba(255, 255, 255, 0.5);
-    --glass-glow: 0 0 40px rgba(100, 120, 255, 0.15);
+        0 30px 80px rgba(31, 38, 135, 0.5),
+        0 12px 40px rgba(0, 0, 0, 0.3);
+    --glass-shadow-inset: inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    --glass-glow: 0 0 60px rgba(100, 120, 255, 0.3);
 
     /* Colors */
-    --accent-primary: #0071e3;
+    --accent-primary: #007aff;
     --accent-secondary: #5856d6;
-    --accent-success: #30d158;
+    --accent-success: #34c759;
     --accent-warning: #ff9f0a;
-    --accent-danger: #ff453a;
+    --accent-danger: #ff3b30;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

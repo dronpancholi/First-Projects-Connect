@@ -27,12 +27,12 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
     className = '',
     style,
     onClick,
-    displacementScale = 40,
-    blurAmount = 0.15,
-    saturation = 120,
-    aberrationIntensity = 1,
-    elasticity = 0.25,
-    cornerRadius = 16
+    displacementScale = 150,
+    blurAmount = 0.4,
+    saturation = 160,
+    aberrationIntensity = 4,
+    elasticity = 0.5,
+    cornerRadius = 24
 }) => {
     return (
         <div
@@ -85,36 +85,36 @@ interface LiquidGlassProps {
 export const LiquidGlass: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={120}
-        blurAmount={0.3}
-        saturation={150}
-        aberrationIntensity={2.5}
-        elasticity={0.4}
-        cornerRadius={20}
+        displacementScale={200}
+        blurAmount={0.5}
+        saturation={180}
+        aberrationIntensity={5}
+        elasticity={0.6}
+        cornerRadius={24}
     />
 );
 
 export const GlassPanel: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={140}
-        blurAmount={0.35}
-        saturation={160}
-        aberrationIntensity={3}
-        elasticity={0.45}
-        cornerRadius={24}
+        displacementScale={220}
+        blurAmount={0.6}
+        saturation={190}
+        aberrationIntensity={6}
+        elasticity={0.7}
+        cornerRadius={32}
     />
 );
 
 export const GlassCard: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={130}
-        blurAmount={0.25}
-        saturation={155}
-        aberrationIntensity={2.8}
-        elasticity={0.42}
-        cornerRadius={16}
+        displacementScale={210}
+        blurAmount={0.55}
+        saturation={185}
+        aberrationIntensity={5.5}
+        elasticity={0.65}
+        cornerRadius={24}
     />
 );
 
@@ -145,12 +145,12 @@ export const GlassModal: React.FC<GlassModalProps> = ({ onClose, children, class
         <div className={`w-full max-w-lg ${className}`}>
             <GlassWrapper
                 {...props}
-                displacementScale={200}
-                blurAmount={0.5}
-                saturation={180}
-                aberrationIntensity={5}
-                elasticity={0.6}
-                cornerRadius={28}
+                displacementScale={300}
+                blurAmount={0.8}
+                saturation={220}
+                aberrationIntensity={8}
+                elasticity={0.8}
+                cornerRadius={32}
             >
                 {children}
             </GlassWrapper>
@@ -185,12 +185,12 @@ export const GlassStatCard: React.FC<LiquidGlassProps> = (props) => (
 export const LiquidGlassStrong: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={250}
-        blurAmount={0.8}
-        saturation={200}
-        aberrationIntensity={6}
-        elasticity={0.8}
-        cornerRadius={24}
+        displacementScale={350}
+        blurAmount={1.0}
+        saturation={250}
+        aberrationIntensity={10}
+        elasticity={0.9}
+        cornerRadius={32}
     />
 );
 
