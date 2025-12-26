@@ -37,7 +37,13 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
     return (
         <div
             className={`relative flex flex-col overflow-hidden ${className}`}
-            style={{ ...style, cursor: 'pointer' }}
+            style={{
+                ...style,
+                cursor: 'pointer',
+                // GPU Acceleration for smooth liquid physics
+                willChange: 'transform',
+                transform: 'translateZ(0)'
+            }}
             onClick={onClick}
         >
             {/* Glass effect as absolute background layer */}
@@ -86,11 +92,11 @@ interface LiquidGlassProps {
 export const LiquidGlass: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={220}
-        blurAmount={0.6}
-        saturation={190}
-        aberrationIntensity={5}
-        elasticity={0.7}
+        displacementScale={350}
+        blurAmount={1.2}
+        saturation={240}
+        aberrationIntensity={12}
+        elasticity={0.85}
         cornerRadius={24}
     />
 );
@@ -98,11 +104,11 @@ export const LiquidGlass: React.FC<LiquidGlassProps> = (props) => (
 export const GlassPanel: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={250}
-        blurAmount={0.65}
-        saturation={200}
-        aberrationIntensity={6}
-        elasticity={0.75}
+        displacementScale={400}
+        blurAmount={1.5}
+        saturation={260}
+        aberrationIntensity={15}
+        elasticity={0.9}
         cornerRadius={32}
     />
 );
@@ -110,11 +116,11 @@ export const GlassPanel: React.FC<LiquidGlassProps> = (props) => (
 export const GlassCard: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={230}
-        blurAmount={0.55}
-        saturation={195}
-        aberrationIntensity={5.5}
-        elasticity={0.7}
+        displacementScale={350}
+        blurAmount={1.2}
+        saturation={240}
+        aberrationIntensity={12}
+        elasticity={0.85}
         cornerRadius={24}
     />
 );
@@ -146,11 +152,11 @@ export const GlassModal: React.FC<GlassModalProps> = ({ onClose, children, class
         <div className={`w-full max-w-lg transition-all duration-300 ${className}`}>
             <GlassWrapper
                 {...props}
-                displacementScale={320}
-                blurAmount={1.0}
-                saturation={240}
-                aberrationIntensity={10}
-                elasticity={0.9}
+                displacementScale={500}
+                blurAmount={2.0}
+                saturation={300}
+                aberrationIntensity={20}
+                elasticity={0.95}
                 cornerRadius={32}
             >
                 {children}
@@ -174,11 +180,11 @@ export const GlassColumn: React.FC<LiquidGlassProps> = (props) => (
 export const GlassStatCard: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={280}
-        blurAmount={0.7}
-        saturation={210}
-        aberrationIntensity={7}
-        elasticity={0.8}
+        displacementScale={380}
+        blurAmount={1.4}
+        saturation={250}
+        aberrationIntensity={14}
+        elasticity={0.88}
         cornerRadius={24}
     />
 );
@@ -186,10 +192,10 @@ export const GlassStatCard: React.FC<LiquidGlassProps> = (props) => (
 export const LiquidGlassStrong: React.FC<LiquidGlassProps> = (props) => (
     <GlassWrapper
         {...props}
-        displacementScale={400}
-        blurAmount={1.5}
+        displacementScale={500}
+        blurAmount={2.0}
         saturation={300}
-        aberrationIntensity={15}
+        aberrationIntensity={20}
         elasticity={0.95}
         cornerRadius={32}
     />
@@ -350,7 +356,7 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
 
 interface GlassBadgeProps {
     children: React.ReactNode;
-    variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
+    variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'primary';
     className?: string;
 }
 
@@ -361,6 +367,7 @@ export const GlassBadge: React.FC<GlassBadgeProps> = ({
 }) => {
     const variantStyles: Record<string, string> = {
         default: 'bg-glass-subtle text-glass-secondary border-glass-border-subtle',
+        primary: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
         success: 'bg-green-500/10 text-green-700 border-green-500/20',
         warning: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
         danger: 'bg-red-500/10 text-red-700 border-red-500/20',
