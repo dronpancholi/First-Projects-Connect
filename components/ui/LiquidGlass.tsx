@@ -89,8 +89,9 @@ interface LiquidGlassProps {
 }
 
 // Standard card with refined max glass effect
-export const LiquidGlass: React.FC<LiquidGlassProps> = (props) => (
+export const LiquidGlass: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
+        className={`glass-card ${className}`}
         {...props}
         displacementScale={350}
         blurAmount={1.2}
@@ -101,8 +102,9 @@ export const LiquidGlass: React.FC<LiquidGlassProps> = (props) => (
     />
 );
 
-export const GlassPanel: React.FC<LiquidGlassProps> = (props) => (
+export const GlassPanel: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
+        className={`glass-panel ${className}`}
         {...props}
         displacementScale={400}
         blurAmount={1.5}
@@ -113,8 +115,9 @@ export const GlassPanel: React.FC<LiquidGlassProps> = (props) => (
     />
 );
 
-export const GlassCard: React.FC<LiquidGlassProps> = (props) => (
+export const GlassCard: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
+        className={`glass-card ${className}`}
         {...props}
         displacementScale={350}
         blurAmount={1.2}
@@ -125,8 +128,9 @@ export const GlassCard: React.FC<LiquidGlassProps> = (props) => (
     />
 );
 
-export const GlassCardSubtle: React.FC<LiquidGlassProps> = (props) => (
+export const GlassCardSubtle: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
+        className={`glass-card-subtle ${className}`}
         {...props}
         displacementScale={120}
         blurAmount={0.3}
@@ -149,8 +153,10 @@ export const GlassModal: React.FC<GlassModalProps> = ({ onClose, children, class
             if (e.target === e.currentTarget && onClose) onClose();
         }}
     >
-        <div className={`w-full max-w-lg transition-all duration-300 ${className}`}>
+        <div className={`w-full max-w-lg transition-all duration-300`}>
+            {/* The wrapper itself needs the visual glass class */}
             <GlassWrapper
+                className={`glass-modal ${className}`}
                 {...props}
                 displacementScale={500}
                 blurAmount={2.0}
@@ -165,8 +171,9 @@ export const GlassModal: React.FC<GlassModalProps> = ({ onClose, children, class
     </div>
 );
 
-export const GlassColumn: React.FC<LiquidGlassProps> = (props) => (
+export const GlassColumn: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
+        className={`glass-panel ${className}`} // Use panel style for columns
         {...props}
         displacementScale={180}
         blurAmount={0.4}
@@ -177,8 +184,9 @@ export const GlassColumn: React.FC<LiquidGlassProps> = (props) => (
     />
 );
 
-export const GlassStatCard: React.FC<LiquidGlassProps> = (props) => (
+export const GlassStatCard: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
+        className={`glass-card ${className}`}
         {...props}
         displacementScale={380}
         blurAmount={1.4}
@@ -189,8 +197,9 @@ export const GlassStatCard: React.FC<LiquidGlassProps> = (props) => (
     />
 );
 
-export const LiquidGlassStrong: React.FC<LiquidGlassProps> = (props) => (
+export const LiquidGlassStrong: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
+        className={`glass-panel ${className}`}
         {...props}
         displacementScale={500}
         blurAmount={2.0}
