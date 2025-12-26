@@ -20,8 +20,13 @@ const FinancialOps: React.FC<{ setView: (view: ViewState) => void }> = ({ setVie
    ]);
 
    const [showModal, setShowModal] = useState(false);
-   const [newTransaction, setNewTransaction] = useState({
-      description: '', amount: '', type: 'income' as const, category: ''
+   const [newTransaction, setNewTransaction] = useState<{
+      description: string;
+      amount: string;
+      type: 'income' | 'expense';
+      category: string;
+   }>({
+      description: '', amount: '', type: 'income', category: ''
    });
 
    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
