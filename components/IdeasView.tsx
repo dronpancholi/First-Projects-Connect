@@ -51,17 +51,17 @@ const IdeasView: React.FC = () => {
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <div className="flex items-center gap-3 text-amber-400 mb-3">
+          <div className="flex items-center gap-3 text-amber-500 mb-3">
             <Lightbulb size={18} />
             <span className="text-xs font-semibold uppercase tracking-widest">Knowledge Base</span>
           </div>
-          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Insights</h1>
-          <p className="text-white/50 text-sm">Capture ideas, notes, and documentation.</p>
+          <h1 className="text-4xl font-bold text-glass-primary tracking-tight mb-2">Insights</h1>
+          <p className="text-glass-secondary text-sm">Capture ideas, notes, and documentation.</p>
         </div>
 
         <div className="flex items-center gap-4">
           <div className="relative">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-glass-muted" />
             <input
               type="text"
               placeholder="Search notes..."
@@ -98,20 +98,20 @@ const IdeasView: React.FC = () => {
             <GlassCard key={note.id} className={`group bg-gradient-to-br ${getRandomGradient(index)}`}>
               <div className="p-6 flex flex-col h-full min-h-[200px]">
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-white truncate flex-1">{note.title}</h3>
+                  <h3 className="text-lg font-semibold text-glass-primary truncate flex-1">{note.title}</h3>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => {
                         setEditingNote(note.id);
                         setContent(note.content);
                       }}
-                      className="p-2 text-white/40 hover:text-blue-400 transition-colors"
+                      className="p-2 text-glass-muted hover:text-blue-500 transition-colors"
                     >
                       <Edit3 size={16} />
                     </button>
                     <button
                       onClick={() => deleteNote(note.id)}
-                      className="p-2 text-white/40 hover:text-red-400 transition-colors"
+                      className="p-2 text-glass-muted hover:text-red-500 transition-colors"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -132,12 +132,12 @@ const IdeasView: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-white/60 flex-1 line-clamp-4 leading-relaxed">
+                  <p className="text-sm text-glass-secondary flex-1 line-clamp-4 leading-relaxed">
                     {note.content || 'No content'}
                   </p>
                 )}
 
-                <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 text-xs text-white/40">
+                <div className="mt-4 pt-4 border-t border-glass-border-subtle flex items-center gap-2 text-xs text-glass-muted">
                   <Clock size={12} />
                   {new Date(note.updatedAt).toLocaleDateString()}
                 </div>
@@ -154,13 +154,13 @@ const IdeasView: React.FC = () => {
             <div className="p-8">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-2xl font-bold text-white">New Note</h3>
-                  <p className="text-sm text-white/50 mt-1">Capture your thoughts</p>
+                  <h3 className="text-2xl font-bold text-glass-primary">New Note</h3>
+                  <p className="text-sm text-glass-secondary mt-1">Capture your thoughts</p>
                 </div>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="p-2 text-white/40 hover:text-white transition-colors"
+                  className="p-2 text-glass-muted hover:text-glass-primary transition-colors"
                 >
                   <X size={24} />
                 </button>
@@ -168,7 +168,7 @@ const IdeasView: React.FC = () => {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Title</label>
+                  <label className="text-xs font-medium text-glass-secondary uppercase tracking-wider">Title</label>
                   <GlassInput
                     type="text"
                     value={title}
@@ -178,7 +178,7 @@ const IdeasView: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Content</label>
+                  <label className="text-xs font-medium text-glass-secondary uppercase tracking-wider">Content</label>
                   <GlassTextarea
                     value={content}
                     onChange={e => setContent(e.target.value)}

@@ -50,12 +50,12 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
          {/* Header */}
          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-               <div className="flex items-center gap-3 text-cyan-400 mb-3">
+               <div className="flex items-center gap-3 text-cyan-600 mb-3">
                   <Users size={18} />
                   <span className="text-xs font-semibold uppercase tracking-widest">Relationship Manager</span>
                </div>
-               <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Directory</h1>
-               <p className="text-white/50 text-sm">Manage contacts, clients, and stakeholders.</p>
+               <h1 className="text-4xl font-bold text-glass-primary tracking-tight mb-2">Directory</h1>
+               <p className="text-glass-secondary text-sm">Manage contacts, clients, and stakeholders.</p>
             </div>
 
             <GlassButton variant="primary" onClick={() => setShowModal(true)} className="flex items-center gap-2">
@@ -69,11 +69,11 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
                <div className="p-6 flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
                      style={{ boxShadow: '0 8px 32px rgba(34, 211, 238, 0.3)' }}>
-                     <Users size={22} className="text-cyan-400" />
+                     <Users size={22} className="text-cyan-500" />
                   </div>
                   <div>
-                     <p className="text-3xl font-bold text-white">{stats.total}</p>
-                     <p className="text-sm text-white/50">Total Contacts</p>
+                     <p className="text-3xl font-bold text-glass-primary">{stats.total}</p>
+                     <p className="text-sm text-glass-secondary">Total Contacts</p>
                   </div>
                </div>
             </GlassCard>
@@ -82,11 +82,11 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
                <div className="p-6 flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
                      style={{ boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)' }}>
-                     <Users size={22} className="text-green-400" />
+                     <Users size={22} className="text-green-500" />
                   </div>
                   <div>
-                     <p className="text-3xl font-bold text-white">{stats.active}</p>
-                     <p className="text-sm text-white/50">Active Clients</p>
+                     <p className="text-3xl font-bold text-glass-primary">{stats.active}</p>
+                     <p className="text-sm text-glass-secondary">Active Clients</p>
                   </div>
                </div>
             </GlassCard>
@@ -95,11 +95,11 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
                <div className="p-6 flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center"
                      style={{ boxShadow: '0 8px 32px rgba(245, 158, 11, 0.3)' }}>
-                     <Users size={22} className="text-amber-400" />
+                     <Users size={22} className="text-amber-500" />
                   </div>
                   <div>
-                     <p className="text-3xl font-bold text-white">{stats.leads}</p>
-                     <p className="text-sm text-white/50">Leads</p>
+                     <p className="text-3xl font-bold text-glass-primary">{stats.leads}</p>
+                     <p className="text-sm text-glass-secondary">Leads</p>
                   </div>
                </div>
             </GlassCard>
@@ -107,29 +107,29 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
 
          {/* Contacts List */}
          <GlassPanel>
-            <div className="p-6 border-b border-white/10">
-               <h2 className="text-lg font-semibold text-white">All Contacts</h2>
+            <div className="p-6 border-b border-glass-border-subtle">
+               <h2 className="text-lg font-semibold text-glass-primary">All Contacts</h2>
             </div>
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-glass-border-subtle">
                {contacts.length === 0 && (
                   <div className="p-12 text-center">
-                     <Users size={48} className="mx-auto text-white/20 mb-4" />
-                     <p className="text-white/40">No contacts yet</p>
+                     <Users size={48} className="mx-auto text-glass-muted mb-4" />
+                     <p className="text-glass-secondary">No contacts yet</p>
                   </div>
                )}
                {contacts.map(contact => (
-                  <div key={contact.id} className="p-5 flex items-center gap-4 hover:bg-white/5 transition-colors group">
-                     <div className="w-12 h-12 rounded-xl glass-card flex items-center justify-center text-lg font-semibold text-white">
+                  <div key={contact.id} className="p-5 flex items-center gap-4 hover:bg-glass-subtle transition-colors group">
+                     <div className="w-12 h-12 rounded-xl glass-card flex items-center justify-center text-lg font-semibold text-glass-primary">
                         {contact.name.charAt(0)}
                      </div>
                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                           <h3 className="font-medium text-white truncate">{contact.name}</h3>
+                           <h3 className="font-medium text-glass-primary truncate">{contact.name}</h3>
                            <GlassBadge variant={getStatusColor(contact.status)}>
                               {contact.status}
                            </GlassBadge>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-white/40">
+                        <div className="flex items-center gap-4 text-xs text-glass-secondary">
                            <span className="flex items-center gap-1">
                               <Building2 size={12} /> {contact.company}
                            </span>
@@ -137,15 +137,15 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
                         </div>
                      </div>
                      <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <a href={`mailto:${contact.email}`} className="p-2 text-white/40 hover:text-blue-400 transition-colors">
+                        <a href={`mailto:${contact.email}`} className="p-2 text-glass-muted hover:text-blue-500 transition-colors">
                            <Mail size={18} />
                         </a>
-                        <a href={`tel:${contact.phone}`} className="p-2 text-white/40 hover:text-green-400 transition-colors">
+                        <a href={`tel:${contact.phone}`} className="p-2 text-glass-muted hover:text-green-500 transition-colors">
                            <Phone size={18} />
                         </a>
                         <button
                            onClick={() => setContacts(contacts.filter(c => c.id !== contact.id))}
-                           className="p-2 text-white/40 hover:text-red-400 transition-colors"
+                           className="p-2 text-glass-muted hover:text-red-500 transition-colors"
                         >
                            <Trash2 size={18} />
                         </button>
@@ -162,13 +162,13 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
                   <div className="p-8">
                      <div className="flex justify-between items-start mb-6">
                         <div>
-                           <h3 className="text-2xl font-bold text-white">Add Contact</h3>
-                           <p className="text-sm text-white/50 mt-1">Add a new person to your directory</p>
+                           <h3 className="text-2xl font-bold text-glass-primary">Add Contact</h3>
+                           <p className="text-sm text-glass-secondary mt-1">Add a new person to your directory</p>
                         </div>
                         <button
                            type="button"
                            onClick={() => setShowModal(false)}
-                           className="p-2 text-white/40 hover:text-white transition-colors"
+                           className="p-2 text-glass-muted hover:text-glass-primary transition-colors"
                         >
                            <X size={24} />
                         </button>
@@ -176,7 +176,7 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
 
                      <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2 space-y-2">
-                           <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Name</label>
+                           <label className="text-xs font-medium text-glass-secondary uppercase tracking-wider">Name</label>
                            <GlassInput
                               value={newContact.name}
                               onChange={e => setNewContact({ ...newContact, name: e.target.value })}
@@ -185,7 +185,7 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
                            />
                         </div>
                         <div className="space-y-2">
-                           <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Company</label>
+                           <label className="text-xs font-medium text-glass-secondary uppercase tracking-wider">Company</label>
                            <GlassInput
                               value={newContact.company}
                               onChange={e => setNewContact({ ...newContact, company: e.target.value })}
@@ -193,7 +193,7 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
                            />
                         </div>
                         <div className="space-y-2">
-                           <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Role</label>
+                           <label className="text-xs font-medium text-glass-secondary uppercase tracking-wider">Role</label>
                            <GlassInput
                               value={newContact.role}
                               onChange={e => setNewContact({ ...newContact, role: e.target.value })}
@@ -201,7 +201,7 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
                            />
                         </div>
                         <div className="space-y-2">
-                           <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Email</label>
+                           <label className="text-xs font-medium text-glass-secondary uppercase tracking-wider">Email</label>
                            <GlassInput
                               type="email"
                               value={newContact.email}
@@ -210,7 +210,7 @@ const CRMView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) 
                            />
                         </div>
                         <div className="space-y-2">
-                           <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Phone</label>
+                           <label className="text-xs font-medium text-glass-secondary uppercase tracking-wider">Phone</label>
                            <GlassInput
                               value={newContact.phone}
                               onChange={e => setNewContact({ ...newContact, phone: e.target.value })}

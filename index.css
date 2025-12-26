@@ -42,10 +42,10 @@
     --glass-shadow-inset: inset 0 1px 2px rgba(255, 255, 255, 0.9);
     --glass-glow: 0 0 60px rgba(0, 122, 255, 0.15);
 
-    /* Colors - Text & Accents */
-    --text-primary: #1d1d1f;
-    --text-secondary: #86868b;
-    --text-muted: #d2d2d7;
+    /* Colors - Text & Accents - High Contrast for Glass */
+    --text-primary: #000000;
+    --text-secondary: #48484a;
+    --text-muted: #8e8e93;
 
     --accent-primary: #007aff;
     --accent-secondary: #5856d6;

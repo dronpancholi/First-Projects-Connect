@@ -215,31 +215,27 @@ export const GlassHeader: React.FC<LiquidGlassProps> = ({ children, className = 
 // Button with Liquid Glass Effect
 // ====================
 
-interface GlassButtonProps {
-    children: React.ReactNode;
-    onClick?: () => void;
-    disabled?: boolean;
-    className?: string;
-    type?: 'button' | 'submit' | 'reset';
+interface GlassButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'ghost';
+    size?: 'sm' | 'md' | 'lg';
 }
 
 export const GlassButton: React.FC<GlassButtonProps> = ({
     children,
-    onClick,
-    disabled = false,
     className = '',
-    type = 'button',
-    variant = 'primary'
+    variant = 'primary',
+    size = 'md',
+    ...props
 }) => {
-    const handleClick = () => {
-        if (!disabled && onClick) onClick();
+    const sizeStyles = {
+        sm: 'px-3 py-1.5 text-xs',
+        md: 'px-6 py-3',
+        lg: 'px-8 py-4 text-lg'
     };
 
     return (
         <div
-            className={`relative inline-flex ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
-            onClick={handleClick}
+            className={`relative inline-flex ${props.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
         >
             {/* Glass background */}
             <div style={{
@@ -264,20 +260,12 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
             </div>
 
             {/* Button content */}
-            {type === 'submit' ? (
-                <button
-                    type="submit"
-                    disabled={disabled}
-                    className="relative z-10 px-6 py-3 text-glass-primary font-medium flex items-center gap-2"
-                    style={{ background: 'transparent', border: 'none' }}
-                >
-                    {children}
-                </button>
-            ) : (
-                <span className="relative z-10 px-6 py-3 text-glass-primary font-medium flex items-center gap-2">
-                    {children}
-                </span>
-            )}
+            <button
+                {...props}
+                className={`relative z-10 ${sizeStyles[size]} text-glass-primary font-medium flex items-center gap-2 bg-transparent border-none`}
+            >
+                {children}
+            </button>
         </div>
     );
 };
@@ -286,32 +274,16 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
 // Form Components - Pure CSS (no library interference)
 // ====================
 
-interface GlassInputProps {
-    type?: string;
-    placeholder?: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    className?: string;
-    disabled?: boolean;
-    required?: boolean;
+interface GlassInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+    // Extend standard props
 }
 
 export const GlassInput: React.FC<GlassInputProps> = ({
-    type = 'text',
-    placeholder,
-    value,
-    onChange,
     className = '',
-    disabled = false,
-    required = false
+    ...props
 }) => (
     <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        required={required}
+        {...props}
         className={`w-full px-4 py-3 rounded-xl bg-glass-subtle border border-glass-border-subtle text-glass-primary placeholder-glass-muted 
       focus:outline-none focus:border-glass-border focus:bg-glass transition-all backdrop-blur-sm ${className}`}
     />

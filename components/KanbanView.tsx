@@ -42,12 +42,12 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div>
-          <div className="flex items-center gap-3 text-blue-400 mb-3">
+          <div className="flex items-center gap-3 text-blue-600 mb-3">
             <Trello size={18} />
             <span className="text-xs font-semibold uppercase tracking-widest">Task Board</span>
           </div>
-          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Operations</h1>
-          <p className="text-white/50 text-sm">Manage tasks across all your projects.</p>
+          <h1 className="text-4xl font-bold text-glass-primary tracking-tight mb-2">Operations</h1>
+          <p className="text-glass-secondary text-sm">Manage tasks across all your projects.</p>
         </div>
 
         <GlassButton variant="primary" onClick={() => setShowModal(true)} className="flex items-center gap-2">
@@ -66,7 +66,7 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${column.color}`} />
-                    <h2 className="font-semibold text-white">{column.title}</h2>
+                    <h2 className="font-semibold text-glass-primary">{column.title}</h2>
                     <span className="glass-badge text-xs">{columnTasks.length}</span>
                   </div>
                 </div>
@@ -74,7 +74,7 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
                 {/* Tasks */}
                 <div className="flex-1 space-y-3 overflow-y-auto hide-scrollbar">
                   {columnTasks.length === 0 && (
-                    <div className="text-center py-8 text-white/30 text-sm">
+                    <div className="text-center py-8 text-glass-muted text-sm">
                       No tasks
                     </div>
                   )}
@@ -82,8 +82,8 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
                     <GlassCard key={task.id} className="group">
                       <div className="p-4">
                         <div className="flex items-start gap-3 mb-3">
-                          <GripVertical size={16} className="text-white/20 mt-0.5 cursor-grab" />
-                          <p className="flex-1 text-sm font-medium text-white leading-relaxed">{task.title}</p>
+                          <GripVertical size={16} className="text-glass-muted mt-0.5 cursor-grab" />
+                          <p className="flex-1 text-sm font-medium text-glass-primary leading-relaxed">{task.title}</p>
                         </div>
 
                         <div className="flex items-center justify-between">
@@ -94,7 +94,7 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
                             {column.status !== TaskStatus.TODO && (
                               <button
                                 onClick={() => updateTask(task.id, { status: TaskStatus.TODO })}
-                                className="p-1.5 text-white/40 hover:text-blue-400 transition-colors"
+                                className="p-1.5 text-glass-muted hover:text-blue-500 transition-colors"
                                 title="Move to To Do"
                               >
                                 ←
@@ -105,7 +105,7 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
                                 onClick={() => updateTask(task.id, {
                                   status: column.status === TaskStatus.TODO ? TaskStatus.IN_PROGRESS : TaskStatus.DONE
                                 })}
-                                className="p-1.5 text-white/40 hover:text-green-400 transition-colors"
+                                className="p-1.5 text-glass-muted hover:text-green-500 transition-colors"
                                 title="Move forward"
                               >
                                 →
@@ -113,7 +113,7 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
                             )}
                             <button
                               onClick={() => deleteTask(task.id)}
-                              className="p-1.5 text-white/40 hover:text-red-400 transition-colors"
+                              className="p-1.5 text-glass-muted hover:text-red-500 transition-colors"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -136,13 +136,13 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
             <div className="p-8">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-2xl font-bold text-white">Add Task</h3>
-                  <p className="text-sm text-white/50 mt-1">Create a new task for your board</p>
+                  <h3 className="text-2xl font-bold text-glass-primary">Add Task</h3>
+                  <p className="text-sm text-glass-secondary mt-1">Create a new task for your board</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="p-2 text-white/40 hover:text-white transition-colors"
+                  className="p-2 text-glass-muted hover:text-glass-primary transition-colors"
                 >
                   <X size={24} />
                 </button>
@@ -150,7 +150,7 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Task Title</label>
+                  <label className="text-xs font-medium text-glass-secondary uppercase tracking-wider">Task Title</label>
                   <GlassInput
                     type="text"
                     value={newTaskTitle}
@@ -161,7 +161,7 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
                 </div>
                 {projects.length > 0 && (
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Project (Optional)</label>
+                    <label className="text-xs font-medium text-glass-secondary uppercase tracking-wider">Project (Optional)</label>
                     <select
                       className="glass-input cursor-pointer"
                       value={selectedProject}
