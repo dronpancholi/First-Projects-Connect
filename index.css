@@ -10,42 +10,46 @@
 /* ─── CSS Variables ─── */
 :root {
     /* Light Mode Glass Properties */
-    --glass-blur: 80px;
+    --glass-blur: 100px;
     --glass-blur-strong: 120px;
     --glass-blur-subtle: 40px;
-    --glass-saturation: 180%;
+    --glass-saturation: 200%;
     /* Slightly lower saturation for clean look */
     --glass-brightness: 105%;
 
     /* Glass Backgrounds - Visible on White */
-    --glass-bg: rgba(255, 255, 255, 0.65);
-    /* Frosted white */
+    --glass-bg: rgba(255, 255, 255, 0.01);
+    /* 100% Clear Phantom Glass */
     --glass-bg-strong: rgba(255, 255, 255, 0.85);
-    --glass-bg-subtle: rgba(245, 245, 247, 0.5);
+    /* Keep strong readable for sidebars/modals */
+    --glass-bg-subtle: rgba(245, 245, 247, 0.3);
     --glass-bg-dark: rgba(0, 0, 0, 0.05);
-    /* Slight tint for contrast */
 
-    /* Glass Borders - Subtle but defining */
+    /* Glass Borders - Diamond Cut */
     --glass-border: rgba(255, 255, 255, 1.0);
-    /* Highlight edge */
-    --glass-border-subtle: rgba(0, 0, 0, 0.05);
-    /* Shadow edge */
-    --glass-border-strong: rgba(255, 255, 255, 0.9);
+    /* Sharp white edge */
+    --glass-border-subtle: rgba(255, 255, 255, 0.4);
+    /* Increased for visibility */
+    --glass-border-strong: rgba(255, 255, 255, 1.0);
 
     /* Glass Shadows - Critical for depth on white */
     --glass-shadow:
-        0 10px 40px rgba(0, 0, 0, 0.08),
-        0 4px 12px rgba(0, 0, 0, 0.05);
+        0 20px 60px rgba(0, 0, 0, 0.1),
+        0 8px 24px rgba(0, 0, 0, 0.08),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    /* Inner cut ring */
     --glass-shadow-hover:
-        0 20px 50px rgba(0, 0, 0, 0.12),
-        0 8px 24px rgba(0, 0, 0, 0.08);
+        0 30px 70px rgba(0, 0, 0, 0.15),
+        0 12px 32px rgba(0, 0, 0, 0.12),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
     --glass-shadow-inset: inset 0 1px 2px rgba(255, 255, 255, 0.9);
-    --glass-glow: 0 0 60px rgba(0, 122, 255, 0.15);
+    --glass-glow: 0 0 80px rgba(0, 122, 255, 0.2);
 
     /* Colors - Text & Accents - High Contrast for Glass */
     --text-primary: #000000;
-    --text-secondary: #48484a;
-    --text-muted: #8e8e93;
+    --text-secondary: #333333;
+    /* Darker for contrast on clear glass */
+    --text-muted: #666666;
 
     --accent-primary: #007aff;
     --accent-secondary: #5856d6;
@@ -55,7 +59,7 @@
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, #007aff 0%, #00c6ff 100%);
-    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.2) 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%);
 
     /* Typography */
     --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
@@ -106,23 +110,27 @@ body {
 
 /* Clean Minimal White Background */
 .app-bg {
-    background: #fbfbfd;
+    background: #ffffff;
     position: relative;
     overflow: hidden;
 }
 
-/* Subtle underlying mesh for liquid distortion targets */
+/* Vibrant Mesh for Phantom Mode Fuel */
 .app-bg::before {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -50%;
+    /* Extend bounds for movement */
     background:
-        radial-gradient(circle at 10% 20%, rgba(0, 122, 255, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(255, 59, 48, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(88, 86, 214, 0.15) 0%, transparent 50%);
+        radial-gradient(circle at 20% 30%, rgba(0, 122, 255, 0.6) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(255, 59, 48, 0.6) 0%, transparent 50%),
+        radial-gradient(circle at 40% 60%, rgba(88, 86, 214, 0.6) 0%, transparent 60%),
+        radial-gradient(circle at 70% 20%, rgba(52, 199, 89, 0.5) 0%, transparent 50%);
     filter: blur(80px);
     pointer-events: none;
-    animation: meshMove 20s ease-in-out infinite alternate;
+    animation: meshMove 8s ease-in-out infinite alternate;
+    opacity: 0.6;
+    /* High contrast fuel for distortion */
 }
 
 @keyframes meshMove {

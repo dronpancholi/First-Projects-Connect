@@ -1,103 +1,176 @@
-import React from 'react';
-import LiquidGlassComponent from 'liquid-glass-react';
+import React, { useRef } from 'react';
+import LiquidGlassReact from 'liquid-glass-react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 // ====================
-// Wrapper that layers glass effect behind content
-// The library's canvas interferes with layout, so we:
-// 1. Position glass absolutely as background (z-index: 0)
-// 2. Position content relatively above (z-index: 1)
+// Types
 // ====================
 
-interface GlassWrapperProps {
-    children: React.ReactNode;
+interface LiquidGlassProps {
+    children?: React.ReactNode;
     className?: string;
     style?: React.CSSProperties;
     onClick?: () => void;
-    // Glass effect props
-    displacementScale?: number;
-    blurAmount?: number;
-    saturation?: number;
-    aberrationIntensity?: number;
-    elasticity?: number;
-    cornerRadius?: number;
+    // Allow any other props
+    [key: string]: any;
 }
+
+interface GlassWrapperProps extends LiquidGlassProps {
+    displacementScale: number;
+    blurAmount: number;
+    saturation: number;
+    aberrationIntensity: number;
+    elasticity: number;
+    cornerRadius: number;
+}
+
+// ====================
+// The Physics Engine Wrapper
+// ====================
 
 const GlassWrapper: React.FC<GlassWrapperProps> = ({
     children,
     className = '',
     style,
     onClick,
-    displacementScale = 180,
-    blurAmount = 0.5,
-    saturation = 170,
-    aberrationIntensity = 4.5,
-    elasticity = 0.6,
-    cornerRadius = 24
+    displacementScale,
+    blurAmount,
+    saturation,
+    aberrationIntensity,
+    elasticity,
+    cornerRadius,
+    ...props
 }) => {
-    return (
-        <div
-            className={`relative flex flex-col overflow-hidden ${className}`}
-            style={{
-                ...style,
-                cursor: 'pointer',
-                // GPU Acceleration for smooth liquid physics
-                willChange: 'transform',
-                transform: 'translateZ(0)'
-            }}
-            onClick={onClick}
-        >
-            {/* Glass effect as absolute background layer */}
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                zIndex: 0,
-                borderRadius: cornerRadius,
-                boxShadow: 'inset 0 0 40px rgba(255,255,255,0.1)'
-            }}>
-                <LiquidGlassComponent
-                    displacementScale={displacementScale}
-                    blurAmount={blurAmount}
-                    saturation={saturation}
-                    aberrationIntensity={aberrationIntensity}
-                    elasticity={elasticity}
-                    cornerRadius={cornerRadius}
-                    style={{ width: '100%', height: '100%' }}
-                >
-                    <div style={{ width: '100%', height: '100%' }} />
-                </LiquidGlassComponent>
-            </div>
+    // 3D Tilt Physics
+    const ref = useRef<HTMLDivElement>(null);
 
-            {/* Content layer above glass - purely strictly layout */}
-            <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', pointerEvents: 'none' }}>
-                <div style={{ pointerEvents: 'auto', width: '100%', height: '100%' }}>
+    // Mouse position values (0 to 1)
+    const x = useMotionValue(0.5);
+    const y = useMotionValue(0.5);
+
+    // Smooth spring physics for the tilt
+    const mouseX = useSpring(x, { stiffness: 300, damping: 30 });
+    const mouseY = useSpring(y, { stiffness: 300, damping: 30 });
+
+    // Calculate rotation based on mouse position (-10deg to 10deg)
+    const rotateX = useTransform(mouseY, [0, 1], ["7deg", "-7deg"]);
+    const rotateY = useTransform(mouseX, [0, 1], ["-7deg", "7deg"]);
+
+    // Dynamic Specular Highlight (The "Shine") position
+    const glareX = useTransform(mouseX, [0, 1], ["0%", "100%"]);
+    const glareY = useTransform(mouseY, [0, 1], ["0%", "100%"]);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!ref.current) return;
+        const rect = ref.current.getBoundingClientRect();
+
+        const width = rect.width;
+        const height = rect.height;
+
+        const mouseXRel = e.clientX - rect.left;
+        const mouseYRel = e.clientY - rect.top;
+
+        const xPct = mouseXRel / width;
+        const yPct = mouseYRel / height;
+
+        x.set(xPct);
+        y.set(yPct);
+    };
+
+    const handleMouseLeave = () => {
+        // Reset to center on leave
+        x.set(0.5);
+        y.set(0.5);
+    };
+
+    return (
+        <motion.div
+            ref={ref}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            onClick={onClick}
+            className={`relative ${className}`}
+            style={{
+                perspective: 1000,
+                transformStyle: "preserve-3d",
+                ...style
+            }}
+            {...props}
+        >
+            {/* The Physical Glass Pane */}
+            <motion.div
+                className="relative h-full w-full overflow-hidden"
+                style={{
+                    borderRadius: cornerRadius,
+                    rotateX,
+                    rotateY,
+                    transformStyle: "preserve-3d",
+                    // GPU Acceleration for smooth liquid physics
+                    willChange: 'transform',
+                    transform: 'translateZ(0)'
+                }}
+            >
+                {/* 1. The Liquid Distortion Engine (Background) */}
+                <div
+                    className="absolute inset-0 z-0 pointer-events-none"
+                    style={{ transform: "scale(1.1)" }} // Slight scale to cover edges during rigid tilt
+                >
+                    <LiquidGlassReact
+                        displacementScale={displacementScale}
+                        blurAmount={blurAmount}
+                        saturation={saturation}
+                        aberrationIntensity={aberrationIntensity}
+                        elasticity={elasticity}
+                        interactionRadius={600}
+                        cornerRadius={cornerRadius}
+                        style={{ width: '100%', height: '100%' }}
+                    >
+                        {/* Essential for library to mount correctly */}
+                        <div style={{ width: '100%', height: '100%' }} />
+                    </LiquidGlassReact>
+                </div>
+
+                {/* 2. Dynamic Specular Reflection (The Shine) */}
+                <motion.div
+                    className="absolute inset-0 z-10 pointer-events-none mix-blend-overlay"
+                    style={{
+                        background: `radial-gradient(
+                            circle at ${glareX} ${glareY}, 
+                            rgba(255,255,255,0.8) 0%, 
+                            rgba(255,255,255,0.2) 40%, 
+                            rgba(255,255,255,0) 80%
+                        )`,
+                        opacity: 0.6
+                    }}
+                />
+
+                {/* 3. Glass Surface Texture (Subtle Noise) */}
+                <div className="absolute inset-0 z-10 pointer-events-none opacity-[0.03]"
+                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }}
+                />
+
+                {/* 4. Content Content (Floating inside the glass) */}
+                <div className="relative z-20 h-full w-full">
                     {children}
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 };
 
 // ====================
-// Component Variants
+// God Mode Component Variants
 // ====================
 
-interface LiquidGlassProps {
-    children: React.ReactNode;
-    className?: string;
-    style?: React.CSSProperties;
-    onClick?: () => void;
-}
-
-// Standard card with refined max glass effect
 export const LiquidGlass: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
         className={`glass-card ${className}`}
         {...props}
-        displacementScale={350}
-        blurAmount={1.2}
-        saturation={240}
-        aberrationIntensity={12}
-        elasticity={0.85}
+        displacementScale={2000} // Phantom Mode (Theoretical Max)
+        blurAmount={3.0}
+        saturation={320}
+        aberrationIntensity={60}
+        elasticity={0.97}
         cornerRadius={24}
     />
 );
@@ -106,11 +179,11 @@ export const GlassPanel: React.FC<LiquidGlassProps> = ({ className = '', ...prop
     <GlassWrapper
         className={`glass-panel ${className}`}
         {...props}
-        displacementScale={400}
-        blurAmount={1.5}
-        saturation={260}
-        aberrationIntensity={15}
-        elasticity={0.9}
+        displacementScale={2200} // Phantom Mode
+        blurAmount={3.5}
+        saturation={330}
+        aberrationIntensity={65}
+        elasticity={0.98}
         cornerRadius={32}
     />
 );
@@ -119,25 +192,25 @@ export const GlassCard: React.FC<LiquidGlassProps> = ({ className = '', ...props
     <GlassWrapper
         className={`glass-card ${className}`}
         {...props}
-        displacementScale={350}
-        blurAmount={1.2}
-        saturation={240}
-        aberrationIntensity={12}
-        elasticity={0.85}
+        displacementScale={2100} // Phantom Mode
+        blurAmount={2.8}
+        saturation={310}
+        aberrationIntensity={60}
+        elasticity={0.97}
         cornerRadius={24}
     />
 );
 
 export const GlassCardSubtle: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
-        className={`glass-card-subtle ${className}`}
+        className={`glass-card ${className}`}
         {...props}
-        displacementScale={120}
-        blurAmount={0.3}
-        saturation={150}
-        aberrationIntensity={3}
-        elasticity={0.5}
-        cornerRadius={16}
+        displacementScale={1200} // High but manageable for "subtle" in this mode
+        blurAmount={1.5}
+        saturation={200}
+        aberrationIntensity={30}
+        elasticity={0.90}
+        cornerRadius={24}
     />
 );
 
@@ -145,41 +218,35 @@ interface GlassModalProps extends LiquidGlassProps {
     onClose?: () => void;
 }
 
-export const GlassModal: React.FC<GlassModalProps> = ({ onClose, children, className = '', ...props }) => (
-    <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(20px) saturate(150%)' }}
-        onClick={(e) => {
-            if (e.target === e.currentTarget && onClose) onClose();
-        }}
-    >
-        <div className={`w-full max-w-lg transition-all duration-300`}>
-            {/* The wrapper itself needs the visual glass class */}
+export const GlassModal: React.FC<GlassModalProps> = ({ onClose, children, className = '', ...props }) => {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-md" aria-hidden="true" onClick={onClose} />
             <GlassWrapper
                 className={`glass-modal ${className}`}
                 {...props}
-                displacementScale={500}
-                blurAmount={2.0}
-                saturation={300}
-                aberrationIntensity={20}
-                elasticity={0.95}
+                displacementScale={2500} // Phantom Mode Extreme
+                blurAmount={4.0}
+                saturation={350}
+                aberrationIntensity={80}
+                elasticity={0.99}
                 cornerRadius={32}
             >
                 {children}
             </GlassWrapper>
         </div>
-    </div>
-);
+    );
+};
 
 export const GlassColumn: React.FC<LiquidGlassProps> = ({ className = '', ...props }) => (
     <GlassWrapper
-        className={`glass-panel ${className}`} // Use panel style for columns
+        className={`glass-panel ${className}`}
         {...props}
-        displacementScale={180}
-        blurAmount={0.4}
-        saturation={160}
-        aberrationIntensity={4}
-        elasticity={0.6}
+        displacementScale={1500}
+        blurAmount={2.5}
+        saturation={280}
+        aberrationIntensity={50}
+        elasticity={0.96}
         cornerRadius={20}
     />
 );
@@ -188,11 +255,11 @@ export const GlassStatCard: React.FC<LiquidGlassProps> = ({ className = '', ...p
     <GlassWrapper
         className={`glass-card ${className}`}
         {...props}
-        displacementScale={380}
-        blurAmount={1.4}
-        saturation={250}
-        aberrationIntensity={14}
-        elasticity={0.88}
+        displacementScale={1800}
+        blurAmount={2.5}
+        saturation={300}
+        aberrationIntensity={55}
+        elasticity={0.96}
         cornerRadius={24}
     />
 );
@@ -201,17 +268,17 @@ export const LiquidGlassStrong: React.FC<LiquidGlassProps> = ({ className = '', 
     <GlassWrapper
         className={`glass-panel ${className}`}
         {...props}
-        displacementScale={500}
-        blurAmount={2.0}
-        saturation={300}
-        aberrationIntensity={20}
-        elasticity={0.95}
+        displacementScale={2400}
+        blurAmount={3.5}
+        saturation={350}
+        aberrationIntensity={75}
+        elasticity={0.99}
         cornerRadius={32}
     />
 );
 
 // ====================
-// CSS-based fixed elements (no library - ensures layout stability)
+// Fixed Layout Elements (Sidebar/Header) - No physics to prevent motion sickness
 // ====================
 
 export const GlassSidebar: React.FC<LiquidGlassProps> = ({ children, className = '' }) => (
@@ -226,13 +293,14 @@ export const GlassHeader: React.FC<LiquidGlassProps> = ({ children, className = 
     </header>
 );
 
+
 // ====================
-// Button with Liquid Glass Effect
+// Interactive Elements (Buttons, Inputs)
 // ====================
 
 interface GlassButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: 'primary' | 'secondary' | 'ghost';
-    size?: 'sm' | 'md' | 'lg';
+    variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+    size?: 'sm' | 'md' | 'lg' | 'icon';
 }
 
 export const GlassButton: React.FC<GlassButtonProps> = ({
@@ -242,56 +310,45 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
     size = 'md',
     ...props
 }) => {
-    const sizeStyles = {
-        sm: 'px-3 py-1.5 text-xs',
-        md: 'px-6 py-3',
-        lg: 'px-8 py-4 text-lg'
+    const variantStyles: Record<string, string> = {
+        primary: 'bg-glass-accent text-white shadow-lg hover:shadow-glass-accent/30',
+        secondary: 'bg-glass-subtle text-glass-primary border border-glass-border hover:bg-glass-subtle/80',
+        ghost: 'bg-transparent text-glass-secondary hover:bg-glass-subtle/50',
+        danger: 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20',
     };
 
-    return (
-        <div
-            className={`relative inline-flex ${props.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
-        >
-            {/* Glass background */}
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                zIndex: 0,
-                pointerEvents: 'none',
-                borderRadius: 100,
-                overflow: 'hidden'
-            }}>
-                <LiquidGlassComponent
-                    displacementScale={64}
-                    blurAmount={0.1}
-                    saturation={130}
-                    aberrationIntensity={2}
-                    elasticity={0.35}
-                    cornerRadius={100}
-                    style={{ width: '100%', height: '100%' }}
-                >
-                    <div style={{ width: '100%', height: '100%' }} />
-                </LiquidGlassComponent>
-            </div>
+    const sizeStyles: Record<string, string> = {
+        sm: 'px-3 py-1.5 text-xs',
+        md: 'px-6 py-3',
+        lg: 'px-8 py-4 text-lg',
+        icon: 'p-3',
+    };
 
-            {/* Button content */}
-            <button
-                {...props}
-                className={`relative z-10 ${sizeStyles[size]} text-glass-primary font-medium flex items-center gap-2 bg-transparent border-none`}
-            >
+    // We skip the 3D physics for buttons to make them feel "clickable" and fast
+    // But we add a subtle internal glass shine effect
+    return (
+        <button
+            className={`
+                relative inline-flex items-center justify-center font-medium transition-all duration-300 rounded-xl overflow-hidden active:scale-95
+                ${variantStyles[variant]} ${sizeStyles[size]} ${className}
+            `}
+            {...props}
+        >
+            <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <div className="absolute inset-0 bg-white/20 mix-blend-overlay" />
+            </div>
+            <div className="relative z-10 flex items-center gap-2">
                 {children}
-            </button>
-        </div>
+            </div>
+        </button>
     );
 };
 
 // ====================
-// Form Components - Pure CSS (no library interference)
+// Form Inputs
 // ====================
 
-interface GlassInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-    // Extend standard props
-}
+interface GlassInputProps extends React.InputHTMLAttributes<HTMLInputElement> { }
 
 export const GlassInput: React.FC<GlassInputProps> = ({
     className = '',
@@ -304,63 +361,40 @@ export const GlassInput: React.FC<GlassInputProps> = ({
     />
 );
 
-interface GlassTextareaProps {
-    placeholder?: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    className?: string;
-    rows?: number;
-    disabled?: boolean;
-}
+interface GlassTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> { }
 
 export const GlassTextarea: React.FC<GlassTextareaProps> = ({
-    placeholder,
-    value,
-    onChange,
     className = '',
     rows = 4,
-    disabled = false
+    ...props
 }) => (
     <textarea
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
         rows={rows}
-        disabled={disabled}
         className={`w-full px-4 py-3 rounded-xl bg-glass-subtle border border-glass-border-subtle text-glass-primary placeholder-glass-muted 
       focus:outline-none focus:border-glass-border focus:bg-glass transition-all backdrop-blur-sm resize-none ${className}`}
+        {...props}
     />
 );
 
-interface GlassSelectProps {
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-    children: React.ReactNode;
-    className?: string;
-    disabled?: boolean;
-}
+interface GlassSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> { }
 
 export const GlassSelect: React.FC<GlassSelectProps> = ({
-    value,
-    onChange,
     children,
     className = '',
-    disabled = false
+    ...props
 }) => (
     <select
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
         className={`w-full px-4 py-3 rounded-xl bg-glass-subtle border border-glass-border-subtle text-glass-primary 
       focus:outline-none focus:border-glass-border focus:bg-glass transition-all backdrop-blur-sm ${className}`}
         style={{ colorScheme: 'light' }}
+        {...props}
     >
         {children}
     </select>
 );
 
 // ====================
-// Badge - Pure CSS
+// Badge
 // ====================
 
 interface GlassBadgeProps {
