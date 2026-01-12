@@ -121,7 +121,6 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
                         saturation={saturation}
                         aberrationIntensity={aberrationIntensity}
                         elasticity={elasticity}
-                        interactionRadius={600}
                         cornerRadius={cornerRadius}
                         style={{ width: '100%', height: '100%' }}
                     >
