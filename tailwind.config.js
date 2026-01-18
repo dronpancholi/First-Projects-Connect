@@ -24,6 +24,15 @@ export default {
           700: 'rgba(255, 255, 255, 0.7)',
           800: 'rgba(255, 255, 255, 0.8)',
           900: 'rgba(255, 255, 255, 0.9)',
+          subtle: 'var(--glass-bg-subtle)',
+          interactive: 'var(--glass-bg-interactive)',
+          accent: 'var(--accent-primary)',
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
+          border: 'var(--glass-border)',
+          'border-subtle': 'var(--glass-border-subtle)',
+          'border-strong': 'var(--glass-border-strong)',
         }
       },
       fontFamily: {

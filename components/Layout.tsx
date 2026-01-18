@@ -9,6 +9,7 @@ import VoiceAssistant from './VoiceAssistant.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useStore } from '../context/StoreContext.tsx';
 import { GlassSidebar, GlassHeader, GlassButton } from './ui/LiquidGlass.tsx';
+import { ConnectionStatus } from './ConnectionStatus.tsx';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -81,7 +82,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           </nav>
 
           {/* User */}
-          <div className="p-4 border-t border-glass-border-subtle">
+          <div className="p-4 border-t border-glass-border-subtle flex flex-col gap-3">
             <button
               onClick={logout}
               className="glass-nav-item w-full group"
@@ -95,6 +96,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
               </div>
               <LogOut size={16} className="text-glass-secondary group-hover:text-red-400 transition-colors" />
             </button>
+            <ConnectionStatus />
           </div>
         </GlassSidebar>
       )}

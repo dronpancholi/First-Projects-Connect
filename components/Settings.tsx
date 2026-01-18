@@ -99,24 +99,14 @@ const Settings: React.FC = () => {
   const config = getSupabaseConfig();
   const [url, setUrl] = useState(config.url);
   const [key, setKey] = useState(config.key);
+  const [openRouterKey, setOpenRouterKey] = useState(localStorage.getItem('openrouter_key') || '');
   const [copied, setCopied] = useState(false);
-  const [isAiLinked, setIsAiLinked] = useState(false);
 
-  useEffect(() => {
-    const checkAi = async () => {
-      if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
-        const linked = await (window as any).aistudio.hasSelectedApiKey();
-        setIsAiLinked(linked);
-      }
-    };
-    checkAi();
-  }, []);
+  // Removed old AI check logic since we use a simple key now
 
-  const handleLinkAi = async () => {
-    if (typeof (window as any).aistudio?.openSelectKey === 'function') {
-      await (window as any).aistudio.openSelectKey();
-      setIsAiLinked(true);
-    }
+  const handleSaveOpenRouter = () => {
+    localStorage.setItem('openrouter_key', openRouterKey);
+    alert("AI Key Saved!");
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -125,7 +115,6 @@ const Settings: React.FC = () => {
       saveSupabaseConfig(url, key);
     }
   };
-
   const copySQL = () => {
     navigator.clipboard.writeText(SQL_SCHEMA);
     setCopied(true);
@@ -194,43 +183,38 @@ const Settings: React.FC = () => {
             <div className="p-6 relative z-10">
               <div className="flex items-center gap-2 mb-4">
                 <Zap size={20} className="text-amber-400" />
-                <h2 className="text-lg font-semibold text-white">AI Integration</h2>
+                <h2 className="text-lg font-semibold text-white">AI Intelligence</h2>
               </div>
               <p className="text-sm text-white/50 mb-6 leading-relaxed">
-                Link your Gemini API account to enable AI features.
+                Connect OpenRouter to enable free AI features (Generative UI, Plans, Code Analysis).
               </p>
 
               <div className="space-y-4">
-                <GlassCard className={isAiLinked ? 'border-green-500/30 bg-green-500/10' : 'border-amber-500/30 bg-amber-500/10'}>
-                  <div className="p-4 flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-3">
-                      {isAiLinked ? (
-                        <ShieldCheck className="text-green-400" size={20} />
-                      ) : (
-                        <AlertCircle className="text-amber-400" size={20} />
-                      )}
-                      <div>
-                        <p className="text-sm font-medium text-white">
-                          {isAiLinked ? 'AI Connected' : 'Not Connected'}
-                        </p>
-                        <p className="text-xs text-white/50">
-                          {isAiLinked ? 'Ready for operation' : 'Authorization required'}
-                        </p>
-                      </div>
-                    </div>
-                    <GlassButton onClick={handleLinkAi} size="sm">
-                      {isAiLinked ? 'Refresh' : 'Link'}
-                    </GlassButton>
-                  </div>
-                </GlassCard>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">OpenRouter API Key</label>
+                  <GlassInput
+                    type="password"
+                    placeholder="sk-or-v1-..."
+                    value={openRouterKey}
+                    onChange={e => setOpenRouterKey(e.target.value)}
+                  />
+                </div>
+
+                <GlassButton
+                  onClick={handleSaveOpenRouter}
+                  variant="primary"
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border-amber-500/30"
+                >
+                  <Check size={14} /> Save AI Key
+                </GlassButton>
 
                 <a
-                  href="https://ai.google.dev/gemini-api/docs/billing"
+                  href="https://openrouter.ai/keys"
                   target="_blank"
                   className="flex items-center justify-between p-4 glass-card-subtle rounded-xl group transition-all hover:bg-white/10"
                 >
-                  <span className="text-sm font-medium text-white/60 group-hover:text-white">Billing Documentation</span>
-                  <ExternalLink size={14} className="text-white/40 group-hover:text-purple-400" />
+                  <span className="text-sm font-medium text-white/60 group-hover:text-white">Get Free Key</span>
+                  <ExternalLink size={14} className="text-white/40 group-hover:text-amber-400" />
                 </a>
               </div>
             </div>

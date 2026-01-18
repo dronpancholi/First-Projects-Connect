@@ -48,9 +48,10 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
     const x = useMotionValue(0.5);
     const y = useMotionValue(0.5);
 
-    // Smooth spring physics for the tilt
-    const mouseX = useSpring(x, { stiffness: 300, damping: 30 });
-    const mouseY = useSpring(y, { stiffness: 300, damping: 30 });
+    // Smooth Heavy Physics - 60FPS Optimized
+    const springConfig = { mass: 0.8, stiffness: 90, damping: 25 };
+    const mouseX = useSpring(x, springConfig);
+    const mouseY = useSpring(y, springConfig);
 
     // Calculate rotation based on mouse position (-10deg to 10deg)
     const rotateX = useTransform(mouseY, [0, 1], ["7deg", "-7deg"]);
@@ -329,12 +330,17 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
         <button
             className={`
                 relative inline-flex items-center justify-center font-medium transition-all duration-300 rounded-xl overflow-hidden active:scale-95
-                ${variantStyles[variant]} ${sizeStyles[size]} ${className}
+                border border-glass-border shadow-lg hover:shadow-xl hover:border-glass-border-strong
+                ${sizeStyles[size]} ${className}
             `}
+            style={{
+                background: 'var(--glass-bg-interactive)',
+                backdropFilter: 'blur(12px) saturate(180%)'
+            }}
             {...props}
         >
             <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                <div className="absolute inset-0 bg-white/20 mix-blend-overlay" />
+                <div className="absolute inset-0 bg-white/30 mix-blend-overlay" />
             </div>
             <div className="relative z-10 flex items-center gap-2">
                 {children}
@@ -355,8 +361,11 @@ export const GlassInput: React.FC<GlassInputProps> = ({
 }) => (
     <input
         {...props}
-        className={`w-full px-4 py-3 rounded-xl bg-glass-subtle border border-glass-border-subtle text-glass-primary placeholder-glass-muted 
-      focus:outline-none focus:border-glass-border focus:bg-glass transition-all backdrop-blur-sm ${className}`}
+        className={`w-full px-4 py-3 rounded-xl border border-glass-border-subtle text-glass-primary placeholder-glass-muted 
+      focus:outline-none focus:border-white/60 focus:bg-white/20 transition-all backdrop-blur-md ${className}`}
+        style={{
+            background: 'var(--glass-bg-interactive)'
+        }}
     />
 );
 

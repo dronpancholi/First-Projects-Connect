@@ -18,18 +18,19 @@
     --glass-brightness: 105%;
 
     /* Glass Backgrounds - Visible on White */
-    --glass-bg: rgba(255, 255, 255, 0.01);
-    /* 100% Clear Phantom Glass */
+    --glass-bg: rgba(255, 255, 255, 0.02);
+    /* Subtly increased from 0.01 for faint definition */
+    --glass-bg-subtle: rgba(255, 255, 255, 0.08);
+    /* New subtle background */
+    --glass-bg-interactive: rgba(255, 255, 255, 0.15);
+    /* NEW: Visible interactive elements */
     --glass-bg-strong: rgba(255, 255, 255, 0.85);
-    /* Keep strong readable for sidebars/modals */
-    --glass-bg-subtle: rgba(245, 245, 247, 0.3);
-    --glass-bg-dark: rgba(0, 0, 0, 0.05);
 
     /* Glass Borders - Diamond Cut */
     --glass-border: rgba(255, 255, 255, 1.0);
     /* Sharp white edge */
-    --glass-border-subtle: rgba(255, 255, 255, 0.4);
-    /* Increased for visibility */
+    --glass-border-subtle: rgba(255, 255, 255, 0.3);
+    /* Increased from 0.05 for visibility */
     --glass-border-strong: rgba(255, 255, 255, 1.0);
 
     /* Glass Shadows - Critical for depth on white */
@@ -47,9 +48,9 @@
 
     /* Colors - Text & Accents - High Contrast for Glass */
     --text-primary: #000000;
-    --text-secondary: #333333;
-    /* Darker for contrast on clear glass */
-    --text-muted: #666666;
+    --text-secondary: #222222;
+    /* Darker strictly for readability */
+    --text-muted: #555555;
 
     --accent-primary: #007aff;
     --accent-secondary: #5856d6;
@@ -131,6 +132,9 @@ body {
     animation: meshMove 8s ease-in-out infinite alternate;
     opacity: 0.6;
     /* High contrast fuel for distortion */
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    /* Force GPU */
 }
 
 @keyframes meshMove {
@@ -164,14 +168,16 @@ body {
 
 @layer components {
 
-    /* Sidebar Glass - Frosted & Grainy */
+    /* Sidebar Glass - Frosted & Grainy - IMPROVED DEFINITION */
     .glass-sidebar {
-        background: var(--glass-bg-strong);
-        backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturation));
-        -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturation));
-        border-right: 1px solid var(--glass-border-subtle);
-        box-shadow: var(--glass-shadow);
+        background: rgba(255, 255, 255, 0.6);
+        /* 60% Frosted Opacity */
+        backdrop-filter: blur(40px) saturate(180%);
+        -webkit-backdrop-filter: blur(40px) saturate(180%);
+        border-right: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.05);
         position: relative;
+        z-index: 50;
     }
 
     .glass-sidebar::before {

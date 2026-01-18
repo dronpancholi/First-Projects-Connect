@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ViewState, TaskStatus, Priority } from '../types.ts';
-import { Plus, X, Trash2, Trello, GripVertical } from 'lucide-react';
+import { Plus, X, Trash2, Trello, GripVertical, Wand2, Loader2 } from 'lucide-react';
+import * as GeminiService from '../services/geminiService.ts';
 import { GlassColumn, GlassCard, GlassModal, GlassButton, GlassInput, GlassBadge } from './ui/LiquidGlass.tsx';
 
 const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView }) => {
@@ -9,12 +10,29 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
   const [showModal, setShowModal] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
+  const [loadingTaskId, setLoadingTaskId] = useState<string | null>(null);
 
   const columns = [
     { status: TaskStatus.TODO, title: 'To Do', color: 'from-blue-500 to-cyan-500' },
     { status: TaskStatus.IN_PROGRESS, title: 'In Progress', color: 'from-amber-500 to-orange-500' },
     { status: TaskStatus.DONE, title: 'Completed', color: 'from-green-500 to-emerald-500' }
   ];
+
+  const handleBreakdownTask = async (task: any) => {
+    setLoadingTaskId(task.id);
+    const subtasks = await GeminiService.suggestSubtasks(task.title);
+    for (const st of subtasks) {
+      await addTask({
+        title: st,
+        status: TaskStatus.TODO,
+        priority: task.priority,
+        projectId: task.projectId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+    setLoadingTaskId(null);
+  };
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +41,9 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
       title: newTaskTitle,
       status: TaskStatus.TODO,
       priority: Priority.MEDIUM,
-      projectId: selectedProject || undefined
+      projectId: selectedProject || undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
     setNewTaskTitle('');
     setShowModal(false);
@@ -91,6 +111,17 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
                             {task.priority}
                           </GlassBadge>
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleBreakdownTask(task)}
+                              disabled={loadingTaskId === task.id}
+                              className={`p-1.5 rounded-lg transition-all ${loadingTaskId === task.id
+                                ? 'bg-purple-500/10 text-purple-500 animate-pulse'
+                                : 'text-glass-muted hover:bg-purple-500/10 hover:text-purple-500'
+                                }`}
+                              title="AI Breakdown"
+                            >
+                              {loadingTaskId === task.id ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                            </button>
                             {column.status !== TaskStatus.TODO && (
                               <button
                                 onClick={() => updateTask(task.id, { status: TaskStatus.TODO })}

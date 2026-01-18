@@ -8,6 +8,15 @@ const DEFAULT_URL = 'https://dublfowbviweyuauecma.supabase.co';
 const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1Ymxmb3didml3ZXl1YXVlY21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NzYzMzYsImV4cCI6MjA4MTU1MjMzNn0.h7H9RNVOqpDT0CtUZTAOweGvMtlpTKlSQ4OqYm7SoI4';
 
 export const getSupabaseConfig = () => {
+  // Priority 1: Environment Variables (The standard way)
+  if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    return {
+      url: import.meta.env.VITE_SUPABASE_URL,
+      key: import.meta.env.VITE_SUPABASE_ANON_KEY
+    };
+  }
+
+  // Priority 2: Local Storage (Legacy/Fallback)
   try {
     const stored = localStorage.getItem(CONFIG_KEY);
     if (stored) {
@@ -18,8 +27,10 @@ export const getSupabaseConfig = () => {
       }
     }
   } catch (e) {
-    console.warn('FPC System: Local storage configuration access failed. Falling back to default.');
+    console.warn('FPC System: Local storage configuration access failed.');
   }
+
+  // Priority 3: Default (Hardcoded fallback if env vars missing)
   return {
     url: DEFAULT_URL,
     key: DEFAULT_KEY
@@ -49,12 +60,12 @@ export const isSupabaseConfigured = () => {
 
 const createSafeClient = () => {
   const config = getSupabaseConfig();
-  
+
   if (!config.url || !config.key || !config.url.startsWith('http')) {
     console.warn('FPC System: Supabase configuration is invalid. Persistent data features will be disabled.');
     return null;
   }
-  
+
   try {
     return createClient(config.url, config.key, {
       auth: {

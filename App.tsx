@@ -14,8 +14,9 @@ import AutomationEngine from './components/AutomationEngine.tsx';
 import ResourcesView from './components/ResourcesView.tsx';
 import Login from './components/Auth/Login.tsx';
 import Register from './components/Auth/Register.tsx';
-import Settings from './components/Settings.tsx';
+import Settings from './components/Settings.tsx'; // Assuming Settings component exists
 import { ViewState } from './types.ts';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { GlassButton } from './components/ui/LiquidGlass.tsx';
 
@@ -56,7 +57,18 @@ const AuthenticatedApp: React.FC = () => {
   return (
     <StoreProvider>
       <Layout currentView={currentView} setView={setView}>
-        {renderView()}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentView.type}
+            initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            className="h-full"
+          >
+            {renderView()}
+          </motion.div>
+        </AnimatePresence>
       </Layout>
     </StoreProvider>
   );
