@@ -100,13 +100,15 @@ const Settings: React.FC = () => {
   const [url, setUrl] = useState(config.url);
   const [key, setKey] = useState(config.key);
   const [openRouterKey, setOpenRouterKey] = useState(localStorage.getItem('openrouter_key') || '');
+  const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_key') || '');
   const [copied, setCopied] = useState(false);
 
   // Removed old AI check logic since we use a simple key now
 
-  const handleSaveOpenRouter = () => {
+  const handleSaveAIKeys = () => {
     localStorage.setItem('openrouter_key', openRouterKey);
-    alert("AI Key Saved!");
+    localStorage.setItem('gemini_key', geminiKey);
+    alert("AI Keys Saved!");
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -191,7 +193,7 @@ const Settings: React.FC = () => {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">OpenRouter API Key</label>
+                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">OpenRouter API Key (Aggregator)</label>
                   <GlassInput
                     type="password"
                     placeholder="sk-or-v1-..."
@@ -200,13 +202,25 @@ const Settings: React.FC = () => {
                   />
                 </div>
 
-                <GlassButton
-                  onClick={handleSaveOpenRouter}
-                  variant="primary"
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border-amber-500/30"
-                >
-                  <Check size={14} /> Save AI Key
-                </GlassButton>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Google Gemini API Key (Direct)</label>
+                  <GlassInput
+                    type="password"
+                    placeholder="AIzaSy..."
+                    value={geminiKey}
+                    onChange={e => setGeminiKey(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <GlassButton
+                    onClick={handleSaveAIKeys}
+                    variant="primary"
+                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border-amber-500/30"
+                  >
+                    <Check size={14} /> Save Keys
+                  </GlassButton>
+                </div>
 
                 <a
                   href="https://openrouter.ai/keys"

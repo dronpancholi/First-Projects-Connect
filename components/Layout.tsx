@@ -21,7 +21,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
   const { user, logout } = useAuth();
   const { projects, tasks } = useStore();
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const activeTaskCount = tasks.filter(t => t.status !== 'Done').length;
@@ -146,7 +145,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
 
       {/* Modals */}
       {isSpotlightOpen && <SpotlightSearch isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} setView={setView} />}
-      {isVoiceActive && <VoiceAssistant onClose={() => setIsVoiceActive(false)} />}
+      <VoiceAssistant setView={setView} />
     </div>
   );
 };

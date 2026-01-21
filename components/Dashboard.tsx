@@ -1,11 +1,53 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ViewState } from '../types.ts';
 import {
   Briefcase, CheckCircle2, FileText, TrendingUp,
-  ArrowRight, Zap, Clock, Target
+  ArrowRight, Zap, Clock, Target, Sparkles, Loader2
 } from 'lucide-react';
 import { GlassCard, GlassPanel, GlassButton, GlassBadge } from './ui/LiquidGlass.tsx';
+import * as GeminiService from '../services/geminiService.ts';
+
+interface FPEngineBriefingProps {
+  tasks: number;
+  projects: number;
+}
+
+const FPEngineBriefing: React.FC<FPEngineBriefingProps> = ({ tasks, projects }) => {
+  const [briefing, setBriefing] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBriefing = async () => {
+      setLoading(true);
+      const text = await GeminiService.generateDailyBriefing({ tasks, projects, highPriority: 0 });
+      setBriefing(text);
+      setLoading(false);
+    };
+    fetchBriefing();
+  }, []); // Run once on mount
+
+  return (
+    <GlassPanel className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border-purple-500/20">
+      <div className="p-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles size={18} className="text-purple-400" />
+          <h3 className="font-semibold text-purple-100 tracking-wide uppercase text-xs">FP-Engine Daily Briefing</h3>
+        </div>
+        {loading ? (
+          <div className="flex items-center gap-2 text-white/50">
+            <Loader2 size={16} className="animate-spin" />
+            <span className="text-sm">Analyzing ecosystem...</span>
+          </div>
+        ) : (
+          <div className="prose prose-invert prose-sm max-w-none">
+            <p className="text-white/90 text-lg leading-relaxed">{briefing}</p>
+          </div>
+        )}
+      </div>
+    </GlassPanel>
+  );
+};
 
 interface DashboardProps {
   setView: (view: ViewState) => void;
@@ -40,6 +82,9 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           <Briefcase size={18} /> New Workspace <ArrowRight size={16} />
         </GlassButton>
       </header>
+
+      {/* FP-Engine Briefing */}
+      <FPEngineBriefing tasks={tasks.length} projects={projects.length} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
