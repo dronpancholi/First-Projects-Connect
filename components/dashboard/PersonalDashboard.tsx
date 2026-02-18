@@ -1,26 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { useStore } from '../context/StoreContext.tsx';
-import { ViewState } from '../types.ts';
+import { useStore } from '../../context/StoreContext.tsx';
+import { ViewState } from '../../types.ts';
 import {
   Briefcase, CheckCircle2, FileText, TrendingUp,
   ArrowRight, Zap, Clock, Target, Sparkles, Loader2
 } from 'lucide-react';
-import { GlassCard, GlassPanel, GlassButton, GlassBadge } from './ui/LiquidGlass.tsx';
-import * as GeminiService from '../services/geminiService.ts';
+import { GlassCard, GlassPanel, GlassButton, GlassBadge, GlassProgressBar } from '../ui/LiquidGlass.tsx';
+import * as GeminiService from '../../services/geminiService.ts';
+import { Skeleton } from '../ui/Skeleton.tsx';
+import { EmptyState } from '../ui/EmptyState.tsx';
+import { LearningLog } from '../tracking/LearningLog.tsx';
+import { ReflectionLog } from '../tracking/ReflectionLog.tsx';
 
 interface FPEngineBriefingProps {
   tasks: number;
   projects: number;
+  highPriority: number;
 }
 
-const FPEngineBriefing: React.FC<FPEngineBriefingProps> = ({ tasks, projects }) => {
+const FPEngineBriefing: React.FC<FPEngineBriefingProps> = ({ tasks, projects, highPriority }) => {
   const [briefing, setBriefing] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchBriefing = async () => {
       setLoading(true);
-      const text = await GeminiService.generateDailyBriefing({ tasks, projects, highPriority: 0 });
+      const text = await GeminiService.generateDailyBriefing({ tasks, projects, highPriority });
       setBriefing(text);
       setLoading(false);
     };
@@ -28,7 +33,12 @@ const FPEngineBriefing: React.FC<FPEngineBriefingProps> = ({ tasks, projects }) 
   }, []); // Run once on mount
 
   return (
-    <GlassPanel className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border-purple-500/20">
+    <GlassPanel
+      className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border-purple-500/20"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+    >
       <div className="p-6">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={18} className="text-purple-400" />
@@ -53,10 +63,10 @@ interface DashboardProps {
   setView: (view: ViewState) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
-  const { projects, tasks, notes } = useStore();
-  const activeTasks = tasks.filter(t => t.status !== 'Done').length;
-  const completedTasks = tasks.filter(t => t.status === 'Done').length;
+const PersonalDashboard: React.FC<DashboardProps> = ({ setView }) => {
+  const { projects, tasks, notes, isLoading } = useStore();
+  const activeTasks = tasks.filter(t => t.status !== 'done').length;
+  const completedTasks = tasks.filter(t => t.status === 'done').length;
   const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
   const recentProjects = projects.slice(0, 4);
@@ -84,11 +94,11 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
       </header>
 
       {/* FP-Engine Briefing */}
-      <FPEngineBriefing tasks={tasks.length} projects={projects.length} />
+      <FPEngineBriefing tasks={tasks.length} projects={projects.length} highPriority={tasks.filter(t => t.priority === 'high' && t.status !== 'done').length} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <GlassCard className="h-full">
+        <GlassCard className="h-full" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
           <div className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-purple-500/10 shadow-lg shadow-purple-500/10 backdrop-blur-sm">
@@ -97,13 +107,22 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
               <GlassBadge variant="success">Active</GlassBadge>
             </div>
             <div>
-              <p className="text-4xl font-bold text-glass-primary mb-1">{projects.length}</p>
-              <p className="text-sm text-glass-secondary">Total Projects</p>
+              {isLoading ? (
+                <>
+                  <Skeleton width={48} height={40} className="mb-1" variant="rounded" />
+                  <Skeleton width={80} height={16} />
+                </>
+              ) : (
+                <>
+                  <p className="text-4xl font-bold text-glass-primary mb-1">{projects.length}</p>
+                  <p className="text-sm text-glass-secondary">Total Projects</p>
+                </>
+              )}
             </div>
           </div>
         </GlassCard>
 
-        <GlassCard className="h-full">
+        <GlassCard className="h-full" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
           <div className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-500/10 shadow-lg shadow-blue-500/10 backdrop-blur-sm">
@@ -112,13 +131,22 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
               <GlassBadge variant="warning">{activeTasks} pending</GlassBadge>
             </div>
             <div>
-              <p className="text-4xl font-bold text-glass-primary mb-1">{tasks.length}</p>
-              <p className="text-sm text-glass-secondary">Total Tasks</p>
+              {isLoading ? (
+                <>
+                  <Skeleton width={48} height={40} className="mb-1" variant="rounded" />
+                  <Skeleton width={80} height={16} />
+                </>
+              ) : (
+                <>
+                  <p className="text-4xl font-bold text-glass-primary mb-1">{tasks.length}</p>
+                  <p className="text-sm text-glass-secondary">Total Tasks</p>
+                </>
+              )}
             </div>
           </div>
         </GlassCard>
 
-        <GlassCard className="h-full">
+        <GlassCard className="h-full" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}>
           <div className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-emerald-500/10 shadow-lg shadow-emerald-500/10 backdrop-blur-sm">
@@ -127,13 +155,22 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
               <GlassBadge variant="success">+{completedTasks}</GlassBadge>
             </div>
             <div>
-              <p className="text-4xl font-bold text-glass-primary mb-1">{completionRate}%</p>
-              <p className="text-sm text-glass-secondary">Completion Rate</p>
+              {isLoading ? (
+                <>
+                  <Skeleton width={64} height={40} className="mb-1" variant="rounded" />
+                  <Skeleton width={100} height={16} />
+                </>
+              ) : (
+                <>
+                  <p className="text-4xl font-bold text-glass-primary mb-1">{completionRate}%</p>
+                  <p className="text-sm text-glass-secondary">Completion Rate</p>
+                </>
+              )}
             </div>
           </div>
         </GlassCard>
 
-        <GlassCard className="h-full">
+        <GlassCard className="h-full" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }}>
           <div className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-pink-500/10 shadow-lg shadow-pink-500/10 backdrop-blur-sm">
@@ -142,11 +179,34 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
               <GlassBadge>Insights</GlassBadge>
             </div>
             <div>
-              <p className="text-4xl font-bold text-glass-primary mb-1">{notes.length}</p>
-              <p className="text-sm text-glass-secondary">Total Notes</p>
+              {isLoading ? (
+                <>
+                  <Skeleton width={48} height={40} className="mb-1" variant="rounded" />
+                  <Skeleton width={80} height={16} />
+                </>
+              ) : (
+                <>
+                  <p className="text-4xl font-bold text-glass-primary mb-1">{notes.length}</p>
+                  <p className="text-sm text-glass-secondary">Total Notes</p>
+                </>
+              )}
             </div>
           </div>
         </GlassCard>
+      </div>
+
+      {/* Tracking Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <GlassPanel initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+          <div className="p-6">
+            <LearningLog />
+          </div>
+        </GlassPanel>
+        <GlassPanel initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+          <div className="p-6">
+            <ReflectionLog />
+          </div>
+        </GlassPanel>
       </div>
 
       {/* Recent Projects & Quick Actions */}
@@ -165,39 +225,63 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
               </GlassButton>
             </div>
             <div className="divide-y divide-glass-border-subtle">
-              {recentProjects.length === 0 && (
-                <div className="p-12 text-center">
-                  <Briefcase size={48} className="mx-auto text-glass-muted mb-4" />
-                  <p className="text-glass-secondary">No projects yet. Create your first workspace!</p>
+              {isLoading ? (
+                <div className="p-5 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Skeleton width={48} height={48} variant="rounded" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton width="60%" height={20} />
+                      <Skeleton width="40%" height={14} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Skeleton width={48} height={48} variant="rounded" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton width="50%" height={20} />
+                      <Skeleton width="30%" height={14} />
+                    </div>
+                  </div>
                 </div>
+              ) : recentProjects.length === 0 ? (
+                <div className="p-8">
+                  <EmptyState
+                    icon={Briefcase}
+                    title="No Workspaces Yet"
+                    description="Create your first workspace to start organizing your projects."
+                    action={
+                      <GlassButton size="sm" onClick={() => setView({ type: 'PROJECTS' })}>Create Workspace</GlassButton>
+                    }
+                  />
+                </div>
+              ) : (
+                recentProjects.map(project => (
+                  <button
+                    key={project.id}
+                    onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: project.id })}
+                    className="w-full p-5 flex items-center gap-4 hover:bg-glass-subtle transition-all group text-left"
+                  >
+                    <div className="w-12 h-12 rounded-xl glass-card flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <Briefcase size={20} className="text-purple-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-glass-primary truncate mb-1">{project.title}</h3>
+                      <p className="text-xs text-glass-secondary truncate">{project.description || 'No description'}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <GlassBadge variant={project.status === 'active' ? 'success' : 'default'}>
+                        {project.status}
+                      </GlassBadge>
+                      <ArrowRight size={16} className="text-glass-secondary group-hover:text-glass-primary transition-colors" />
+                    </div>
+                  </button>
+                ))
               )}
-              {recentProjects.map(project => (
-                <button
-                  key={project.id}
-                  onClick={() => setView({ type: 'PROJECT_DETAIL', projectId: project.id })}
-                  className="w-full p-5 flex items-center gap-4 hover:bg-glass-subtle transition-all group text-left"
-                >
-                  <div className="w-12 h-12 rounded-xl glass-card flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Briefcase size={20} className="text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-glass-primary truncate mb-1">{project.title}</h3>
-                    <p className="text-xs text-glass-secondary truncate">{project.description || 'No description'}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <GlassBadge variant={project.status === 'Active' ? 'success' : 'default'}>
-                      {project.status}
-                    </GlassBadge>
-                    <ArrowRight size={16} className="text-glass-secondary group-hover:text-glass-primary transition-colors" />
-                  </div>
-                </button>
-              ))}
             </div>
           </GlassPanel>
-        </div>
+        </div >
 
         {/* Quick Actions */}
-        <div className="space-y-6">
+        < div className="space-y-6" >
           <GlassPanel>
             <div className="p-6">
               <h3 className="text-lg font-semibold text-glass-primary mb-4 flex items-center gap-2">
@@ -238,18 +322,15 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
               <p className="text-sm text-glass-secondary">
                 {completedTasks} of {tasks.length} tasks completed
               </p>
-              <div className="mt-4 h-2 rounded-full bg-glass-border-subtle overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
-                  style={{ width: `${completionRate}%` }}
-                />
+              <div className="mt-4">
+                <GlassProgressBar value={completionRate} variant="gradient" />
               </div>
             </div>
           </GlassCard>
-        </div>
-      </div>
-    </div>
+        </div >
+      </div >
+    </div >
   );
 };
 
-export default Dashboard;
+export default PersonalDashboard;

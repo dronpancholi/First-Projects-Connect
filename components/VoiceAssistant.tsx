@@ -124,8 +124,8 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ setView }) => {
             status: TaskStatus.TODO,
             priority: payload.priority === 'High' ? Priority.HIGH : Priority.MEDIUM,
             projectId: payload.projectId === 'GLOBAL' || !payload.projectId ? (projects[0]?.id || '') : payload.projectId,
-            createdAt: new Date(),
-            updatedAt: new Date()
+
+
           });
           break;
         case 'CREATE_PROJECT':
@@ -134,7 +134,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ setView }) => {
             description: payload.description,
             tags: ['fp-engine'],
             status: ProjectStatus.ACTIVE,
-            updatedAt: new Date()
+
           });
           break;
         case 'CREATE_NOTE':

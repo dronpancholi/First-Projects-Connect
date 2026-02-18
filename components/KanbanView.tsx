@@ -27,8 +27,8 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
         status: TaskStatus.TODO,
         priority: task.priority,
         projectId: task.projectId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+
+
       });
     }
     setLoadingTaskId(null);
@@ -42,8 +42,8 @@ const KanbanView: React.FC<{ setView: (view: ViewState) => void }> = ({ setView 
       status: TaskStatus.TODO,
       priority: Priority.MEDIUM,
       projectId: selectedProject || undefined,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+
+
     });
     setNewTaskTitle('');
     setShowModal(false);

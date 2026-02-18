@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   LayoutDashboard, Briefcase, FileText, LogOut, Search,
-  Palette, Menu, CreditCard, Users, Activity, Bell, Trello
+  Palette, Menu, CreditCard, Users, Activity, Bell, Trello, Map as MapIcon
 } from 'lucide-react';
 import { ViewState } from '../types.ts';
 import SpotlightSearch from './SpotlightSearch.tsx';
@@ -18,15 +18,17 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const { projects, tasks } = useStore();
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const activeTaskCount = tasks.filter(t => t.status !== 'Done').length;
+  const activeTaskCount = tasks.filter(t => t.status !== 'done').length;
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', view: 'DASHBOARD' },
+    { icon: Users, label: 'Team', view: 'TEAM_DASHBOARD' },
+    { icon: MapIcon, label: 'Roadmap', view: 'SHARED_ROADMAP' },
     { icon: Briefcase, label: 'Workspaces', view: 'PROJECTS', badge: projects.length },
     { icon: Trello, label: 'Operations', view: 'KANBAN', badge: activeTaskCount },
     { icon: FileText, label: 'Insights', view: 'IDEAS' },
@@ -83,14 +85,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
           {/* User */}
           <div className="p-4 border-t border-glass-border-subtle flex flex-col gap-3">
             <button
-              onClick={logout}
+              onClick={signOut}
               className="glass-nav-item w-full group"
             >
               <div className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-glass-primary text-sm font-medium">
-                {user?.name?.[0] || 'U'}
+                {user?.full_name?.[0] || 'U'}
               </div>
               <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-medium text-glass-primary truncate">{user?.name || 'User'}</p>
+                <p className="text-sm font-medium text-glass-primary truncate">{user?.full_name || 'User'}</p>
                 <p className="text-xs text-glass-secondary">Logout</p>
               </div>
               <LogOut size={16} className="text-glass-secondary group-hover:text-red-400 transition-colors" />

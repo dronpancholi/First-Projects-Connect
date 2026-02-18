@@ -63,8 +63,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
 
   const projectTasks = tasks.filter(t => {
     if (t.projectId !== projectId) return false;
-    if (taskFilter === 'PENDING') return t.status !== TaskStatus.DONE;
-    if (taskFilter === 'DONE') return t.status === TaskStatus.DONE;
+    if (taskFilter === 'PENDING') return t.status !== 'done';
+    if (taskFilter === 'DONE') return t.status === 'done';
     return true;
   });
 
@@ -73,7 +73,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
 
   const handleTaskToggle = (task: Task) => {
     updateTask(task.id, {
-      status: task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE
+      status: task.status === 'done' ? 'todo' : 'done'
     });
   };
 
@@ -83,7 +83,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
     await addNote({
       title: 'AI Generated Plan',
       content: plan,
-      projectId: project.id
+      projectId: project.id,
+      createdAt: new Date()
     });
     setIsGenerating(false);
     setShowAIModal(false);
@@ -97,7 +98,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
       await addTask({
         projectId,
         title: st,
-        status: TaskStatus.TODO,
+        status: 'todo',
         priority: task.priority
       });
     }
@@ -129,7 +130,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
       name: assetName,
       url: assetUrl,
       type: assetType,
-      description: 'Connected resource'
+      description: 'Connected resource',
+      resourceId: crypto.randomUUID(), // Mock ID
+      isConnected: true
     });
     setAssetName('');
     setAssetUrl('');
@@ -172,7 +175,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div className="space-y-3 max-w-3xl">
               <div className="flex flex-wrap items-center gap-2">
-                <GlassBadge variant={project.status === ProjectStatus.ACTIVE ? 'success' : 'default'}>
+                <GlassBadge variant={project.status === 'active' ? 'success' : 'default'}>
                   {project.status}
                 </GlassBadge>
 
@@ -243,7 +246,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                 </div>
               </div>
               <GlassButton
-                onClick={() => addTask({ projectId, title: 'New task...', status: TaskStatus.TODO, priority: Priority.MEDIUM })}
+                onClick={() => addTask({ projectId, title: 'New task...', status: 'todo', priority: 'medium' })}
                 variant="primary"
                 className="flex items-center gap-2"
               >
@@ -263,12 +266,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                   <div key={task.id} className="flex items-center gap-4 p-4 hover:bg-glass-subtle transition-all group">
                     <button
                       onClick={() => handleTaskToggle(task)}
-                      className={`transition-all ${task.status === TaskStatus.DONE ? 'text-green-500' : 'text-glass-muted hover:text-purple-500'}`}
+                      className={`transition-all ${task.status === 'done' ? 'text-green-500' : 'text-glass-muted hover:text-purple-500'}`}
                     >
-                      {task.status === TaskStatus.DONE ? <CheckCircle2 size={22} /> : <Circle size={22} />}
+                      {task.status === 'done' ? <CheckCircle2 size={22} /> : <Circle size={22} />}
                     </button>
                     <input
-                      className={`flex-1 bg-transparent outline-none text-sm font-medium transition-all ${task.status === TaskStatus.DONE ? 'text-glass-muted line-through' : 'text-glass-primary'
+                      className={`flex-1 bg-transparent outline-none text-sm font-medium transition-all ${task.status === 'done' ? 'text-glass-muted line-through' : 'text-glass-primary'
                         }`}
                       value={task.title}
                       placeholder="Task description..."
@@ -276,7 +279,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
                     />
 
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {task.status !== TaskStatus.DONE && (
+                      {task.status !== 'done' && (
                         <button
                           onClick={() => handleBreakdownTask(task)}
                           disabled={loadingTaskId === task.id}
@@ -299,8 +302,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
 
                     <GlassBadge
                       variant={
-                        task.priority === Priority.HIGH ? 'danger' :
-                          task.priority === Priority.MEDIUM ? 'warning' : 'default'
+                        task.priority === 'high' ? 'danger' :
+                          task.priority === 'medium' ? 'warning' : 'default'
                       }
                     >
                       {task.priority}
@@ -317,7 +320,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack }) => {
           <div className="max-w-5xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <button
-                onClick={() => addNote({ projectId, title: 'New Note', content: '' })}
+                onClick={() => addNote({ projectId, title: 'New Note', content: '', createdAt: new Date() })}
                 className="aspect-[4/5] glass-card-subtle border-2 border-dashed border-glass-border rounded-2xl flex flex-col items-center justify-center text-glass-muted hover:border-purple-500/50 hover:text-purple-500 hover:bg-purple-500/10 cursor-pointer transition-all group"
               >
                 <div className="w-14 h-14 rounded-xl glass-card flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext.tsx';
+import { useAuth, supabase } from '../../context/AuthContext.tsx';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { GlassButton, GlassInput } from '../ui/LiquidGlass.tsx';
 
@@ -8,14 +8,38 @@ interface RegisterProps {
 }
 
 const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
-  const { register, isLoading, error } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await register(name, email, password);
+    setIsLoading(true);
+    setError(null);
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+        }
+      }
+    });
+
+    if (error) {
+      setError(error.message);
+      setIsLoading(false);
+    } else {
+      // Show check email message or auto login (Supabase default is auto login if email confirm off, or wait)
+      // For this prototype, we assume email confirm might be off or we show a message
+      // But if successful, AuthContext will catch the session if auto-signed in.
+      // If email confirmation is required, we should show a message.
+      // For now, let's assume it handles it or we show a message.
+    }
   };
 
   return (

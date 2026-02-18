@@ -1,113 +1,99 @@
 
-// Import React to fix TS error: Cannot find namespace 'React'
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types.ts';
-import { supabase, isSupabaseConfigured } from '../services/supabaseClient.ts';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createClient, Session, User } from '@supabase/supabase-js';
+import { User as AppUser } from '../types';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface AuthContextType {
-  user: User | null;
+  session: Session | null;
+  user: AppUser | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
-  error: string | null;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured() || !supabase) {
-      setIsLoading(false);
-      return;
-    }
-
-    let subscription: { unsubscribe: () => void } | null = null;
-
-    // Check active session
-    supabase.auth.getSession()
-      .then(({ data: { session } }: any) => {
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.full_name || session.user.email || 'User'
-          });
-        }
-      })
-      .catch((err: any) => {
-        console.error("Auth initialization failed:", err);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-
-    const { data } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
       if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          name: session.user.user_metadata?.full_name || session.user.email || 'User'
-        });
+        fetchProfile(session.user.id, session.user);
       } else {
-        setUser(null);
+        setIsLoading(false);
       }
     });
-    
-    subscription = data.subscription;
 
-    return () => {
-      if (subscription) subscription.unsubscribe();
-    };
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session?.user) {
+        fetchProfile(session.user.id, session.user);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    if (!supabase) return;
-    setIsLoading(true);
-    setError(null);
+  const fetchProfile = async (userId: string, authUser: User) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-    } catch (err: any) {
-      setError(err.message);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error);
+      }
+
+      if (data) {
+        setUser({
+          ...data,
+          email: authUser.email
+        });
+      } else {
+        // Fallback if profile doesn't exist yet (handled by trigger usually, but just in case)
+        setUser({
+          id: authUser.id,
+          email: authUser.email,
+          created_at: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching profile:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    if (!supabase) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: name }
-        }
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+    if (error) throw error;
   };
 
-  const logout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-    setUser(null);
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, error }}>
+    <AuthContext.Provider value={{ session, user, isLoading, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -115,6 +101,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };

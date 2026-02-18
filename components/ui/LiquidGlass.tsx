@@ -44,7 +44,7 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
     // 3D Tilt Removed - Simplified Static Render
 
     return (
-        <div
+        <motion.div
             onClick={onClick}
             className={`relative ${className}`}
             style={{
@@ -96,7 +96,7 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
                     {children}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -108,11 +108,11 @@ export const LiquidGlass: React.FC<LiquidGlassProps> = ({ className = '', ...pro
     <GlassWrapper
         className={`glass-card ${className}`}
         {...props}
-        displacementScale={2000} // Phantom Mode (Theoretical Max)
-        blurAmount={3.0}
-        saturation={320}
-        aberrationIntensity={60}
-        elasticity={0.97}
+        displacementScale={1500} // Standardized High
+        blurAmount={2.0}
+        saturation={110}
+        aberrationIntensity={30}
+        elasticity={0.95}
         cornerRadius={24}
     />
 );
@@ -121,12 +121,12 @@ export const GlassPanel: React.FC<LiquidGlassProps> = ({ className = '', ...prop
     <GlassWrapper
         className={`glass-panel ${className}`}
         {...props}
-        displacementScale={2200} // Phantom Mode
-        blurAmount={3.5}
-        saturation={330}
-        aberrationIntensity={65}
-        elasticity={0.98}
-        cornerRadius={32}
+        displacementScale={1200} // Standardized Medium-High
+        blurAmount={2.5}
+        saturation={120}
+        aberrationIntensity={40}
+        elasticity={0.96}
+        cornerRadius={24} // Standardized radius
     />
 );
 
@@ -134,12 +134,12 @@ export const GlassCard: React.FC<LiquidGlassProps> = ({ className = '', ...props
     <GlassWrapper
         className={`glass-card ${className}`}
         {...props}
-        displacementScale={2100} // Phantom Mode
-        blurAmount={2.8}
-        saturation={310}
-        aberrationIntensity={60}
-        elasticity={0.97}
-        cornerRadius={24}
+        displacementScale={1000} // Standardized Medium
+        blurAmount={1.5}
+        saturation={110}
+        aberrationIntensity={20}
+        elasticity={0.94}
+        cornerRadius={20} // Standardized radius
     />
 );
 
@@ -147,12 +147,12 @@ export const GlassCardSubtle: React.FC<LiquidGlassProps> = ({ className = '', ..
     <GlassWrapper
         className={`glass-card ${className}`}
         {...props}
-        displacementScale={1200} // High but manageable for "subtle" in this mode
-        blurAmount={1.5}
-        saturation={200}
-        aberrationIntensity={30}
+        displacementScale={600} // Standardized Low
+        blurAmount={1.0}
+        saturation={100}
+        aberrationIntensity={10}
         elasticity={0.90}
-        cornerRadius={24}
+        cornerRadius={16} // Standardized radius
     />
 );
 
@@ -243,6 +243,7 @@ export const GlassHeader: React.FC<LiquidGlassProps> = ({ children, className = 
 interface GlassButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
     size?: 'sm' | 'md' | 'lg' | 'icon';
+    as?: any; // To allow motion component passthrough if needed
 }
 
 export const GlassButton: React.FC<GlassButtonProps> = ({
@@ -266,20 +267,31 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
         icon: 'p-3',
     };
 
-    // We skip the 3D physics for buttons to make them feel "clickable" and fast
-    // But we add a subtle internal glass shine effect
+    // Upgrading to motion.button for spring-based interactions
     return (
-        <button
+        <motion.button
             className={`
-                relative inline-flex items-center justify-center font-medium transition-all duration-300 rounded-xl overflow-hidden active:scale-95
-                border border-glass-border shadow-lg hover:shadow-xl hover:border-glass-border-strong
+                relative inline-flex items-center justify-center font-medium transition-colors duration-300 rounded-xl overflow-hidden
+                border border-glass-border shadow-lg
                 ${sizeStyles[size]} ${className}
             `}
             style={{
                 background: 'var(--glass-bg-interactive)',
                 backdropFilter: 'blur(12px) saturate(180%)'
             }}
-            {...props}
+            whileHover={{
+                y: -2,
+                backgroundColor: 'var(--glass-bg-strong)',
+                boxShadow: 'var(--glass-shadow-hover)',
+                borderColor: 'var(--glass-border-strong)'
+            }}
+            whileTap={{
+                scale: 0.96,
+                y: 0,
+                boxShadow: 'var(--glass-shadow-inset)'
+            }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            {...(props as any)}
         >
             <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                 <div className="absolute inset-0 bg-white/30 mix-blend-overlay" />
@@ -287,7 +299,7 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
             <div className="relative z-10 flex items-center gap-2">
                 {children}
             </div>
-        </button>
+        </motion.button>
     );
 };
 
@@ -372,6 +384,54 @@ export const GlassBadge: React.FC<GlassBadgeProps> = ({
         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${variantStyles[variant]} ${className}`}>
             {children}
         </span>
+    );
+};
+
+// ====================
+// Progress Bar
+// ====================
+
+interface GlassProgressBarProps {
+    value: number;
+    max?: number;
+    className?: string;
+    showLabel?: boolean;
+    variant?: 'default' | 'gradient' | 'success' | 'warning';
+}
+
+export const GlassProgressBar: React.FC<GlassProgressBarProps> = ({
+    value,
+    max = 100,
+    className = '',
+    showLabel = false,
+    variant = 'gradient'
+}) => {
+    const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
+
+    const variantStyles: Record<string, string> = {
+        default: 'bg-glass-primary',
+        gradient: 'bg-gradient-to-r from-purple-500 to-pink-500',
+        success: 'bg-green-500',
+        warning: 'bg-amber-500',
+    };
+
+    return (
+        <div className={`w-full ${className}`}>
+            {showLabel && (
+                <div className="flex justify-between text-xs mb-2">
+                    <span className="text-glass-secondary">Progress</span>
+                    <span className="text-glass-primary font-medium">{Math.round(percentage)}%</span>
+                </div>
+            )}
+            <div className="h-2 rounded-full bg-glass-border-subtle overflow-hidden backdrop-blur-sm">
+                <motion.div
+                    className={`h-full rounded-full ${variantStyles[variant]}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percentage}%` }}
+                    transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                />
+            </div>
+        </div>
     );
 };
 

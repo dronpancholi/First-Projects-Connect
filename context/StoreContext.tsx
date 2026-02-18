@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import {
   Project, Task, Note, Asset, Whiteboard, CanvasElement,
   TaskStatus, ProjectStatus, Priority, CodeSnippet,
-  FinancialEntry, Stakeholder, AutomationRule, Resource
+  FinancialEntry, Stakeholder, AutomationRule, Resource,
+  LearningSession, Reflection,
+  DeepWorkSession, Comment, TeamActivity, TeamMetric
 } from '../types.ts';
 import { useAuth } from './AuthContext.tsx';
 import { supabase } from '../services/supabaseClient.ts';
@@ -17,15 +19,25 @@ interface StoreContextType {
   financials: FinancialEntry[];
   stakeholders: Stakeholder[];
   automations: AutomationRule[];
+
   resources: Resource[];
+  learningSessions: LearningSession[];
+  reflections: Reflection[];
+
+  // Team Data
+  deepWorkSessions: DeepWorkSession[];
+  comments: Comment[];
+  teamActivity: TeamActivity[];
+  teamMetrics: TeamMetric[];
+
   isLoading: boolean;
   isSyncing: boolean;
 
-  addProject: (p: Omit<Project, 'id' | 'createdAt' | 'progress'>) => Promise<void>;
+  addProject: (p: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'created_at' | 'updated_at' | 'progress'>) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
 
-  addTask: (t: Omit<Task, 'id'>) => Promise<void>;
+  addTask: (t: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'project_id' | 'projectId' | 'updatedAt' | 'createdAt'> & { projectId: string }) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
 
@@ -37,7 +49,19 @@ interface StoreContextType {
   deleteFinancial: (id: string) => Promise<void>;
   deleteStakeholder: (id: string) => Promise<void>;
   deleteAutomation: (id: string) => Promise<void>;
+
   deleteResource: (id: string) => Promise<void>;
+
+  addLearningSession: (s: Omit<LearningSession, 'id' | 'created_at'>) => Promise<void>;
+  addReflection: (r: Omit<Reflection, 'id' | 'created_at'>) => Promise<void>;
+
+  // Team Methods
+  addDeepWorkSession: (s: Omit<DeepWorkSession, 'id'>) => Promise<string>;
+  startDeepWorkSession: (teamId: string) => Promise<string>;
+  joinDeepWorkSession: (sessionId: string) => Promise<void>;
+  endDeepWorkSession: (sessionId: string) => Promise<void>;
+  addComment: (c: Omit<Comment, 'id' | 'created_at'>) => Promise<void>;
+  addTeamActivity: (a: Omit<TeamActivity, 'id' | 'created_at'>) => Promise<void>;
 
   updateWhiteboard: (id: string, elements: CanvasElement[]) => Promise<void>;
   addWhiteboard: (w: Omit<Whiteboard, 'id' | 'updatedAt'>) => Promise<void>;
@@ -51,7 +75,7 @@ interface StoreContextType {
   updateSnippet: (id: string, code: string) => Promise<void>;
   deleteSnippet: (id: string) => Promise<void>;
 
-  addAsset: (a: Omit<Asset, 'id' | 'uploadedAt'>) => Promise<void>;
+  addAsset: (a: Omit<Asset, 'id' | 'uploadedAt' | 'createdAt'>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
 }
 
@@ -68,7 +92,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [financials, setFinancials] = useState<FinancialEntry[]>([]);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [automations, setAutomations] = useState<AutomationRule[]>([]);
+
   const [resources, setResources] = useState<Resource[]>([]);
+  const [learningSessions, setLearningSessions] = useState<LearningSession[]>([]);
+  const [reflections, setReflections] = useState<Reflection[]>([]);
+
+  const [deepWorkSessions, setDeepWorkSessions] = useState<DeepWorkSession[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [teamActivity, setTeamActivity] = useState<TeamActivity[]>([]);
+  const [teamMetrics, setTeamMetrics] = useState<TeamMetric[]>([]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -78,7 +111,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const [
         pData, tData, nData, aData, wData, sData,
-        fData, stData, auData, rData
+        fData, stData, auData, rData, lData, refData
       ] = await Promise.all([
         supabase.from('projects').select('*').order('created_at', { ascending: false }),
         supabase.from('tasks').select('*').order('created_at', { ascending: false }),
@@ -90,6 +123,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         supabase.from('stakeholders').select('*').order('created_at', { ascending: false }),
         supabase.from('automations').select('*').order('created_at', { ascending: false }),
         supabase.from('resources').select('*').order('created_at', { ascending: false }),
+        supabase.from('learning_sessions').select('*').order('started_at', { ascending: false }),
+        supabase.from('reflections').select('*').order('created_at', { ascending: false }),
+        supabase.from('deep_work_sessions').select('*').order('started_at', { ascending: false }),
+        supabase.from('comments').select('*').order('created_at', { ascending: false }),
+        supabase.from('team_activity').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (pData.data) setProjects(pData.data.map(d => ({ ...d, createdAt: new Date(d.created_at) })));
@@ -102,6 +140,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (stData.data) setStakeholders(stData.data.map(d => ({ ...d, linkedProjectId: d.linked_project_id })));
       if (auData.data) setAutomations(auData.data.map(d => ({ ...d, isActive: d.is_active })));
       if (rData.data) setResources(rData.data.map(d => ({ ...d, expiryDate: d.expiry_date ? new Date(d.expiry_date) : undefined })));
+      // Team Data Setters (if/when table exists, otherwise empty)
+      // Note: These tables might not exist yet in Supabase, so we handle gracefully
+      // For now, we initialize with empty or mock if needed for UI dev
+
 
     } catch (e) {
       console.error('Data sync failed:', e);
@@ -109,6 +151,45 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setIsLoading(false);
     }
   }, [user]);
+
+  // --- Metrics Calculation ---
+  useEffect(() => {
+    if (isLoading) return;
+
+    // Calculate simple metrics based on loaded data
+    const totalDeepWorkHours = deepWorkSessions.reduce((acc, session) => {
+      if (!session.ended_at) return acc;
+      const duration = new Date(session.ended_at).getTime() - new Date(session.started_at).getTime();
+      return acc + (duration / (1000 * 60 * 60));
+    }, 0);
+
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(t => t.status === 'done').length;
+    const roadmapCompletion = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    const activeProjectsCount = projects.filter(p => p.status === 'active').length;
+
+    // Consistency Score (Mock logic: higher with more recent activity)
+    // In real app, calculate variance of daily activity
+    const recentActivityCount = teamActivity.filter(a => {
+      const date = new Date(a.created_at);
+      const now = new Date();
+      const diffDays = (now.getTime() - date.getTime()) / (1000 * 3600 * 24);
+      return diffDays <= 7;
+    }).length;
+    const consistencyScore = Math.min(100, 50 + (recentActivityCount * 5));
+
+    setTeamMetrics([{
+      team_id: 'team-1', // Default ID
+      total_study_hours: Math.round(totalDeepWorkHours * 10) / 10,
+      consistency_score: consistencyScore,
+      deep_work_ratio: 75, // Mock for now
+      roadmap_completion: roadmapCompletion,
+      active_projects: activeProjectsCount,
+      updated_at: new Date().toISOString()
+    }]);
+
+  }, [deepWorkSessions, tasks, projects, teamActivity, isLoading]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -260,9 +341,83 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await supabase.from('assets').delete().eq('id', id);
     setAssets(prev => prev.filter(a => a.id !== id));
   };
+
+  const addLearningSession = async (s: any) => {
+    const { data, error } = await supabase.from('learning_sessions').insert([{ ...s, user_id: user?.id }]).select().single();
+    if (data && !error) setLearningSessions(prev => [data, ...prev]);
+  };
+
+  const addReflection = async (r: any) => {
+    const { data, error } = await supabase.from('reflections').insert([{ ...r, user_id: user?.id }]).select().single();
+    if (data && !error) setReflections(prev => [data, ...prev]);
+  };
+
+  // --- Team Logic ---
+
+  const addDeepWorkSession = async (s: any): Promise<string> => {
+    // Mock for UI dev until backend table is ready
+    const newSession: DeepWorkSession = {
+      id: Math.random().toString(36).substr(2, 9),
+      team_id: s.team_id,
+      host_id: user?.id || 'unknown',
+      started_at: new Date().toISOString(),
+      status: 'active',
+      participants: [{ user_id: user?.id || 'me', joined_at: new Date().toISOString(), status: 'active' }]
+    };
+    setDeepWorkSessions(prev => [newSession, ...prev]);
+    return newSession.id;
+  };
+
+  const startDeepWorkSession = async (teamId: string): Promise<string> => {
+    return await addDeepWorkSession({
+      team_id: teamId,
+      host_id: user?.id || 'me',
+      started_at: new Date().toISOString(),
+      status: 'active',
+      participants: []
+    });
+  };
+
+  const joinDeepWorkSession = async (sessionId: string) => {
+    setDeepWorkSessions(prev => prev.map(s => {
+      if (s.id === sessionId) {
+        return {
+          ...s,
+          participants: [...s.participants, { user_id: user?.id || 'me', joined_at: new Date().toISOString(), status: 'active' }]
+        };
+      }
+      return s;
+    }));
+  };
+
+  const endDeepWorkSession = async (sessionId: string) => {
+    setDeepWorkSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'completed', ended_at: new Date().toISOString() } : s));
+  };
+
+  const addComment = async (c: any) => {
+    const newComment: Comment = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...c,
+      created_at: new Date().toISOString(),
+      user_id: user?.id || 'me'
+    };
+    setComments(prev => [newComment, ...prev]);
+  };
+
+  const addTeamActivity = async (a: any) => {
+    const newActivity: TeamActivity = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...a,
+      created_at: new Date().toISOString(),
+      user_id: user?.id || 'me'
+    };
+    setTeamActivity(prev => [newActivity, ...prev]);
+  };
+
   return (
     <StoreContext.Provider value={{
-      projects, tasks, notes, assets, whiteboards, snippets, financials, stakeholders, automations, resources, isLoading, isSyncing,
+      projects, tasks, notes, assets, whiteboards, snippets, financials, stakeholders, automations, resources,
+      learningSessions, reflections, isLoading, isSyncing,
       addProject, updateProject, deleteProject,
       addTask, updateTask, deleteTask,
       addFinancial, addStakeholder, addAutomation, addResource,
@@ -270,7 +425,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updateWhiteboard, addWhiteboard, deleteWhiteboard,
       addNote, updateNote, deleteNote,
       addSnippet, updateSnippet, deleteSnippet,
-      addAsset, deleteAsset
+      addAsset, deleteAsset,
+      addLearningSession, addReflection,
+      deepWorkSessions, comments, teamActivity, teamMetrics,
+      addDeepWorkSession, startDeepWorkSession, joinDeepWorkSession, endDeepWorkSession, addComment, addTeamActivity
     }}>
       {children}
     </StoreContext.Provider>

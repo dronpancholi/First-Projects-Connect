@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext.tsx';
 import { ViewState, ProjectStatus } from '../types.ts';
 import { Briefcase, Plus, ArrowRight, X, FolderOpen } from 'lucide-react';
-import { GlassCard, GlassModal, GlassButton, GlassInput, GlassTextarea, GlassBadge } from './ui/LiquidGlass.tsx';
+import { GlassCard, GlassModal, GlassButton, GlassInput, GlassTextarea, GlassBadge, GlassProgressBar } from './ui/LiquidGlass.tsx';
+import { Skeleton } from './ui/Skeleton.tsx';
+import { EmptyState } from './ui/EmptyState.tsx';
 
 interface ProjectListProps {
   setView: (view: ViewState) => void;
 }
 
 const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
-  const { projects, addProject } = useStore();
+  const { projects, addProject, isLoading } = useStore();
   const [showModal, setShowModal] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -20,7 +22,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
     await addProject({
       title,
       description,
-      status: ProjectStatus.ACTIVE,
+      status: 'active',
       tags: []
     });
     setTitle('');
@@ -47,16 +49,35 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
       </header>
 
       {/* Projects Grid */}
-      {projects.length === 0 ? (
-        <div className="glass-card-subtle p-20 text-center rounded-3xl border-2 border-dashed border-white/10">
-          <FolderOpen size={64} className="mx-auto text-white/20 mb-6" />
-          <h3 className="text-xl font-semibold text-white/40 mb-3">No projects yet</h3>
-          <p className="text-sm text-white/30 mb-8 max-w-md mx-auto">
-            Start by creating your first workspace to organize tasks, notes, and assets.
-          </p>
-          <GlassButton variant="primary" onClick={() => setShowModal(true)}>
-            Create First Project
-          </GlassButton>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="glass-card p-6 space-y-4">
+              <div className="flex justify-between">
+                <Skeleton width={48} height={48} variant="rounded" />
+                <Skeleton width={60} height={24} variant="rounded" />
+              </div>
+              <Skeleton width="70%" height={24} />
+              <Skeleton width="100%" height={16} />
+              <div className="mt-4 pt-4 border-t border-white/5 flex justify-between">
+                <Skeleton width={80} height={20} />
+                <Skeleton width={20} height={20} variant="circular" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="p-8">
+          <EmptyState
+            icon={FolderOpen}
+            title="No Workspaces Yet"
+            description="Start by creating your first workspace to organize tasks, notes, and assets."
+            action={
+              <GlassButton variant="primary" onClick={() => setShowModal(true)}>
+                Create First Workspace
+              </GlassButton>
+            }
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -72,7 +93,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
                     style={{ boxShadow: '0 8px 32px rgba(139, 92, 246, 0.2)' }}>
                     <Briefcase size={20} className="text-purple-600" />
                   </div>
-                  <GlassBadge variant={project.status === 'Active' ? 'success' : 'default'}>
+                  <GlassBadge variant={project.status === 'active' ? 'success' : 'default'}>
                     {project.status}
                   </GlassBadge>
                 </div>
@@ -86,12 +107,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ setView }) => {
                     <span className="text-glass-secondary">Progress</span>
                     <span className="text-glass-primary font-medium">{project.progress || 0}%</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-glass-border-subtle overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all"
-                      style={{ width: `${project.progress || 0}%` }}
-                    />
-                  </div>
+                  <GlassProgressBar value={project.progress || 0} variant="gradient" />
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-glass-border-subtle flex items-center justify-between">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext.tsx';
+import { useAuth, supabase } from '../../context/AuthContext.tsx';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { GlassButton, GlassInput } from '../ui/LiquidGlass.tsx';
 
@@ -9,13 +9,27 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onRegisterClick, onSettingsClick }) => {
-  const { login, isLoading, error } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email, password);
+    setIsLoading(true);
+    setError(null);
+
+    // Import supabase from context or services
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+      setIsLoading(false);
+    }
+    // Success is handled by AuthContext state change redirecting
   };
 
   return (
