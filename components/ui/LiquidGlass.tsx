@@ -41,80 +41,28 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
     cornerRadius,
     ...props
 }) => {
-    // 3D Tilt Physics
-    const ref = useRef<HTMLDivElement>(null);
-
-    // Mouse position values (0 to 1)
-    const x = useMotionValue(0.5);
-    const y = useMotionValue(0.5);
-
-    // Smooth Heavy Physics - 60FPS Optimized
-    const springConfig = { mass: 0.8, stiffness: 90, damping: 25 };
-    const mouseX = useSpring(x, springConfig);
-    const mouseY = useSpring(y, springConfig);
-
-    // Calculate rotation based on mouse position (-10deg to 10deg)
-    const rotateX = useTransform(mouseY, [0, 1], ["7deg", "-7deg"]);
-    const rotateY = useTransform(mouseX, [0, 1], ["-7deg", "7deg"]);
-
-    // Dynamic Specular Highlight (The "Shine") position
-    const glareX = useTransform(mouseX, [0, 1], ["0%", "100%"]);
-    const glareY = useTransform(mouseY, [0, 1], ["0%", "100%"]);
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-
-        const width = rect.width;
-        const height = rect.height;
-
-        const mouseXRel = e.clientX - rect.left;
-        const mouseYRel = e.clientY - rect.top;
-
-        const xPct = mouseXRel / width;
-        const yPct = mouseYRel / height;
-
-        x.set(xPct);
-        y.set(yPct);
-    };
-
-    const handleMouseLeave = () => {
-        // Reset to center on leave
-        x.set(0.5);
-        y.set(0.5);
-    };
+    // 3D Tilt Removed - Simplified Static Render
 
     return (
-        <motion.div
-            ref={ref}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+        <div
             onClick={onClick}
             className={`relative ${className}`}
             style={{
-                perspective: 1000,
-                transformStyle: "preserve-3d",
                 ...style
             }}
             {...props}
         >
-            {/* The Physical Glass Pane */}
-            <motion.div
+            <div
                 className="relative h-full w-full overflow-hidden"
                 style={{
                     borderRadius: cornerRadius,
-                    rotateX,
-                    rotateY,
-                    transformStyle: "preserve-3d",
-                    // GPU Acceleration for smooth liquid physics
-                    willChange: 'transform',
-                    transform: 'translateZ(0)'
+                    // No 3D transforms
                 }}
             >
                 {/* 1. The Liquid Distortion Engine (Background) */}
                 <div
                     className="absolute inset-0 z-0 pointer-events-none"
-                    style={{ transform: "scale(1.1)" }} // Slight scale to cover edges during rigid tilt
+                    style={{ transform: "scale(1.0)" }}
                 >
                     <LiquidGlassReact
                         displacementScale={displacementScale}
@@ -125,36 +73,30 @@ const GlassWrapper: React.FC<GlassWrapperProps> = ({
                         cornerRadius={cornerRadius}
                         style={{ width: '100%', height: '100%' }}
                     >
-                        {/* Essential for library to mount correctly */}
                         <div style={{ width: '100%', height: '100%' }} />
                     </LiquidGlassReact>
                 </div>
 
-                {/* 2. Dynamic Specular Reflection (The Shine) */}
-                <motion.div
+                {/* 2. Static Shine (simplified) */}
+                <div
                     className="absolute inset-0 z-10 pointer-events-none mix-blend-overlay"
                     style={{
-                        background: `radial-gradient(
-                            circle at ${glareX} ${glareY}, 
-                            rgba(255,255,255,0.8) 0%, 
-                            rgba(255,255,255,0.2) 40%, 
-                            rgba(255,255,255,0) 80%
-                        )`,
-                        opacity: 0.6
+                        background: `linear-gradient(120deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)`,
+                        opacity: 0.4
                     }}
                 />
 
-                {/* 3. Glass Surface Texture (Subtle Noise) */}
+                {/* 3. Glass Surface Texture */}
                 <div className="absolute inset-0 z-10 pointer-events-none opacity-[0.03]"
                     style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }}
                 />
 
-                {/* 4. Content Content (Floating inside the glass) */}
+                {/* 4. Content Content */}
                 <div className="relative z-20 h-full w-full">
                     {children}
                 </div>
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
     );
 };
 

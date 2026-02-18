@@ -123,7 +123,7 @@ export const generateWhiteboardLayout = async (description: string): Promise<Whi
     const prompt = `Synthesize a diagram for: "${description}". Return valid JSON with this structure: { "diagramType": string, "title": string, "elements": [{ "id": string, "type": "rect"|"circle"|"text"|"connection", "x": number, "y": number, "content": string, "color": string, "width": number, "height": number }] }. Ensure strictly valid JSON.`;
 
     // Using a more capable model for JSON generation if available, otherwise fallback to free
-    const text = await openRouterCall([{ role: "user", content: prompt }], "google/gemini-2.0-flash-exp:free", true);
+    const text = await callAI([{ role: "user", content: prompt }], "google/gemini-2.0-flash-exp:free", true);
     return JSON.parse(text);
   } catch (error) {
     console.error("Whiteboard Gen Error:", error);
@@ -147,7 +147,70 @@ export interface CommandAction {
   feedback: string;
 }
 
+export interface AgentAction {
+  type: 'NAVIGATE' | 'CREATE_TASK' | 'CREATE_PROJECT' | 'CREATE_NOTE';
+  payload: any;
+}
+
+export interface AgentResponse {
+  response: string; // The spoken/text response to the user
+  actions: AgentAction[]; // Array of actions to execute
+}
+
+export const runAgentLoop = async (
+  history: { role: 'user' | 'model', content: string }[],
+  context: { tasks: any[], projects: any[], notes: any[] }
+): Promise<AgentResponse> => {
+  try {
+    const systemPrompt = `
+      You are the AI Assistant for "First Projects Connect".
+      
+      Live Context:
+      - Projects: ${context.projects.map(p => p.title).join(', ') || "None"}
+      - Tasks: ${context.tasks.length} pending
+      - Notes: ${context.notes.length} total
+
+      Instructions:
+      1. Analyze the User's Request.
+      2. If they want to perform an action (create task, project, note, or navigate), map it to the "actions" array.
+      3. If they just want to chat or ask a question, put the answer in "response".
+      4. Return STRICT JSON.
+
+      Action Schemas:
+      - NAVIGATE: { path: "/projects" | "/kanban" | "/settings" | "/" }
+      - CREATE_TASK: { title: string, priority: "High"|"Medium", projectId: string (default to first available or "GLOBAL") }
+      - CREATE_PROJECT: { title: string, description: string }
+      - CREATE_NOTE: { title: string, content: string }
+
+      Example JSON:
+      {
+        "response": "I've created the task.",
+        "actions": [{ "type": "CREATE_TASK", "payload": { "title": "Buy milk", "priority": "Medium", "projectId": "GLOBAL" } }]
+      }
+    `;
+
+    // messages array for the API
+    const messages = [
+      { role: "user", content: systemPrompt }, // Prepend system prompt as user message (working around simple API)
+      ...history
+    ];
+
+    const text = await callAI(messages, "google/gemini-2.0-flash-exp:free", true);
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Agent Loop Error:", error);
+    return {
+      response: "I encountered a processing error. Please try again.",
+      actions: []
+    };
+  }
+};
+
 export const interpretCommand = async (command: string): Promise<CommandAction> => {
+  // ... Legacy function, keeping for backward compatibility if needed, or I can deprecate it.
+  // Converting it to use the new agent loop simply? No, let's keep it separate for now or just replace it.
+  // For this task coverage, I'll add the new function and leave interpretCommand as is or remove it in refactor.
+  // I will LEAVE it for now to avoid breaking existing imports until I update VoiceAssistant.
   try {
     const prompt = `
       You are "FP-Engine", the central AI intelligence for "First Projects Connect". 
